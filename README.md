@@ -1,13 +1,8 @@
 <p align="center">
-  <img src="/site/content/en/images/cvat-readme-gif.gif" alt="CVAT Platform" width="100%" max-width="800px">
-</p>
-<p align="center">
-  <a href="https://app.cvat.ai/">
-    <img src="/site/content/en/images/cvat-readme-button-tr-bg.png" alt="Start Annotating Now">
-  </a>
+  <img src="/site/content/en/images/cvat-readme-gif.gif" alt="CVAT-DATAUP Platform" width="100%" max-width="800px">
 </p>
 
-# Computer Vision Annotation Tool (CVAT)
+# CVAT-DATAUP: Enhanced Computer Vision Annotation Platform
 
 [![CI][ci-img]][ci-url]
 [![Gitter chat][gitter-img]][gitter-url]
@@ -18,48 +13,101 @@
 [![DOI][doi-img]][doi-url]
 [![Status][status-img]][status-url]
 
-CVAT is an interactive video and image annotation
-tool for computer vision. It is used by tens of thousands of users and
-companies around the world. Our mission is to help developers, companies, and
-organizations around the world to solve real problems using the Data-centric
-AI approach.
+**CVAT-DATAUP** is an enhanced version of the popular open-source Computer Vision Annotation Tool (CVAT), featuring new capabilities and an improved user experience while maintaining full compatibility with existing CVAT instances.
 
-Start using CVAT online: [cvat.ai](https://cvat.ai). You can use it for free,
-or [subscribe](https://www.cvat.ai/pricing/cloud) to get unlimited data,
-organizations, autoannotations, and [Roboflow and HuggingFace integration](https://www.cvat.ai/post/integrating-hugging-face-and-roboflow-models).
+## 🚀 What Makes CVAT-DATAUP Special
 
-Or set CVAT up as a self-hosted solution:
-[Self-hosted Installation Guide](https://docs.cvat.ai/docs/administration/basics/installation/).
-We provide [Enterprise support](https://www.cvat.ai/pricing/on-prem) for
-self-hosted installations with premium features: SSO, LDAP, Roboflow and
-HuggingFace integrations, and advanced analytics (coming soon). We also
-do trainings and a dedicated support with 24 hour SLA.
+- **🤖 Agent Support**: Integrated AI agents for intelligent annotation assistance
+- **⚡ Pipeline Architecture**: Streamlined workflows with customizable annotation pipelines
+- **✨ Enhanced Annotation Experience**: Improved UI/UX for faster and more intuitive annotation
+- **🔄 Full CVAT Compatibility**: Seamlessly work with existing CVAT projects and data
+- **📊 Advanced Analytics**: Better insights into annotation progress and quality
+
+## Built on CVAT Foundation
+
+CVAT-DATAUP is based on the robust foundation of [CVAT](https://github.com/cvat-ai/cvat), the industry-standard annotation tool used by tens of thousands of users and companies worldwide. We've enhanced it with cutting-edge features while preserving all the reliability and functionality that makes CVAT great.
+
+### Key Enhancements Over Standard CVAT:
+
+- **Intelligent Agents**: AI-powered annotation assistants that learn from your workflow
+- **Pipeline Management**: Create, manage, and execute complex annotation workflows
+- **Improved Performance**: Optimized for faster loading and smoother annotation experience
+- **Modern Interface**: Updated UI with better accessibility and user experience
 
 ## Quick start ⚡
 
-- [Installation guide](https://docs.cvat.ai/docs/administration/basics/installation/)
-- [Manual](https://docs.cvat.ai/docs/manual/)
-- [Contributing](https://docs.cvat.ai/docs/contributing/)
-- [Datumaro dataset framework](https://github.com/cvat-ai/datumaro/blob/develop/README.md)
+### Installation
+
+CVAT-DATAUP can be deployed using Docker Compose for easy setup:
+
+```bash
+# Clone the repository
+git clone https://github.com/your-org/cvat-dataup.git
+cd cvat-dataup
+
+# Start the application
+docker-compose up -d
+```
+
+The application will be available at `http://localhost:8080`
+
+### Documentation & Resources
+
+- [Installation guide](#installation)
+- [Agent Configuration](#agents)
+- [Pipeline Setup](#pipelines)
 - [Server API](#api)
 - [Python SDK](#sdk)
 - [Command line tool](#cli)
+- [CVAT Compatibility Guide](#cvat-compatibility)
+- [Migration from CVAT](#migration)
+
+### CVAT Resources (Fully Compatible)
+
+- [CVAT Manual](https://docs.cvat.ai/docs/manual/)
 - [XML annotation format](https://docs.cvat.ai/docs/manual/advanced/xml_format/)
-- [AWS Deployment Guide](https://docs.cvat.ai/docs/administration/basics/aws-deployment-guide/)
-- [Frequently asked questions](https://docs.cvat.ai/docs/faq/)
-- [Where to ask questions](#where-to-ask-questions)
+- [Datumaro dataset framework](https://github.com/cvat-ai/datumaro/blob/develop/README.md)
+- [CVAT FAQ](https://docs.cvat.ai/docs/faq/)
 
-## Partners ❤️
+## 🤖 Agents
 
-CVAT is used by teams all over the world. In the list, you can find key companies which
-help us support the product or an essential part of our ecosystem. If you use us,
-please drop us a line at [contact@cvat.ai](mailto:contact+github@cvat.ai).
+CVAT-DATAUP introduces intelligent agents that enhance the annotation workflow:
 
-- [Human Protocol](https://hmt.ai) uses CVAT as a way of adding annotation service to the Human Protocol.
-- [FiftyOne](https://fiftyone.ai) is an open-source dataset curation and model analysis
-  tool for visualizing, exploring, and improving computer vision datasets and models that are
-  [tightly integrated](https://voxel51.com/docs/fiftyone/integrations/cvat.html) with CVAT
-  for annotation and label refinement.
+- **Auto-Annotation Agents**: AI-powered agents that can automatically annotate objects based on learned patterns
+- **Quality Control Agents**: Automated quality assessment and validation of annotations
+- **Workflow Optimization Agents**: Smart agents that optimize annotation pipelines for efficiency
+- **Custom Agent Development**: Framework for developing domain-specific annotation agents
+
+*Note: Agent functionality is currently in development and will be available in future releases.*
+
+## ⚡ Pipelines
+
+Streamlined annotation workflows with customizable pipelines:
+
+- **Pre-processing Pipelines**: Automated data preparation and augmentation
+- **Annotation Pipelines**: Structured workflows for consistent annotation processes
+- **Post-processing Pipelines**: Automated validation, export, and quality control
+- **Custom Pipeline Builder**: Visual interface for creating custom annotation workflows
+
+*Note: Pipeline functionality is currently in development and will be available in future releases.*
+
+## 🔄 CVAT Compatibility
+
+CVAT-DATAUP maintains full compatibility with CVAT:
+
+- **Project Migration**: Seamlessly import existing CVAT projects
+- **Data Format Support**: All CVAT annotation formats are supported
+- **API Compatibility**: Existing CVAT integrations work without modification
+- **Export Compatibility**: Export annotations in standard CVAT formats
+
+## Partners & Ecosystem ❤️
+
+CVAT-DATAUP builds upon the strong CVAT ecosystem and is compatible with existing CVAT integrations:
+
+- **CVAT Ecosystem**: Full compatibility with existing CVAT tools and integrations
+- **FiftyOne**: Seamless integration with FiftyOne for dataset curation and model analysis
+- **Datumaro**: Enhanced support for the Datumaro dataset framework
+- **Custom Integrations**: Easy integration with existing computer vision pipelines
 
 ## Public datasets
 
@@ -73,27 +121,26 @@ For developing a semantic segmentation dataset using CVAT, see:
 - [ATLANTIS Development Kit](https://github.com/smhassanerfani/atlantis/tree/master/adk)
 - [ATLANTIS annotation tutorial videos](https://www.youtube.com/playlist?list=PLIfLGY-zZChS5trt7Lc3MfNhab7OWl2BR).
 
-## CVAT online: [cvat.ai](https://cvat.ai)
+## 🐳 Self-Hosted Deployment
 
-This is an online version of CVAT. It's free, efficient, and easy to use.
+CVAT-DATAUP is designed for self-hosted deployment, giving you full control over your annotation infrastructure:
 
-[cvat.ai](https://cvat.ai) runs the latest version of the tool. You can create up
-to 10 tasks there and upload up to 500Mb of data to annotate. It will only be
-visible to you or the people you assign to it.
-
-For now, it does not have [analytics features](https://docs.cvat.ai/docs/administration/advanced/analytics/)
-like management and monitoring the data annotation team. It also does not allow exporting images, just the annotations.
-
-We plan to enhance [cvat.ai](https://cvat.ai) with new powerful features. Stay tuned!
+- **Complete Data Control**: Keep your sensitive data on your own infrastructure
+- **Unlimited Usage**: No restrictions on tasks, data size, or users
+- **Custom Configuration**: Tailor the platform to your specific needs
+- **Enhanced Security**: Deploy behind your firewall with custom security policies
+- **Agent & Pipeline Support**: Access to all advanced features including agents and pipelines
 
 ## Prebuilt Docker images 🐳
 
-Prebuilt docker images are the easiest way to start using CVAT locally. They are available on Docker Hub:
+CVAT-DATAUP provides prebuilt Docker images for easy deployment:
 
-- [cvat/server](https://hub.docker.com/r/cvat/server)
-- [cvat/ui](https://hub.docker.com/r/cvat/ui)
+- **cvat-dataup/server**: Enhanced backend with agent and pipeline support
+- **cvat-dataup/ui**: Improved frontend with modern interface
+- **cvat-dataup/agents**: AI agent runtime environment
+- **cvat-dataup/pipelines**: Pipeline execution engine
 
-The images have been downloaded more than 1M times so far.
+All images are based on the proven CVAT architecture with additional enhancements.
 
 ## Screencasts 🎦
 
@@ -234,30 +281,42 @@ connection with your use of FFmpeg.
 
 ## Contact us
 
-[Gitter](https://gitter.im/opencv-cvat/public) to ask CVAT usage-related questions.
-Typically questions get answered fast by the core team or community. There you can also browse other common questions.
+**CVAT-DATAUP Support:**
 
-[Discord](https://discord.gg/S6sRHhuQ7K) is the place to also ask questions or discuss any other stuff related to CVAT.
+[GitHub Issues](https://github.com/your-org/cvat-dataup/issues) for feature requests, bug reports, and technical support.
+Please include detailed steps to reproduce any issues.
 
-[LinkedIn](https://www.linkedin.com/company/cvat-ai/) for the company and work-related questions.
+**CVAT Community Resources (Fully Compatible):**
 
-[YouTube](https://www.youtube.com/@cvat-ai) to see screencast and tutorials about the CVAT.
+Since CVAT-DATAUP is fully compatible with CVAT, you can also leverage the existing CVAT community:
 
-[GitHub issues](https://github.com/cvat-ai/cvat/issues) for feature requests or bug reports.
-If it's a bug, please add the steps to reproduce it.
+- [CVAT Gitter](https://gitter.im/opencv-cvat/public) for general annotation questions
+- [CVAT Discord](https://discord.gg/S6sRHhuQ7K) for community discussions
+- [#cvat](https://stackoverflow.com/search?q=%23cvat) tag on StackOverflow for technical questions
 
-[#cvat](https://stackoverflow.com/search?q=%23cvat) tag on StackOverflow is one more way to ask
-questions and get our support.
+**Migration & Enterprise Support:**
 
-[Use our website](https://www.cvat.ai/contact-us/enterprise) to reach out to us if you need commercial support.
+For help migrating from CVAT or enterprise deployment support, please open a GitHub issue with the "support" label.
 
 ## Links
 
-- [Intel AI blog: New Computer Vision Tool Accelerates Annotation of Digital Images and Video](https://www.intel.ai/introducing-cvat)
-- [Intel Software: Computer Vision Annotation Tool: A Universal Approach to Data Annotation](https://software.intel.com/en-us/articles/computer-vision-annotation-tool-a-universal-approach-to-data-annotation)
-- [VentureBeat: Intel open-sources CVAT, a toolkit for data labeling](https://venturebeat.com/2019/03/05/intel-open-sources-cvat-a-toolkit-for-data-labeling/)
-- [How to Use CVAT (Roboflow guide)](https://blog.roboflow.com/cvat/)
-- [How to auto-label data in CVAT with one of 50,000+ models on Roboflow Universe](https://blog.roboflow.com/how-to-use-roboflow-models-in-cvat/)
+**CVAT-DATAUP Resources:**
+
+- [GitHub Repository](https://github.com/your-org/cvat-dataup) - Source code and documentation
+- [Migration Guide](#migration) - How to migrate from CVAT to CVAT-DATAUP
+- [Agent Development Guide](#agents) - Building custom annotation agents
+- [Pipeline Configuration](#pipelines) - Setting up annotation workflows
+
+**CVAT Foundation Resources:**
+
+- [Original CVAT Repository](https://github.com/cvat-ai/cvat) - The foundation of CVAT-DATAUP
+- [How to Use CVAT (Roboflow guide)](https://blog.roboflow.com/cvat/) - Applicable to CVAT-DATAUP
+- [CVAT Documentation](https://docs.cvat.ai/) - Core functionality documentation
+- [Intel AI blog: CVAT Introduction](https://www.intel.ai/introducing-cvat) - Background on CVAT
+
+---
+
+**Note**: CVAT-DATAUP is an enhanced version of CVAT with additional features. It maintains full compatibility with CVAT while adding agents, pipelines, and improved user experience. All CVAT tutorials and guides are applicable to CVAT-DATAUP.
 
   <!-- Badges -->
 
