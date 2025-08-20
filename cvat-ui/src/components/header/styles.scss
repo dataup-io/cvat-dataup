@@ -86,16 +86,6 @@
     width: $grid-unit-size * 24;
 }
 
-.cvat-header-menu-active-organization-item {
-    ::after {
-        content: ' \2713';
-        float: right;
-        margin-left: $grid-unit-size;
-    }
-
-    font-weight: bold;
-}
-
 .cvat-modal-organization-selector {
     width: 100%;
 }

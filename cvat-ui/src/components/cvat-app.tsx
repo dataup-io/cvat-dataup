@@ -239,7 +239,6 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                 if (newOrgId === null) {
                     localStorage.removeItem('currentOrganization');
                     core.config.organization.organizationUuid = null;
-                    core.config.organization.active = false;
                     window.location.reload();
                 } else {
                     core.organizations.get({
@@ -248,24 +247,6 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                         if (organization) {
                             localStorage.setItem('currentOrganization', organization.slug);
                             core.config.organization.organizationUuid = organization.uuid;
-
-                        // Health check functionality has been removed
-                        // Always set organization as active
-                        const isActive = true;
-                        
-                        // // Determine if organization is active based on status
-                        // let isActive = false;
-                        // try {
-                        //     if (organization.uuid) {
-                        //         const statusData = await core.server.dataUPHealth.getOrganizationStatus(organization.uuid);
-                        //         isActive = statusData.status === 'registered';
-                        //     }
-                        // } catch (error) {
-                        //     console.warn('Failed to fetch organization status:', error);
-                        //     isActive = false;
-                        // }
-
-                            core.config.organization.active = isActive;
                             window.location.reload();
                         }
                     }).catch((error) => {

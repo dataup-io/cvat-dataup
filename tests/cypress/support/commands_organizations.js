@@ -89,7 +89,7 @@ Cypress.Commands.add('deactivateOrganization', () => {
 
 Cypress.Commands.add('openOrganization', (organizationShortName) => {
     openOrganizationsMenu();
-    cy.get('.cvat-header-menu-active-organization-item')
+    cy.get('.cvat-header-menu-organization-item')
         .should('have.text', organizationShortName);
     cy.get('.cvat-header-menu-open-organization')
         .should('be.visible')

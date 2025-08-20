@@ -361,12 +361,12 @@ function HeaderComponent(props: Props): JSX.Element {
             }, {
                 key: '$personal',
                 label: 'Personal workspace',
-                className: !currentOrganization ? 'cvat-header-menu-active-organization-item' : 'cvat-header-menu-organization-item',
+                className: 'cvat-header-menu-organization-item',
                 onClick: resetOrganization,
             }, ...organizationsList.map((organization: Organization) => ({
                 key: organization.slug,
                 onClick: () => setNewOrganization(organization),
-                className: currentOrganization?.slug === organization.slug ? 'cvat-header-menu-active-organization-item' : 'cvat-header-menu-organization-item',
+                className: 'cvat-header-menu-organization-item',
                 label: organization.slug,
             }))] : []),
         ],

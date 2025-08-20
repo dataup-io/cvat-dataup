@@ -44,7 +44,6 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
       - cvat_db:/var/lib/postgresql/data
-      # - /mnt/HC_Volume_102201382/cvat_data/cvat_db/_data:/var/lib/postgresql/data
     networks:
       - cvat
 

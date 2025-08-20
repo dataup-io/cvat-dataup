@@ -375,27 +375,10 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.organizations.activate, async (organization) => {
         checkObjectType('organization', organization, null, Organization);
 
-        // Health check functionality has been removed
-        // Always set organization as active
-        const isActive = true;
-        
-        // // Determine if organization is active based on status
-        // let isActive = false;
-        // try {
-        //     if (organization.uuid) {
-        //         const statusData = await serverProxy.dataUPHealth.getOrganizationStatus(organization.uuid);
-        //         isActive = statusData.status === 'registered';
-        //     }
-        // } catch (error) {
-        //     console.warn('Failed to fetch organization status:', error);
-        //     isActive = false;
-        // }
-
         config.organization = {
             organizationID: organization.id,
             organizationSlug: organization.slug,
             organizationUuid: organization.uuid,
-            active: isActive,
         };
     });
     implementationMixin(cvat.organizations.deactivate, async () => {
@@ -403,7 +386,6 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
             organizationID: null,
             organizationSlug: null,
             organizationUuid: null,
-            active: false,
         };
     });
     implementationMixin(

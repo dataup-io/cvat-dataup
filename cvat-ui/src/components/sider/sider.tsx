@@ -1,5 +1,5 @@
 import './styles.scss';
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { connect } from 'react-redux';
 import { useHistory } from 'react-router';
 import Menu from 'antd/lib/menu';
@@ -23,7 +23,7 @@ import Layout from 'antd/lib/layout';
 import { CombinedState } from 'reducers';
 import { DataUpFavIcon, DataUpLogo2 } from 'icons';
 import { useSelectedMenuKey } from 'utils/hooks';
-import { organizationStatusService } from 'services/organization-status';
+
 
 interface StateToProps {
     user: {
@@ -76,30 +76,6 @@ type Props = StateToProps;
 function SiderComponent(props: Props): JSX.Element {
     const { user, isAnalyticsPluginActive, isModelsPluginActive, currentOrganization } = props;
     const history = useHistory();
-    const [isOrganizationActive, setIsOrganizationActive] = useState(false);
-
-    /**
-     * Check if the current organization is active with DataUp
-     * An organization is considered active if its status is 'registered' from the DataUp API
-     */
-    useEffect(() => {
-        const checkOrganizationStatus = async () => {
-            if (!currentOrganization?.uuid) {
-                setIsOrganizationActive(false);
-                return;
-            }
-
-            try {
-                const status = await organizationStatusService.getOrganizationStatus(currentOrganization.uuid);
-                setIsOrganizationActive(organizationStatusService.isOrganizationRegistered(status));
-            } catch (error) {
-                console.warn('Failed to check organization status:', error);
-                setIsOrganizationActive(false);
-            }
-        };
-
-        checkOrganizationStatus();
-    }, [currentOrganization?.uuid]);
     const items = useMemo(() => {
         const baseItems = [
             getItem('Home', 'home', () => history.push('/'), <ReadOutlined />),
@@ -129,7 +105,7 @@ function SiderComponent(props: Props): JSX.Element {
         ];
 
         return baseItems.filter(Boolean) as MenuItem[];
-    }, [user, isAnalyticsPluginActive, isModelsPluginActive, history, isOrganizationActive]);
+    }, [user, isAnalyticsPluginActive, isModelsPluginActive, history]);
 
     const [collapsed, setCollapsed] = React.useState(false);
     const handleCollapse = useCallback((value: boolean) => setCollapsed(value), []);
