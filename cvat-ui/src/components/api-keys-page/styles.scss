@@ -1,0 +1,336 @@
+// Copyright (C) 2024 CVAT.ai Corporation
+//
+// SPDX-License-Identifier: MIT
+
+.api-keys-page {
+    // Stats cards styling
+    .stats-cards {
+        .stat-card {
+            transition: all 0.3s ease;
+
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            }
+        }
+    }
+
+    // Key card styling
+    .api-key-card {
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        &.active-key {
+            border-color: #fa8c1620;
+
+            &:hover {
+                border-color: #fa8c1640;
+            }
+        }
+
+        &.instance-key {
+            border-color: #1890ff20;
+
+            &:hover {
+                border-color: #1890ff40;
+            }
+        }
+    }
+
+    .key-card-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .key-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .key-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .key-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .active-key .key-icon {
+            background: #fa8c1620;
+            color: #fa8c16;
+        }
+
+        .instance-key .key-icon {
+            background: #1890ff20;
+            color: #1890ff;
+        }
+
+        .key-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .key-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .key-value {
+            margin-bottom: 8px;
+        }
+
+        .key-metadata {
+            font-size: 12px;
+        }
+
+        .key-actions {
+            flex-shrink: 0;
+            margin-left: 16px;
+        }
+    }
+
+    .masked-key {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        background-color: #f5f5f5;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+
+    .visible-key {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        border: 1px solid #ffb366;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        color: #d46b08;
+    }
+
+    // Sections styling
+    .keys-section {
+        h3 {
+            color: #262626;
+            font-weight: 600;
+        }
+    }
+
+    // Modal styling
+    .create-key-modal {
+        .ant-form-item-label {
+            font-weight: 500;
+        }
+    }
+
+    // Empty state styling
+    .empty-state {
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(24, 144, 255, 0.1);
+        }
+    }
+
+    // Security notice styling
+    .security-notice {
+        transition: all 0.3s ease;
+
+        &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(250, 140, 22, 0.1);
+        }
+
+        ul {
+            font-size: 14px;
+            line-height: 1.6;
+
+            li {
+                margin-bottom: 4px;
+            }
+        }
+    }
+
+    // Header styling
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+
+        .header-content {
+            flex: 1;
+
+            h2 {
+                margin-bottom: 4px;
+                color: #262626;
+                font-weight: 600;
+            }
+
+            .subtitle {
+                color: #8c8c8c;
+                font-size: 14px;
+            }
+        }
+
+        .header-actions {
+            flex-shrink: 0;
+        }
+    }
+
+    // New table layout styling
+    .api-keys-table-container {
+        .api-keys-table {
+            .ant-table-thead > tr > th {
+                background: #fafafa;
+                border-bottom: 2px solid #f0f0f0;
+                font-weight: 600;
+                color: #262626;
+                padding: 16px 12px;
+                text-align: left;
+            }
+
+            .api-key-table-row {
+                background: white;
+                border-radius: 8px;
+                margin: 8px 0;
+                transition: all 0.3s ease;
+
+                &:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                }
+
+                td {
+                    padding: 16px 12px;
+                    border-bottom: 1px solid #f0f0f0;
+                    vertical-align: middle;
+                }
+
+                &:last-child td {
+                    border-bottom: none;
+                }
+            }
+
+            // Remove default table borders and add card-like styling
+            .ant-table-tbody {
+                tr {
+                    background: transparent;
+                    border: none;
+
+                    &:hover {
+                        background: transparent;
+                    }
+                }
+
+                td {
+                    border: none;
+                    background: transparent;
+                }
+            }
+
+            // Add spacing between rows and card-like styling
+            .ant-table-tbody > tr {
+                margin-bottom: 16px;
+                border-radius: 8px;
+                background: white;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                border: 1px solid #f0f0f0;
+                transition: all 0.3s ease;
+
+                &:hover {
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                    border-color: #d9d9d9;
+                }
+
+                td {
+                    border-bottom: 1px solid #f0f0f0;
+                    padding: 16px 12px;
+                    vertical-align: middle;
+
+                    &:last-child {
+                        border-bottom: none;
+                    }
+                }
+            }
+
+            // Ensure proper table layout
+            .ant-table {
+                border: none;
+                background: transparent;
+            }
+
+            .ant-table-container {
+                border: none;
+                background: transparent;
+            }
+        }
+    }
+}
+
+// Responsive design
+@media (max-width: 768px) {
+    .api-keys-page {
+        .page-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: stretch;
+
+            .header-actions {
+                align-self: stretch;
+
+                .ant-btn {
+                    width: 100%;
+                }
+            }
+        }
+
+        .stats-cards {
+            grid-template-columns: 1fr;
+        }
+
+        .key-card-content {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+
+            .key-actions {
+                margin-left: 0;
+                align-self: flex-end;
+            }
+        }
+
+        .key-header {
+            width: 100%;
+        }
+    }
+}
+
+@media (max-width: 480px) {
+    .api-keys-page {
+        .key-card-content {
+            .key-header {
+                flex-direction: column;
+                gap: 8px;
+
+                .key-icon {
+                    align-self: flex-start;
+                }
+            }
+        }
+    }
+}

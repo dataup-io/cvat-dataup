@@ -1,0 +1,4 @@
+gitpython
+inflection >= 0.5.1
+packaging
+toml

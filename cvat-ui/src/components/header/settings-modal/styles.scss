@@ -1,0 +1,139 @@
+// Copyright (C) 2020-2022 Intel Corporation
+// Copyright (C) CVAT.ai Corporation
+//
+// SPDX-License-Identifier: MIT
+
+@import 'base';
+
+.cvat-settings-tabs {
+    height: 100%;
+    overflow-y: auto;
+    padding-bottom: $grid-unit-size * 2;
+
+    > div:nth-child(1) {
+        margin-top: $grid-unit-size;
+        margin-bottom: $grid-unit-size;
+    }
+}
+
+.cvat-workspace-settings,
+.cvat-player-settings,
+.cvat-shortcuts-settings,
+.cvat-organizations-settings {
+    width: calc(100% - 24px);
+    height: max-content;
+    background: white;
+    padding-top: 24px;
+    padding-left: 24px;
+}
+
+.cvat-shortcuts-settings {
+    width: calc(100% - $grid-unit-size * 6);
+    padding-right: $grid-unit-size * 3;
+}
+
+.cvat-workspace-settings-text-content {
+    width: 100%;
+}
+
+.cvat-workspace-settings-approx-poly-threshold {
+    user-select: none;
+}
+
+.cvat-shortcuts-setting,
+.cvat-player-setting {
+    margin-bottom: $grid-unit-size * 3;
+}
+
+.cvat-player-settings-step,
+.cvat-player-settings-speed {
+    > div {
+        display: grid;
+        justify-items: start;
+    }
+}
+
+.cvat-player-settings-step > div > span > span[role='img'] {
+    margin: 0 5px;
+    font-size: 10px;
+}
+
+.cvat-player-settings-speed > div > .ant-select {
+    width: 90px;
+}
+
+.cvat-player-reset-color-settings {
+    > .ant-col {
+        text-align: center;
+    }
+}
+
+.cvat-player-settings-image-preview {
+    width: 100%;
+    max-height: 180px;
+    object-fit: cover;
+}
+
+.canvas-background-color-picker-popover .ant-popover-inner-content {
+    padding: 6px 12px;
+
+    :first-child:first-child {
+        box-shadow: unset !important;
+    }
+}
+
+.cvat-settings-modal .ant-modal-body {
+    padding-top: 0;
+    max-height: calc(100vh - 300px);
+    overflow-y: auto;
+}
+
+.cvat-organizations-settings-list {
+    width: $grid-unit-size * 24;
+    margin-bottom: $grid-unit-size * 3;
+}
+
+.cvat-organizations-settings-list-item {
+    div {
+        width: 100%;
+    }
+}
+
+.cvat-shortcuts-settings-search {
+    width: 100%;
+}
+
+.cvat-shortcuts-settings-label {
+    font-size: large;
+    font-weight: 600;
+}
+
+.cvat-shortcuts-settings-select {
+    width: 200px;
+}
+
+.cvat-shortcuts-settings-item-non-active {
+    opacity: 0.5;
+}
+
+.cvat-shortcuts-settings-item-title {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.cvat-shortcuts-settings-item-description {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.cvat-shortcuts-settings-collapse .ant-collapse-header {
+    background-color: white;
+    border-bottom: 1px solid #ccc;
+    margin-top: $grid-unit-size;
+    padding: 0 0 $grid-unit-size !important;
+}
+
+.cvat-shortcuts-settings-collapse .ant-collapse-content-box {
+    background-color: white;
+    padding: 0 !important;
+}

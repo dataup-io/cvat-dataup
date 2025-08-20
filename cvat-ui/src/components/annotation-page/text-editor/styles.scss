@@ -1,0 +1,74 @@
+@import 'base.scss';
+
+.cvat-text-editor-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.cvat-text-editor-popup {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: $background-color-2;
+    border-radius: 4px;
+    box-shadow: $box-shadow-base;
+    width: 500px;
+    min-width: 300px;
+    max-width: 90vw;
+    min-height: 400px;
+    resize: both;
+    overflow: auto;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.cvat-text-editor-header {
+    background-color: $header-color;
+    padding: 8px;
+    border-radius: 4px 4px 0 0;
+    cursor: move;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    height: 44px;
+    box-sizing: border-box;
+}
+
+.cvat-text-editor-body {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.cvat-text-editor-textarea {
+    width: 100%;
+    margin-bottom: 8px;
+    resize: none;
+    flex: 1;
+    min-height: 300px;
+}
+
+.cvat-text-editor-controls {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.resizable-textarea textarea {
+    resize: none;
+    overflow: auto;
+    min-height: 300px;
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+  }

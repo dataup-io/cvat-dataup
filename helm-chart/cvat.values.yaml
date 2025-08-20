@@ -1,0 +1,8 @@
+analytics:
+  enabled: true
+
+ingress:
+  enabled: true
+
+traefik:
+  enabled: true

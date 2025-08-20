@@ -1,0 +1,44 @@
+$slide-height: 100%;
+$slide-spacing: 10px;
+$slide-size: 100%;
+
+.embla {
+  width: 80%;
+  height: 60vh;
+  margin: 0;
+  position: relative;
+
+  // CSS custom properties as SCSS variables
+  --slide-height: #{$slide-height};
+  --slide-spacing: #{$slide-spacing};
+  --slide-size: #{$slide-size};
+
+  &__viewport {
+    overflow: hidden;
+    height: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  &__container {
+    display: flex;
+    flex-direction: column;
+    touch-action: pan-x pinch-zoom;
+    margin-top: calc(var(--slide-spacing) * -1);
+    height: calc(100% + var(--slide-spacing));
+  }
+
+  &__slide {
+    transform: translate3d(0, 0, 0);
+    flex: 0 0 var(--slide-size);
+    height: 100%;
+    padding-top: var(--slide-spacing);
+
+    &__img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 12px;
+    }
+  }
+}

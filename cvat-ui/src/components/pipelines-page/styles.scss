@@ -1,0 +1,368 @@
+@import 'base';
+
+.dataup-pipelines-page {
+    height: auto;
+    padding: 15px;
+}
+
+.dataup-catalogue-page {
+    padding: 15px;
+    padding-top: 0;
+}
+
+.cvat-pipeline-details-page {
+    padding: 15px;
+}
+
+.dataup-pipeline-details {
+    margin-top: 15px;
+}
+
+.dataup-pipeline-executions {
+    margin-top: 15px;
+}
+
+.pipeline-steps-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    margin-top: 10px;
+
+    .ant-steps {
+        flex: 0 0 250px;
+    }
+
+    .ant-steps-item {
+        cursor: pointer;
+        transition: all 0.3s;
+
+        &:hover {
+            .ant-steps-item-title {
+                color: $hover-menu-color;
+            }
+        }
+    }
+
+    .active-step {
+        .ant-steps-item-title {
+            font-weight: bold;
+            color: $ok-icon-color;
+        }
+    }
+
+    .step-content {
+        flex: 1;
+        padding: 0 10px;
+        animation: fadeIn 0.3s ease-in-out;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.data-up-custom-menu {
+    margin-bottom: 20px;
+}
+
+.dataup-steps-page {
+    padding: 24px;
+    overflow: auto;
+    flex: 1;
+
+    .steps-header {
+        margin-bottom: 24px;
+
+        h3 {
+            margin-bottom: 8px;
+        }
+    }
+
+    .steps-filters {
+        .ant-select {
+            .ant-select-selector {
+                border-radius: 6px;
+            }
+        }
+
+        .ant-input {
+            border-radius: 6px;
+        }
+    }
+
+    .step-card {
+        height: 100%;
+    }
+
+    // Modern step card styles
+    .step-card-modern {
+        height: 100%;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+            
+            .ant-card-body {
+                transform: scale(1.02);
+            }
+        }
+        
+        .ant-card-body {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        // Category icon container
+        .anticon {
+            transition: transform 0.3s ease;
+        }
+        
+        &:hover .anticon {
+            transform: scale(1.1);
+        }
+        
+        // Parameter tags animation
+        .ant-tag {
+            transition: all 0.2s ease;
+            
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            }
+        }
+        
+        // Button hover effects
+        .ant-btn {
+            transition: all 0.2s ease;
+            
+            &:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            }
+        }
+        
+        // Badge animation
+        .ant-badge-count {
+            transition: all 0.2s ease;
+        }
+        
+        &:hover .ant-badge-count {
+            transform: scale(1.1);
+        }
+    }
+    
+    // Grid layout improvements
+    .ant-row {
+        .ant-col {
+            margin-bottom: 24px;
+        }
+    }
+    
+    // Custom responsive grid overrides for step cards
+    // Use maximum specificity to override Ant Design's default grid behavior
+    .dataup-steps-page .ant-row .ant-col.ant-col-xs-24 {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .dataup-steps-page .ant-row .ant-col.ant-col-sm-12 {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+    }
+    
+    .dataup-steps-page .ant-row .ant-col.ant-col-lg-8 {
+        flex: 0 0 33.333333% !important;
+        max-width: 33.333333% !important;
+    }
+    
+    .dataup-steps-page .ant-row .ant-col.ant-col-xl-4 {
+        flex: 0 0 15% !important;
+        max-width: 15% !important;
+    }
+    
+    // Loading state
+    .steps-loading {
+        text-align: center;
+        padding: 60px 20px;
+        
+        .ant-spin {
+            margin-bottom: 16px;
+        }
+    }
+    
+    // Empty state
+    .steps-empty {
+        text-align: center;
+        padding: 60px 20px;
+        color: #8c8c8c;
+        
+        .ant-empty {
+            margin-bottom: 16px;
+        }
+    }
+
+    .ant-modal {
+        .ant-modal-header {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 16px 24px;
+
+            .ant-modal-title {
+                font-size: 18px;
+                font-weight: 600;
+            }
+        }
+
+        .ant-modal-body {
+            padding: 24px;
+
+            .ant-collapse {
+                .ant-collapse-item {
+                    border: 1px solid #f0f0f0;
+                    border-radius: 6px;
+                    margin-bottom: 8px;
+
+                    &:last-child {
+                        margin-bottom: 0;
+                    }
+
+                    .ant-collapse-header {
+                        border-radius: 6px 6px 0 0;
+                    }
+
+                    .ant-collapse-content {
+                        border-radius: 0 0 6px 6px;
+                    }
+                }
+            }
+        }
+    }
+}
+
+.pipeline-node-editor {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    border: 1px solid #d9d9d9;
+    border-radius: 6px;
+    background: #fafafa;
+    overflow: hidden;
+
+    .node-container {
+        position: absolute;
+        width: 200px;
+        background: white;
+        border: 2px solid #1890ff;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        cursor: move;
+        transition: all 0.2s ease;
+
+        &:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .node-header {
+            padding: 12px;
+            background: #1890ff;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+            border-radius: 6px 6px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            .node-order {
+                background: rgba(255, 255, 255, 0.2);
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 12px;
+            }
+        }
+
+        .node-content {
+            padding: 12px;
+
+            .node-id {
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                font-size: 11px;
+                color: #666;
+                margin-bottom: 8px;
+                word-break: break-all;
+            }
+
+            .node-params {
+                font-size: 12px;
+                color: #999;
+                margin-bottom: 8px;
+            }
+
+            .ant-btn {
+                width: 100%;
+                height: 28px;
+                font-size: 12px;
+            }
+        }
+    }
+
+    .connection-line {
+        position: absolute;
+        pointer-events: none;
+        z-index: 1;
+
+        line {
+            stroke: #1890ff;
+            stroke-width: 2;
+            marker-end: url(#arrowhead);
+        }
+    }
+
+    .save-button-container {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 10;
+    }
+}
+
+.parameter-edit-modal {
+    .ant-modal-body {
+        max-height: 60vh;
+        overflow-y: auto;
+    }
+
+    .parameter-form {
+        .ant-form-item {
+            margin-bottom: 16px;
+
+            .ant-form-item-label {
+                font-weight: 500;
+            }
+
+            .parameter-description {
+                font-size: 12px;
+                color: #666;
+                margin-top: 4px;
+                font-style: italic;
+            }
+        }
+
+        .ant-input,
+        .ant-input-number,
+        .ant-select {
+            border-radius: 4px;
+        }
+
+        .ant-switch {
+            margin-top: 4px;
+        }
+    }
+}

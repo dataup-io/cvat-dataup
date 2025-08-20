@@ -1,0 +1,75 @@
+// Copyright (C) CVAT.ai Corporation
+//
+// SPDX-License-Identifier: MIT
+
+import { AgentAPIsFilter, SerializedUser } from 'server-response-types';
+import AgentAPI, { AgentAPIData } from 'agent_apis';
+import {
+    LabelType, ModelKind, RQStatus, ShapeType,
+} from './enums';
+
+export interface ModelAttribute {
+    name: string;
+    values: string[];
+    input_type: 'select' | 'number' | 'checkbox' | 'radio' | 'text';
+}
+
+export interface ModelParams {
+    canvas: {
+        minPosVertices?: number;
+        minNegVertices?: number;
+        startWithBox?: boolean;
+        startWithBoxOptional?: boolean;
+    };
+}
+
+export interface MLModelTip {
+    message: string;
+    gif: string;
+}
+
+export interface MLModelLabel {
+    name: string;
+    type: LabelType;
+    attributes: ModelAttribute[];
+    sublabels?: MLModelLabel[];
+    svg?: string,
+}
+
+export interface SerializedModel {
+    id?: string | number;
+    name?: string;
+    labels_v2?: MLModelLabel[];
+    supported_shape_types?: ShapeType[];
+    version?: number;
+    description?: string;
+    kind?: ModelKind;
+    type?: string;
+    owner?: any;
+    provider?: string;
+    url?: string;
+    help_message?: string;
+    animated_gif?: string;
+    min_pos_points?: number;
+    min_neg_points?: number;
+    startswith_box?: boolean;
+    startswith_box_optional?: boolean;
+    created_date?: string;
+    updated_date?: string;
+    is_agent_api?: boolean;
+}
+
+export interface UpdateStatusData {
+    status: RQStatus;
+    progress: number;
+    message: string;
+}
+
+export interface CVATCoreAgentAPIs {
+    get(filter?: AgentAPIsFilter): Promise<{ results: AgentAPI[], count: number }>;
+    create(agentAPIData: AgentAPIData): Promise<AgentAPI>;
+    update(agentAPIData: AgentAPIData): Promise<AgentAPI>;
+    delete(agentAPI: AgentAPI): Promise<void>;
+    infer(agentAPI: AgentAPI, task: number, data: Record<string, unknown>): Promise<any>;
+}
+export type PaginatedResource<T> = T[] & { count: number };

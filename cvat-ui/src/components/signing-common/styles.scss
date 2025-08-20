@@ -1,0 +1,579 @@
+// Copyright (C) CVAT.ai Corporation
+//
+// SPDX-License-Identifier: MIT
+
+@import '../../styles';
+
+$heading-font: 'Sora', sans-serif;
+$signing-font: 'Roboto Flex', sans-serif;
+$heading-color: #010101;
+$error-color: #ff4d4f;
+$action-button-color-1: $dataup-link-color;
+$action-button-color-2: gray;
+$action-button-color-3: #d4d4d4;
+$placeholder-color: #c5bfbf;
+$base-transition: all 0.8s ease;
+$input-transition: all 0.3s ease;
+$social-google-background: #4286f5;
+
+.cvat-signing-layout {
+    font-family: $signing-font;
+}
+
+.cvat-signing-content-row {
+    display: flex;
+    width: 100%;
+}
+
+.cvat-signing-left-side {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background-color: rgba(0, 160, 70, 10%);
+    position: relative;
+    overflow: hidden;
+
+    /* Light green background */
+}
+
+.cvat-signing-carousel-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    padding: 20px;
+}
+
+.cvat-signing-text-slider {
+    width: 100%;
+    height: 120px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+    position: relative;
+}
+
+.cvat-signing-text-content {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    color: white;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+    animation: slideTextHorizontal 13.5s infinite;
+    opacity: 0;
+    transform: translateX(100%);
+
+    h2 {
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin: 0 0 10px 0;
+        font-family: 'Sora', sans-serif;
+    }
+
+    p {
+        font-size: 1.2rem;
+        margin: 0;
+        font-family: 'Roboto Flex', sans-serif;
+    }
+
+    &:nth-child(1) {
+        animation-delay: 0s;
+    }
+
+    &:nth-child(2) {
+        animation-delay: 4.5s;
+    }
+
+    &:nth-child(3) {
+        animation-delay: 9s;
+    }
+}
+
+@keyframes slideTextHorizontal {
+    0% {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    11% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    22% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    33% {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-100%);
+    }
+}
+
+.cvat-signing-right-side {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+}
+
+.cvat-signing-title {
+    .ant-typography {
+        color: $heading-color;
+        margin: 0;
+        font-size: 68px;
+        font-family: $heading-font;
+        font-weight: 500;
+    }
+
+    .ant-typography:last-child {
+        margin: 0;
+    }
+
+    img {
+        width: 100%;
+        height: 100%;
+    }
+}
+
+.cvat-signing-header {
+    background: transparent;
+    position: fixed;
+    padding: $grid-unit-size * 2 0 0 0;
+    width: 100%;
+    z-index: 10000;
+
+    .cvat-logo-icon {
+        svg {
+            width: 70px;
+            height: auto;
+        }
+    }
+}
+
+.cvat-signing-background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    min-width: $grid-unit-size * 128;
+}
+
+.cvat-signing-layout-wrapper,
+.cvat-signing-layout-wrapper .ant-layout {
+    background-color: #d8ebe3;
+}
+
+.cvat-credentials-link {
+    a {
+        color: black;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+    }
+
+    a:hover {
+        color: $dataup-link-color;
+        text-decoration: underline;
+        text-decoration-thickness: 2px;
+    }
+}
+
+.cvat-input-floating-label {
+    .ant-input-prefix {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        font-size: 20px;
+        transition: $input-transition;
+        transform-origin: left top;
+
+        .ant-typography {
+            color: $placeholder-color;
+        }
+    }
+}
+
+.cvat-input-floating-label-above {
+    @extend .cvat-input-floating-label;
+
+    .ant-input-prefix {
+        transition: $input-transition;
+        transform: translateY(-100%) scale(0.7);
+    }
+}
+
+.cvat-credentials-form-item {
+    .ant-input-affix-wrapper {
+        border: 1px solid $border-color-1;
+        background-color: #f3f3f3;
+        box-shadow: none;
+        border-radius: 8px;
+        padding: $grid-unit-size * 1.5 $grid-unit-size * 2 $grid-unit-size * 1.5 $grid-unit-size * 2 !important;
+        transition: $base-transition;
+    }
+
+    .ant-input-affix-wrapper-focused {
+        @extend .cvat-input-floating-label-above;
+
+        background-color: rgb(250, 250, 250);
+        box-shadow: none;
+        border: 1px solid $action-button-color-1;
+    }
+
+    .ant-input-affix-wrapper:hover {
+        box-shadow: none;
+        background-color: rgb(250, 250, 250);
+        border: 1px solid $action-button-color-1;
+    }
+
+    .ant-input-affix-wrapper-focused:hover {
+        box-shadow: none;
+    }
+
+    .ant-input {
+        font-size: 20px;
+        padding: 0;
+
+        &:-webkit-autofill,
+        &:-webkit-autofill:hover,
+        &:-webkit-autofill:focus {
+            box-shadow: none !important;
+            border-bottom: none;
+            transition: background-color 10s ease-in-out 0s;
+        }
+    }
+
+    .ant-input-affix-wrapper-disabled {
+        background: transparent;
+    }
+
+    .cvat-signing-input-not-empty {
+        @extend .cvat-input-floating-label;
+    }
+}
+
+.cvat-credentials-form-item.ant-form-item-has-error {
+    .ant-input-affix-wrapper {
+        border: none;
+        box-shadow: none;
+        border-radius: 0;
+        padding: 16px;
+        transition: $base-transition;
+    }
+
+    .ant-input-affix-wrapper-focused {
+        box-shadow: none !important;
+    }
+}
+
+.cvat-credentials-navigation {
+    margin-bottom: $grid-unit-size * 4;
+}
+
+.cvat-credentials-action-button {
+    width: 80%;
+    margin: auto;
+    display: block;
+    border-radius: $border-radius-base;
+    background-color: $action-button-color-1;
+    height: $grid-unit-size * 5;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    border: none;
+    box-shadow: none;
+    transition: $base-transition;
+
+    &:hover {
+        background-color: $action-button-color-1 !important;
+        color: $action-button-color-2 !important;
+    }
+}
+
+.cvat-login-form-wrapper {
+    width: 100%;
+    height: 100%;
+    margin: 0 auto;
+    padding: $grid-unit-size * 3;
+    background: white;
+    position: relative;
+    border-radius: 12px;
+
+    .cvat-credentials-form-item {
+        height: $grid-unit-size * 9.5;
+
+        .ant-form-item-explain {
+            margin-bottom: $grid-unit-size * 0.5;
+        }
+    }
+
+    .ant-form-item {
+        margin-bottom: 0;
+    }
+
+    .ant-form-item-explain-error:not(:first-child) {
+        display: none;
+    }
+}
+
+.cvat-signing-form {
+    position: relative;
+    height: $grid-unit-size * 44;
+    width: 100%;
+
+    .ant-form-item:last-child:not(.cvat-credentials-form-item) {
+        position: absolute;
+        bottom: $grid-unit-size * 6;
+        width: 100%;
+        box-sizing: border-box;
+    }
+}
+
+.cvat-login-form {
+    @extend .cvat-signing-form;
+
+    margin-top: 32px;
+}
+
+.cvat-login-form-extended {
+    .ant-form-item:first-child {
+        margin-bottom: 32px;
+    }
+}
+
+.cvat-password-reset-form-wrapper {
+    @extend .cvat-login-form-wrapper;
+
+    h2 {
+        margin-bottom: 0;
+    }
+
+    .cvat-password-reset-tip {
+        font-weight: bold;
+        margin-bottom: $grid-unit-size * 20;
+    }
+}
+
+.cvat-password-reset-form {
+    @extend .cvat-signing-form;
+
+    .cvat-credentials-form-item {
+        margin-bottom: $grid-unit-size * 3;
+    }
+
+    margin-top: $grid-unit-size * 6;
+}
+
+.cvat-register-form-wrapper {
+    @extend .cvat-login-form-wrapper;
+
+    .cvat-register-form {
+        @extend .cvat-signing-form;
+
+        height: $grid-unit-size * 68;
+    }
+
+    .cvat-agreements-form-item {
+        height: $grid-unit-size * 6;
+
+        .ant-form-item-explain {
+            margin-top: -$grid-unit-size;
+        }
+
+        .ant-checkbox-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        .ant-checkbox {
+            top: 0;
+
+            .ant-checkbox-inner {
+                width: $grid-unit-size * 5;
+                height: $grid-unit-size * 3;
+                border-radius: $border-radius-base;
+                background: #d9d9d9;
+                border: none;
+
+                &:hover {
+                    border: none;
+                }
+
+                &::after {
+                    position: absolute;
+                    content: "";
+                    height: $grid-unit-size * 2;
+                    width: $grid-unit-size * 2;
+                    border-radius: $border-radius-base;
+                    top: $grid-unit-size * 0.5;
+                    left: $grid-unit-size * 0.5;
+                    background-color: white;
+                    opacity: 1;
+                    transform: none;
+                    border: none;
+                }
+            }
+        }
+
+        .ant-checkbox-checked {
+            .ant-checkbox-inner {
+                width: $grid-unit-size * 5;
+                height: $grid-unit-size * 3;
+                border-radius: $border-radius-base;
+                background: $slider-color;
+                border: none;
+
+                &:hover {
+                    border: none;
+                }
+
+                &::after {
+                    position: absolute;
+                    content: "";
+                    height: $grid-unit-size * 2;
+                    width: $grid-unit-size * 2;
+                    border-radius: $border-radius-base;
+                    top: $grid-unit-size * 0.5;
+                    left: $grid-unit-size * 2.5;
+                    background-color: white;
+                    opacity: 1;
+                    transform: none;
+                    border: none;
+                }
+            }
+        }
+    }
+
+    .cvat-register-form-last-field {
+        margin-bottom: 0;
+    }
+}
+
+.cvat-register-form-wrapper-extended {
+    @extend .cvat-login-form-wrapper;
+
+    .cvat-register-form-last-field {
+        margin-bottom: $grid-unit-size;
+    }
+
+    .cvat-register-form {
+        @extend .cvat-signing-form;
+
+        height: $grid-unit-size * 76;
+    }
+}
+
+.data-features-wrapper {
+    padding: 2rem;
+    max-width: 600px;
+
+    .main-title {
+        font-size: 2rem;
+        font-weight: bold;
+        margin-bottom: 2rem;
+        color: #010101;
+        font-family: Sora, sans-serif;
+    }
+
+    .feature-card {
+        background: rgba(255, 255, 255, 5%);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 10%);
+        transition: all 0.3s ease;
+
+        h3 {
+            margin: 0 0 0.5rem;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        p {
+            margin: 0;
+            font-size: 1rem;
+            color: #444;
+        }
+
+        &.index {
+            border-left: 4px solid #ff6492;
+        }
+
+        &.annotate {
+            border-left: 4px solid #8f6eff;
+        }
+
+        &.active {
+            border-left: 4px solid #69e37d;
+        }
+
+        &:hover {
+            transform: translateY(-3px);
+        }
+    }
+}
+
+.dataup-highlight-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 640px;
+    padding: 2rem;
+}
+
+.dataup-highlight-box {
+    padding: 2rem 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 8%);
+    transition: all 0.3s ease;
+    font-family: Sora, sans-serif;
+    text-align: left;
+
+    .highlight-text {
+        margin: 0;
+        font-size: 1.5rem;
+        line-height: 1.6;
+        font-weight: 600;
+        color: #013220;
+    }
+
+    &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 12%);
+    }
+
+    // First box (default green)
+    &:nth-child(1) {
+        background-color: rgba(0, 160, 70, 12%);
+        border-left: 6px solid #00a046;
+    }
+
+    // Second box (yellow theme)
+    &:nth-child(2) {
+        background-color: rgba(255, 223, 100, 15%);
+        border-left: 6px solid #ffd700;
+
+        .highlight-text {
+            color: #665c00;
+        }
+    }
+
+    // Third box (blue theme)
+    &:nth-child(3) {
+        background-color: rgba(100, 179, 255, 15%);
+        border-left: 6px solid #1890ff;
+
+        .highlight-text {
+            color: #003a8c;
+        }
+    }
+}
