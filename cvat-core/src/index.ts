@@ -8,7 +8,7 @@ import {
 } from './server-response-types';
 import PluginRegistry from './plugins';
 import serverProxy from './server-proxy';
-import agentManager from './agent-manager';
+import lambdaManager from './lambda-manager';
 import { AnnotationFormats } from './annotation-formats';
 import logger from './logger';
 import * as enums from './enums';
@@ -50,7 +50,7 @@ import { BaseShapesAction } from './annotations-actions/base-shapes-action';
 import {
     ArgumentError, DataError, Exception, ScriptingError, ServerError,
 } from './exceptions';
-import { CVATCoreAgentAPIs, PaginatedResource } from './core-types';
+import {PaginatedResource } from './core-types';
 
 
 export default interface CVATCore {
@@ -59,14 +59,14 @@ export default interface CVATCore {
         register: typeof PluginRegistry.register;
     };
 
-    agents: {
-        list: typeof agentManager.list;
-        call: typeof agentManager.call;
-        list_requests: typeof agentManager.list_requests;
-        cancel_request: typeof agentManager.cancel_request;
-        run_request: typeof agentManager.run_request;
-        check_request_status: typeof agentManager.check_request_status;
-    };
+    lambda: {
+            list: typeof lambdaManager.list;
+            run: typeof lambdaManager.run;
+            call: typeof lambdaManager.call;
+            cancel: typeof lambdaManager.cancel;
+            listen: typeof lambdaManager.listen;
+            requests: typeof lambdaManager.requests;
+        };
 
     server: {
         about: () => Promise<AboutData>;
@@ -89,9 +89,6 @@ export default interface CVATCore {
         setAuthData: any;
         installedApps: any;
         apiSchema: typeof serverProxy.server.apiSchema;
-        // dataUPHealth: {
-        //     getOrganizationStatus: (organizationUuid: string) => Promise<any>;
-        // };
     };
     assets: {
         create: any;
@@ -157,31 +154,6 @@ export default interface CVATCore {
             get: (filter: ConsensusSettingsFilter) => Promise<ConsensusSettings>;
         };
     }
-    agentApis: CVATCoreAgentAPIs;
-    dataUpApiKeys: {
-        get: (filter?: any) => Promise<any>;
-        create: (keyData: any) => Promise<any>;
-        update: (id: string, keyData: any) => Promise<any>;
-        delete: (id: string, organizationUuid?: string) => Promise<any>;
-    };
-    pipelines: {
-        list: (filter?: any) => Promise<any>;
-        get: (id: number) => Promise<any>;
-        create: (pipelineData: any) => Promise<any>;
-        update: (id: number, pipelineData: any) => Promise<any>;
-        delete: (id: number) => Promise<void>;
-        run: (id: number, runData: any) => Promise<any>;
-        stepRegistry: (filter?: any) => Promise<any>;
-        executions: (filter?: any) => Promise<any>;
-        getExecution: (id: string) => Promise<any>;
-        checkExecutionStatus: (id: string) => Promise<any>;
-        cancelExecution: (id: string) => Promise<void>;
-        deleteExecution: (id: string) => Promise<void>;
-        steps: (filter?: any) => Promise<any>;
-        createStep: (stepData: any) => Promise<any>;
-        updateStep: (id: string, stepData: any) => Promise<any>;
-        deleteStep: (id: string) => Promise<void>;
-    };
     analytics: {
         quality: {
             reports: (filter: QualityReportsFilter, aggregate?: boolean) => Promise<PaginatedResource<QualityReport>>;

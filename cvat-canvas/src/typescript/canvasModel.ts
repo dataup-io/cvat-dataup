@@ -839,6 +839,11 @@ export class CanvasModelImpl extends MasterImpl implements CanvasModel {
     }
 
     public interact(interactionData: InteractionData): void {
+        console.log("=== CANVAS MODEL INTERACT DEBUG ===");
+        console.log("CanvasModel interact called with:", interactionData);
+        console.log("Current mode:", this.data.mode);
+        console.log("Current interactionData:", this.data.interactionData);
+        
         if (![Mode.IDLE, Mode.INTERACT].includes(this.data.mode)) {
             throw Error(`Canvas is busy. Action: ${this.data.mode}`);
         }
@@ -852,6 +857,9 @@ export class CanvasModelImpl extends MasterImpl implements CanvasModel {
             this.data.interactionData.crosshair = true;
         }
 
+        console.log("Updated interactionData:", this.data.interactionData);
+        console.log("=== END CANVAS MODEL INTERACT DEBUG ===");
+        
         this.notify(UpdateReasons.INTERACT);
     }
 

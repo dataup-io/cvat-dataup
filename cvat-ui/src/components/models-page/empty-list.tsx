@@ -8,6 +8,8 @@ import Text from 'antd/lib/typography/Text';
 import { Row, Col } from 'antd/lib/grid';
 import Empty from 'antd/lib/empty';
 
+import config from 'config';
+
 export default function EmptyListComponent(): JSX.Element {
     return (
         <div className='cvat-empty-models-list'>
@@ -26,8 +28,8 @@ export default function EmptyListComponent(): JSX.Element {
                         </Row>
                         <Row justify='center' align='middle'>
                             <Col>
-                                <Text type='secondary'>use agents</Text>
-                                {/* <a href={`${config.NUCLIO_GUIDE}`}>nuclio</a> */}
+                                <Text type='secondary'>deploy a model with </Text>
+                                <a href={`${config.NUCLIO_GUIDE}`}>nuclio</a>
                             </Col>
                         </Row>
                     </div>

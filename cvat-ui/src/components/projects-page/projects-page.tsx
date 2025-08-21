@@ -25,19 +25,15 @@ export default function ProjectsPageComponent(): JSX.Element {
     const query = useSelector((state: CombinedState) => state.projects.gettingQuery);
     const tasksQuery = useSelector((state: CombinedState) => state.projects.tasksGettingQuery);
     const importing = useSelector((state: CombinedState) => state.import.projects.backup.importing);
-    const initialized = useSelector((state: CombinedState) => state.projects.initialized);
     const [isMounted, setIsMounted] = useState(false);
     const isAnySearch = anySearch<ProjectsQuery>(query);
 
     const updatedQuery = useResourceQuery<ProjectsQuery>(query, { pageSize: 12 });
 
     useEffect(() => {
-        // Only fetch projects if we haven't initialized yet
-        if (!initialized) {
-            dispatch(getProjectsAsync({ ...updatedQuery }));
-        }
+        dispatch(getProjectsAsync({ ...updatedQuery }));
         setIsMounted(true);
-    }, [initialized, dispatch]); // Remove updatedQuery to prevent infinite loop
+    }, []); // Remove updatedQuery to prevent infinite loop
 
     useEffect(() => {
         if (isMounted) {

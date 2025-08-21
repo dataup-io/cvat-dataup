@@ -26,12 +26,11 @@ interface Props {
     importing: boolean;
     query: TasksQuery;
     count: number;
-    initialized: boolean;
 }
 
 function TasksPageComponent(props: Props): JSX.Element {
     const {
-        query, fetching, importing, count, initialized,
+        query, fetching, importing, count,
     } = props;
 
     const dispatch = useDispatch();
@@ -41,12 +40,9 @@ function TasksPageComponent(props: Props): JSX.Element {
     const updatedQuery = useResourceQuery<TasksQuery>(query);
 
     useEffect(() => {
-        // Only fetch tasks if we haven't initialized yet
-        if (!initialized) {
-            dispatch(getTasksAsync({ ...updatedQuery }));
-        }
+        dispatch(getTasksAsync({ ...updatedQuery }));
         setIsMounted(true);
-    }, [initialized, dispatch]); // Remove updatedQuery to prevent infinite loop
+    }, []); // Remove updatedQuery to prevent infinite loop
 
     useEffect(() => {
         if (isMounted) {

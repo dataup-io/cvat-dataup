@@ -27,17 +27,13 @@ export default function StoragesPageComponent(): JSX.Element {
     const fetching = useSelector((state: CombinedState) => state.cloudStorages.fetching);
     const current = useSelector((state: CombinedState) => state.cloudStorages.current);
     const query = useSelector((state: CombinedState) => state.cloudStorages.gettingQuery);
-    const initialized = useSelector((state: CombinedState) => state.cloudStorages.initialized);
 
     const updatedQuery = useResourceQuery<CloudStoragesQuery>(query, { pageSize: 12 });
 
     useEffect(() => {
-        // Only fetch cloud storages if we haven't initialized yet
-        if (!initialized) {
-            dispatch(getCloudStoragesAsync({ ...updatedQuery }));
-        }
+        dispatch(getCloudStoragesAsync({ ...updatedQuery }));
         setIsMounted(true);
-    }, [initialized, dispatch]); // Remove updatedQuery to prevent infinite loop
+    }, []); // Remove updatedQuery to prevent infinite loop
 
     useEffect(() => {
         if (isMounted) {

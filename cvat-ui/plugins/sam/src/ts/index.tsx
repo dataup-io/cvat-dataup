@@ -12,7 +12,7 @@ interface SAMPlugin {
     name: string;
     description: string;
     cvat: {
-        agents: {
+        lambda: {
             call: {
                 enter: (
                     plugin: SAMPlugin,
@@ -128,7 +128,7 @@ const samPlugin: SAMPlugin = {
                 },
             },
         },
-        agents: {
+        lambda: {
             call: {
                 async enter(
                     plugin: SAMPlugin,
@@ -144,7 +144,8 @@ const samPlugin: SAMPlugin = {
                                 resolve(null);
                             }
                         }
-                        if (model.name == plugin.data.modelID) {
+
+                        if (model.id === plugin.data.modelID) {
                             if (!plugin.data.initialized) {
                                 samPlugin.data.worker.postMessage({
                                     action: WorkerAction.INIT,
@@ -192,7 +193,7 @@ const samPlugin: SAMPlugin = {
                         bounds: [number, number, number, number];
                     }> {
                     return new Promise((resolve, reject) => {
-                        if (model.name !== plugin.data.modelID) {
+                        if (model.id !== plugin.data.modelID) {
                             resolve(result);
                             return;
                         }
@@ -315,8 +316,7 @@ const samPlugin: SAMPlugin = {
         core: null,
         worker: new Worker(new URL('./inference.worker', import.meta.url)),
         jobs: {},
-        // TODO: change to the actual model ID
-        modelID: 'Segment Anything (Agent)',
+        modelID: 'pth-facebookresearch-sam-vit-h',
         modelURL: '/assets/decoder.onnx',
         embeddings: new LRUCache({
             // float32 tensor [256, 64, 64] is 4 MB, max 128 MB

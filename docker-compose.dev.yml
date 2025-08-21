@@ -24,12 +24,12 @@ services:
       # Use this with CVAT_DEBUG_ENABLED to avoid server response timeouts
       CVAT_DEBUG_ENABLED: '${CVAT_DEBUG_ENABLED:-no}'
       DATAUP_BASE_URL: '${DATAUP_BASE_URL:-}'
-      CVAT_DEBUG_PORT: '9090'
+      CVAT_DEBUG_PORT: '9089'
       # If 'yes', wait for a debugger connection on startup
       CVAT_DEBUG_WAIT: '${CVAT_DEBUG_WAIT_CLIENT:-no}'
       COVERAGE_PROCESS_START:
     ports:
-      - '9090:8080'
+      - '9089:8080'
     extra_hosts:
       - "host.docker.internal:host-gateway"
   cvat_worker_export:

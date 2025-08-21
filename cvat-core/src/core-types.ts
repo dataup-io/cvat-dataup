@@ -65,11 +65,4 @@ export interface UpdateStatusData {
     message: string;
 }
 
-export interface CVATCoreAgentAPIs {
-    get(filter?: AgentAPIsFilter): Promise<{ results: AgentAPI[], count: number }>;
-    create(agentAPIData: AgentAPIData): Promise<AgentAPI>;
-    update(agentAPIData: AgentAPIData): Promise<AgentAPI>;
-    delete(agentAPI: AgentAPI): Promise<void>;
-    infer(agentAPI: AgentAPI, task: number, data: Record<string, unknown>): Promise<any>;
-}
 export type PaginatedResource<T> = T[] & { count: number };

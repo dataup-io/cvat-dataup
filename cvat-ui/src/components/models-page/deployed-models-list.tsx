@@ -11,11 +11,9 @@ import Pagination from 'antd/lib/pagination';
 import { CombinedState, ModelsQuery } from 'reducers';
 import { MLModel } from 'cvat-core-wrapper';
 import { ModelProviders } from 'cvat-core/src/enums';
-import { getLambdaAsync } from 'actions/models-actions';
+import { getModelsAsync } from 'actions/models-actions';
 import dimensions from 'utils/dimensions';
 import DeployedModelItem from './deployed-model-item';
-
-export const PAGE_SIZE = 12;
 
 interface Props {
     query: ModelsQuery;
@@ -44,7 +42,6 @@ export default function DeployedModelsListComponent(props: Props): JSX.Element {
         page,
         pageSize,
     );
-
 
     const groupedModels = models.reduce(
         (acc: MLModel[][], storage: MLModel, index: number): MLModel[][] => {
@@ -79,15 +76,15 @@ export default function DeployedModelsListComponent(props: Props): JSX.Element {
                 <Pagination
                     className='cvat-models-pagination'
                     onChange={(newPage: number, newPageSize: number) => {
-                        dispatch(getLambdaAsync({
+                        dispatch(getModelsAsync({
                             ...query,
                             page: newPage,
                             pageSize: newPageSize,
                         }));
                     }}
                     total={totalCount}
-                    current={Number(page) || 1}
-                    pageSize={Number(pageSize) || PAGE_SIZE}
+                    current={page}
+                    pageSize={pageSize}
                     pageSizeOptions={[12, 24, 48, 96]}
                     showQuickJumper
                     showSizeChanger

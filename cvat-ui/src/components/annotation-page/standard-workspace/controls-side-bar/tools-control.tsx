@@ -156,11 +156,6 @@ interface State {
 
 type DetectorResults = Extract<Awaited<ReturnType<typeof core.lambda.call>>, { version: number }>;
 
-type InteractorResults = Extract<Awaited<ReturnType<typeof core.agents.call>>, { mask: number[][] }>;
-type TrackerResults = Extract<Awaited<ReturnType<typeof core.agents.call>>, { states: any[]; shapes: number[][] }>;
-type DetectedShapes = Extract<Awaited<ReturnType<typeof core.agents.call>>, { length: number }>;
-
-
 function trackedRectangleMapper(shape: MinimalShape): MinimalShape {
     return {
         type: ShapeType.RECTANGLE,
@@ -406,12 +401,13 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             try {
                 // run server request
                 this.setState({ fetching: true });
-                const frameUrl = await core.frames.getFrameUrl(jobInstance.taskId, data.frame);
-                const response = await core.agents.call(
+
+                const response = await core.lambda.call(
                     jobInstance.taskId,
                     interactor,
-                    { ...data, job: jobInstance.id, urls: [frameUrl], additional_params: {pos_points: data.pos_points, neg_points: data.neg_points}},
+                    { ...data, job: jobInstance.id },
                 ) as InteractorResults;
+
                 // if only mask presented, let's receive points
                 if (response.mask && !response.points) {
                     const left = response.bounds ? response.bounds[0] : 0;
@@ -785,12 +781,6 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                             className: 'cvat-tracking-notice',
                         });
 
-                        // const response = await core.agents.call(jobInstance.taskId, tracker, {
-                        // frame: frame - 1,
-                        // shapes: trackableObjects.shapes,
-                        // job: jobInstance.id,
-                        // }) as TrackerResults;
-
                         const response = await core.lambda.call(jobInstance.taskId, tracker, {
                             type: 'init_tracking',
                             frame: frame - 1,
@@ -839,11 +829,6 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                             className: 'cvat-tracking-notice',
                         });
                         // eslint-disable-next-line no-await-in-loop
-                        // const response = await core.agents.call(jobInstance.taskId, tracker, {
-                        //     frame,
-                        //     states: trackableObjects.states,
-                        //     job: jobInstance.id,
-                        // }) as TrackerResults;
                         const response = await core.lambda.call(jobInstance.taskId, tracker, {
                             type: 'track',
                             frame,
@@ -1232,11 +1217,6 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                         const result = await core.lambda.call(jobInstance.taskId, model, {
                             ...restOfBody, type: 'annotate_frame', frame, job: jobInstance.id,
                         }) as DetectorResults;
-
-
-                        // const result = await core.agents.call(jobInstance.taskId, model, {
-                        //     ...restOfBody, frame, job: jobInstance.id, urls: [frameUrl],
-                        // }) as DetectedShapes;
 
                         const tagStates = result.tags.map((tag) => {
                             const jobLabel = jobInstance.labels

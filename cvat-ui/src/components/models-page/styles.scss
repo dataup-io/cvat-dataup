@@ -6,14 +6,9 @@
 @import 'base';
 
 .cvat-models-page {
-    padding-top: 0;
-    padding-bottom: $grid-unit-size;
-    overflow: auto;
-    height: 100%;
-    width: 100%;
+    @include cvat-resource-page;
 
     .cvat-models-page-top-bar {
-        padding-top: $grid-unit-size * 2;
         padding-bottom: $grid-unit-size;
     }
 }
@@ -32,11 +27,11 @@
     flex-wrap: wrap;
     overflow-y: auto;
 
-    >div {
+    > div {
         width: 100%;
         margin-bottom: $grid-unit-size;
 
-        >div:not(:first-child) {
+        > div:not(:first-child) {
             padding-left: $grid-unit-size;
         }
     }
@@ -52,7 +47,7 @@
         width: $grid-unit-size * 32;
     }
 
-    >div {
+    > div {
         display: flex;
     }
 }
@@ -67,10 +62,10 @@
     align-items: center;
     width: 100%;
 
-    >div {
+    > div {
         display: flex;
 
-        >button {
+        > button {
             margin-right: $grid-unit-size;
         }
     }
@@ -146,7 +141,7 @@
     display: flex;
     justify-content: space-between;
 
-    >div>span:nth-child(2) {
+    > div > span:nth-child(2) {
         margin-left: $grid-unit-size;
     }
 
@@ -207,9 +202,4 @@
     overflow: hidden;
     max-height: $grid-unit-size * 6;
     display: inline;
-}
-
-.data-up-custom-menu.ant-menu-horizontal {
-    display: flex;
-    justify-content: center;
 }

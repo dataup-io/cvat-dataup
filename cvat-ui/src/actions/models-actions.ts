@@ -14,7 +14,6 @@ export enum ModelsActionTypes {
     GET_MODELS = 'GET_MODELS',
     GET_MODELS_SUCCESS = 'GET_MODELS_SUCCESS',
     GET_MODELS_FAILED = 'GET_MODELS_FAILED',
-    GET_MODELS_SERVER_ERROR = 'GET_MODELS_SERVER_ERROR',
     CREATE_MODEL = 'CREATE_MODEL',
     CREATE_MODEL_SUCCESS = 'CREATE_MODEL_SUCCESS',
     CREATE_MODEL_FAILED = 'CREATE_MODEL_FAILED',
@@ -44,9 +43,6 @@ export const modelsActions = {
         models, count,
     }),
     getModelsFailed: (error: any) => createAction(ModelsActionTypes.GET_MODELS_FAILED, {
-        error,
-    }),
-    getModelsServerError: (error: any) => createAction(ModelsActionTypes.GET_MODELS_SERVER_ERROR, {
         error,
     }),
     fetchMetaFailed: (error: any) => createAction(ModelsActionTypes.FETCH_META_FAILED, { error }),
@@ -105,61 +101,20 @@ export type ModelsActions = ActionUnion<typeof modelsActions>;
 
 const core = getCore();
 
-export function getLambdaAsync(query?: ModelsQuery): ThunkAction {
-    return async (dispatch, getState): Promise<MLModel[]> => {
-        const filteredQuery = filterNull(query || getState().models.query);
-        try {
-            const result = await core.lambda.list(filteredQuery);
-            return result;
-        } catch (error) {
-            console.error('Lambda models fetch failed:', error);
-            return [];
-        }
-    };
-}
-
-export function getAgentsAsync(query?: ModelsQuery): ThunkAction {
-    return async (dispatch, getState): Promise<MLModel[]> => {
-        // Return empty list - will be changed in future release.
-        return [];
-    };
-}
-
 export function getModelsAsync(query?: ModelsQuery): ThunkAction {
     return async (dispatch, getState): Promise<void> => {
         dispatch(modelsActions.getModels(query));
 
-        let lambdaModels: MLModel[] = [];
-        let agentModels: MLModel[] = [];
-        let lambdaError: any = null;
-        let agentError: any = null;
-
+        const filteredQuery = filterNull(query || getState().models.query);
         try {
-            lambdaModels = await getLambdaAsync(query)(dispatch, getState);
+            const result = await core.lambda.list(filteredQuery);
+            const { models, count } = result;
+            dispatch(modelsActions.getModelsSuccess(models, count));
         } catch (error) {
-            lambdaError = error;
-            console.error('Lambda models fetch failed:', error);
-        }
-
-        try {
-            agentModels = await getAgentsAsync(query)(dispatch, getState);
-        } catch (error) {
-            agentError = error;
-            console.error('Agent models fetch failed:', error);
-        }
-
-        const models = [...lambdaModels, ...agentModels];
-        
-        if (lambdaError && agentError) {
-            // Both services failed
-            dispatch(modelsActions.getModelsFailed(agentError));
-        } else {
-            // At least one service succeeded
-            dispatch(modelsActions.getModelsSuccess(models, models.length));
+            dispatch(modelsActions.getModelsFailed(error));
         }
     };
 }
-
 
 interface InferenceMeta {
     taskID: number;
@@ -170,55 +125,35 @@ interface InferenceMeta {
 function listen(inferenceMeta: InferenceMeta, dispatch: (action: ModelsActions) => void): void {
     const { taskID, requestID, functionID } = inferenceMeta;
 
-    core.agents.check_request_status(requestID)
-        .then((status: RQStatus) => {
-            // For failed or unknown status, dispatch error and stop checking
+    core.lambda
+        .listen(requestID, functionID, (status: RQStatus, progress: number, message?: string) => {
             if (status === RQStatus.FAILED || status === RQStatus.UNKNOWN) {
                 dispatch(
                     modelsActions.getInferenceStatusFailed(
                         taskID,
                         {
                             status,
-                            progress: 0,
+                            progress,
                             functionID,
-                            error: `Inference failed with status ${status}`,
+                            error: message as string,
                             id: requestID,
                         },
-                        new Error(`Inference status for the task ${taskID} is ${status}.`),
+                        new Error(`Inference status for the task ${taskID} is ${status}. ${message}`),
                     ),
                 );
+
                 return;
             }
 
-            // For completed status, dispatch success with 100% progress and stop checking
-            if (status === RQStatus.FINISHED) {
-                dispatch(
-                    modelsActions.getInferenceStatusSuccess(taskID, {
-                        status,
-                        progress: 100,
-                        functionID,
-                        error: '',
-                        id: requestID,
-                    }),
-                );
-                return; // Important: stop the recursive calls when completed
-            }
-
-            // For in-progress status (QUEUED, STARTED), dispatch success with partial progress
             dispatch(
                 modelsActions.getInferenceStatusSuccess(taskID, {
                     status,
-                    progress: 50, // Simplified progress for in-progress states
+                    progress,
                     functionID,
-                    error: '',
+                    error: message as string,
                     id: requestID,
                 }),
             );
-
-            // Only continue polling for in-progress statuses
-            setTimeout(() => {
-                listen(inferenceMeta, dispatch);
-            }, 3000); // Poll every 3 seconds
         })
         .catch((error: Error) => {
             dispatch(
@@ -242,13 +177,13 @@ export function getInferenceStatusAsync(): ThunkAction {
         const { requestedInferenceIDs } = getState().models;
 
         try {
-            const requests = await core.agents.list_requests();
+            const requests = await core.lambda.requests();
             const newListenedIDs: Record<string, boolean> = {};
             requests
                 .map((request: any): object => ({
-                    taskID: +request.task_id,
+                    taskID: +request.function.task,
                     requestID: request.id,
-                    functionID: request.agent_api_id,
+                    functionID: request.function.id,
                 }))
                 .forEach((inferenceMeta: InferenceMeta): void => {
                     if (!(inferenceMeta.requestID in requestedInferenceIDs)) {
@@ -266,7 +201,7 @@ export function getInferenceStatusAsync(): ThunkAction {
 export function startInferenceAsync(taskId: number, model: MLModel, body: object): ThunkAction {
     return async (dispatch): Promise<void> => {
         try {
-            const requestID: string = await core.agents.run_request(taskId, model, body);
+            const requestID: string = await core.lambda.run(taskId, model, body);
             const dispatchCallback = (action: ModelsActions): void => {
                 dispatch(action);
             };
@@ -290,7 +225,7 @@ export function cancelInferenceAsync(taskID: number): ThunkAction {
     return async (dispatch, getState): Promise<void> => {
         try {
             const inference = getState().models.inferences[taskID];
-            await core.agents.cancel_request(inference.id);
+            await core.lambda.cancel(inference.id, inference.functionID);
             dispatch(modelsActions.cancelInferenceSuccess(taskID, inference));
         } catch (error) {
             dispatch(modelsActions.cancelInferenceFailed(taskID, error));

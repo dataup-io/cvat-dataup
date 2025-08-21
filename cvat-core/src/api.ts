@@ -269,57 +269,32 @@ function build(): CVATCore {
                 return result;
             },
         },
-        agents: {
-            async list() {
-                const result = await PluginRegistry.apiWrapper(cvat.agents.list);
-                return result;
-            },
-            async call(task, model, args) {
-                const result = await PluginRegistry.apiWrapper(cvat.agents.call, task, model, args);
-                return result;
-            },
 
-            async list_requests() {
-                const result = await PluginRegistry.apiWrapper(cvat.agents.list_requests);
-                return result;
-            },
-
-            async cancel_request(requestID) {
-                await PluginRegistry.apiWrapper(cvat.agents.cancel_request, requestID);
-            },
-
-            async run_request(task, model, args) {
-                const result = await PluginRegistry.apiWrapper(cvat.agents.run_request, task, model, args);
-                return result;
-            },
-            async check_request_status(requestID) {
-                const result = await PluginRegistry.apiWrapper(cvat.agents.check_request_status, requestID);
-                return result;
-            },
-        },
         lambda: {
+
             async list() {
                 const result = await PluginRegistry.apiWrapper(cvat.lambda.list);
                 return result;
             },
-            async call(funId, body) {
-                const result = await PluginRegistry.apiWrapper(cvat.lambda.call, funId, body);
+            async run(task, model, args) {
+                const result = await PluginRegistry.apiWrapper(cvat.lambda.run, task, model, args);
                 return result;
             },
-            async run(body) {
-                const result = await PluginRegistry.apiWrapper(cvat.lambda.run, body);
+            async call(task, model, args) {
+                const result = await PluginRegistry.apiWrapper(cvat.lambda.call, task, model, args);
+                return result;
+            },
+            async cancel(requestID, functionID) {
+                const result = await PluginRegistry.apiWrapper(cvat.lambda.cancel, requestID, functionID);
+                return result;
+            },
+            async listen(requestID, functionID, onChange) {
+                const result = await PluginRegistry.apiWrapper(cvat.lambda.listen, requestID, functionID, onChange);
                 return result;
             },
             async requests() {
                 const result = await PluginRegistry.apiWrapper(cvat.lambda.requests);
                 return result;
-            },
-            async status(requestID) {
-                const result = await PluginRegistry.apiWrapper(cvat.lambda.status, requestID);
-                return result;
-            },
-            async cancel(requestId) {
-                await PluginRegistry.apiWrapper(cvat.lambda.cancel, requestId);
             },
         },
         logger,
@@ -473,135 +448,6 @@ function build(): CVATCore {
                 },
             },
         },
-        agentApis: {
-            async get(filter = {}) {
-                const result = await PluginRegistry.apiWrapper(cvat.agentApis.get, filter);
-                const agentAPIs = result.results.map((agentAPIData: any) => new AgentAPI(agentAPIData));
-                const lastResult = { results: agentAPIs, count: result.count };
-                return lastResult;
-            },
-
-            async create(agentAPIData: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.agentApis.create, agentAPIData);
-                return new AgentAPI(result);
-            },
-
-            async update(agentAPI: AgentAPI) {
-                const result = await PluginRegistry.apiWrapper(
-                    cvat.agentApis.update,
-                    agentAPI.id,
-                    agentAPI,
-                );
-                return new AgentAPI(result);
-            },
-
-            async delete(agentAPI: AgentAPI) {
-                await PluginRegistry.apiWrapper(cvat.agentApis.delete, agentAPI.id);
-            },
-
-            async infer(agentAPI: AgentAPI, taskId: number, data: Record<string, unknown>) {
-                const result = await PluginRegistry.apiWrapper(
-                    cvat.agentApis.infer,
-                    agentAPI.id,
-                    taskId,
-                    data,
-                );
-                return result;
-            },
-        },
-
-        dataUpApiKeys: {
-            async get(filter?: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.dataUpApiKeys.get, filter);
-                return result;
-            },
-
-            async create(keyData: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.dataUpApiKeys.create, keyData);
-                return result;
-            },
-
-            async update(id: string, keyData: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.dataUpApiKeys.update, id, keyData);
-                return result;
-            },
-
-            async delete(id: string) {
-                const result = await PluginRegistry.apiWrapper(
-                    cvat.dataUpApiKeys.delete,
-                    id,
-                );
-                return result;
-            },
-        },
-
-        pipelines: {
-            async list(filter = {}) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.list, filter);
-                return result;
-            },
-            async get(id: number) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.get, id);
-                return result;
-            },
-            async create(pipelineData: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.create, pipelineData);
-                return result;
-            },
-            async update(id: number, pipelineData: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.update, id, pipelineData);
-                return result;
-            },
-            async delete(id: number) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.delete, id);
-                return result;
-            },
-            async run(id: number, runData: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.run, id, runData);
-                return result;
-            },
-            async stepRegistry(filter = {}) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.stepRegistry, filter);
-                return result;
-            },
-            async executions(filter = {}) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.executions, filter);
-                return result;
-            },
-            async getExecution(id: string) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.getExecution, id);
-                return result;
-            },
-            async checkExecutionStatus(id: string) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.checkExecutionStatus, id);
-                return result;
-            },
-            async cancelExecution(id: string) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.cancelExecution, id);
-                return result;
-            },
-            async deleteExecution(id: string) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.deleteExecution, id);
-                return result;
-            },
-            async steps(filter = {}) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.steps, filter);
-                return result;
-            },
-            async createStep(stepData: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.createStep, stepData);
-                return result;
-            },
-            async updateStep(id: string, stepData: any) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.updateStep, id, stepData);
-                return result;
-            },
-            async deleteStep(id: string) {
-                const result = await PluginRegistry.apiWrapper(cvat.pipelines.deleteStep, id);
-                return result;
-            },
-        },
-
         requests: {
             async list() {
                 const result = await PluginRegistry.apiWrapper(cvat.requests.list);

@@ -41,9 +41,12 @@ class LambdaManager {
     async list(): Promise<{ models: MLModel[], count: number }> {
         const lambdaFunctions = await serverProxy.lambda.list();
 
-
+        console.log("Calling lambda.list", lambdaFunctions);
         const models = [];
         for (const model of lambdaFunctions) {
+            console.log("=== LAMBDA MODEL ===");
+            console.log(model); 
+            console.log("=== END LAMBDA MODEL ===");
             models.push(
                 new MLModel({
                     ...model,

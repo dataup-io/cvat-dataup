@@ -128,7 +128,14 @@ class CanvasImpl implements Canvas {
     }
 
     public interact(interactionData: InteractionData): void {
+        console.log("=== CANVAS INTERACT DEBUG ===");
+        console.log("Canvas interact called with:", interactionData);
+        console.log("InteractionData enabled:", interactionData.enabled);
+        console.log("InteractionData shapeType:", interactionData.shapeType);
+        console.log("InteractionData properties:", Object.keys(interactionData));
+        
         this.model.interact(interactionData);
+        console.log("=== END CANVAS INTERACT DEBUG ===");
     }
 
     public draw(drawData: DrawData): void {

@@ -4,15 +4,12 @@
 // SPDX-License-Identifier: MIT
 
 // Removed lodash dependency - using native JS instead
-import AgentAPI, { AgentAPIData } from './agent_apis';
 import config from './config';
-
 import PluginRegistry from './plugins';
 import serverProxy from './server-proxy';
-import agentManager from './agent-manager';
+import lambdaManager from './lambda-manager';
 import requestsManager from './requests-manager';
-import pipelineManager from './pipeline-manager';
-import apiKeysManager from './apikeys-manager';
+
 
 import {
     isBoolean,
@@ -35,7 +32,6 @@ import Organization, { Invitation } from './organization';
 import Webhook from './webhook';
 import { ArgumentError } from './exceptions';
 import {
-    AgentAPIsFilter,
     AnalyticsEventsFilter, ClassDistributionFilter, QualityConflictsFilter,
     SerializedAsset, ConsensusSettingsFilter,
 } from './server-response-types';
@@ -66,21 +62,12 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.actions.run, runAction);
     implementationMixin(cvat.actions.call, callAction);
 
-
-
-    implementationMixin(cvat.agents.list, agentManager.list.bind(agentManager));
-    implementationMixin(cvat.agents.call, agentManager.call.bind(agentManager));
-    implementationMixin(cvat.agents.list_requests, agentManager.list_requests.bind(agentManager));
-    implementationMixin(cvat.agents.cancel_request, agentManager.cancel_request.bind(agentManager));
-    implementationMixin(cvat.agents.run_request, agentManager.run_request.bind(agentManager));
-    implementationMixin(cvat.agents.check_request_status, agentManager.check_request_status.bind(agentManager));
-
-    implementationMixin(cvat.lambda.list, serverProxy.lambda.list);
-    implementationMixin(cvat.lambda.call, serverProxy.lambda.call);
-    implementationMixin(cvat.lambda.run, serverProxy.lambda.run);
-    implementationMixin(cvat.lambda.requests, serverProxy.lambda.requests);
-    implementationMixin(cvat.lambda.status, serverProxy.lambda.status);
-    implementationMixin(cvat.lambda.cancel, serverProxy.lambda.cancel);
+      implementationMixin(cvat.lambda.list, lambdaManager.list.bind(lambdaManager));
+    implementationMixin(cvat.lambda.run, lambdaManager.run.bind(lambdaManager));
+    implementationMixin(cvat.lambda.call, lambdaManager.call.bind(lambdaManager));
+    implementationMixin(cvat.lambda.cancel, lambdaManager.cancel.bind(lambdaManager));
+    implementationMixin(cvat.lambda.listen, lambdaManager.listen.bind(lambdaManager));
+    implementationMixin(cvat.lambda.requests, lambdaManager.requests.bind(lambdaManager));
 
     implementationMixin(cvat.requests.list, requestsManager.list.bind(requestsManager));
     implementationMixin(cvat.requests.listen, requestsManager.listen.bind(requestsManager));
@@ -169,11 +156,6 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
         const result = await getServerAPISchema();
         return result;
     });
-
-    // implementationMixin(cvat.server.dataUPHealth.getOrganizationStatus, async (organizationUuid: string) => {
-    //     const result = await serverProxy.dataUPHealth.getOrganizationStatus(organizationUuid);
-    //     return result;
-    // });
 
     implementationMixin(cvat.assets.create, async (file: File, guideId: number): Promise<SerializedAsset> => {
         if (!(file instanceof File)) {
@@ -629,130 +611,6 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.frames.getFrameUrl, async (taskId: number, frameNumber: number) => {
         const result = await serverProxy.frames.getFrameUrl(taskId, frameNumber);
         return result;
-    });
-
-    implementationMixin(cvat.agentApis.get, async (filter: AgentAPIsFilter) => {
-        // Template for future implementation - open source release
-        return { results: [], count: 0 };
-    });
-
-    implementationMixin(cvat.agentApis.create, async (agentAPIData: AgentAPIData) => {
-        // Template for future implementation - open source release
-        throw new Error('Agent API creation not available in open source release');
-    });
-
-    implementationMixin(cvat.agentApis.update, async (id: string, agentAPIData: AgentAPIData) => {
-        // Template for future implementation - open source release
-        throw new Error('Agent API update not available in open source release');
-    });
-
-    implementationMixin(cvat.agentApis.delete, async (id: string) => {
-        // Template for future implementation - open source release
-        throw new Error('Agent API deletion not available in open source release');
-    });
-
-    implementationMixin(cvat.agentApis.infer, async (id: string, taskId: number, data: Record<string, unknown>) => {
-        // Template for future implementation - open source release
-        throw new Error('Agent API inference not available in open source release');
-    });
-
-    // API Keys implementations
-
-    implementationMixin(cvat.dataUpApiKeys.get, async (filter?: any) => {
-    const result = await apiKeysManager.listApiKeys(filter);
-    return result;
-});
-
-implementationMixin(cvat.dataUpApiKeys.create, async (keyData: any) => {
-    const result = await apiKeysManager.createApiKey(keyData);
-    return result;
-});
-
-implementationMixin(cvat.dataUpApiKeys.update, async (id: string, keyData: any) => {
-    const result = await apiKeysManager.updateApiKey(id, keyData);
-    return result;
-});
-
-implementationMixin(cvat.dataUpApiKeys.delete, async (id: string, organizationUuid?: string) => {
-    const result = await apiKeysManager.deleteApiKey(id);
-    return result;
-});
-
-    implementationMixin(cvat.pipelines.list, async (filter: any = {}) => {
-        const result = await pipelineManager.list(filter);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.get, async (id: number) => {
-        const result = await pipelineManager.get(id);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.create, async (pipelineData: any) => {
-        const result = await pipelineManager.create(pipelineData);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.update, async (id: number, pipelineData: any) => {
-        const result = await pipelineManager.update(id, pipelineData);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.delete, async (id: number) => {
-        await pipelineManager.delete(id);
-    });
-
-    implementationMixin(cvat.pipelines.run, async (id: number, runData: any = {}) => {
-        const result = await pipelineManager.run(id, runData);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.stepRegistry, async (filter: any = {}) => {
-        const result = await pipelineManager.stepRegistry(filter);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.executions, async (filter: any = {}) => {
-        const result = await pipelineManager.executions(filter);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.getExecution, async (id: string) => {
-        const result = await pipelineManager.getExecution(id);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.checkExecutionStatus, async (id: string) => {
-        const result = await pipelineManager.checkExecutionStatus(id);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.cancelExecution, async (id: string) => {
-        await pipelineManager.cancelExecution(id);
-    });
-
-    implementationMixin(cvat.pipelines.deleteExecution, async (id: string) => {
-        await pipelineManager.deleteExecution(id);
-    });
-
-    // Pipeline Steps methods
-    implementationMixin(cvat.pipelines.steps, async (filter: any = {}) => {
-        const result = await pipelineManager.steps(filter);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.createStep, async (stepData: any) => {
-        const result = await pipelineManager.createStep(stepData);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.updateStep, async (id: string, stepData: any) => {
-        const result = await pipelineManager.updateStep(id, stepData);
-        return result;
-    });
-
-    implementationMixin(cvat.pipelines.deleteStep, async (id: string) => {
-        await pipelineManager.deleteStep(id);
     });
 
     return cvat;

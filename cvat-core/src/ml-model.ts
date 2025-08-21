@@ -58,7 +58,15 @@ export default class MLModel {
     }
 
     public get params(): ModelParams {
-        const result: ModelParams = {
+        console.log("=== ML MODEL PARAMS GETTER DEBUG ===");
+        console.log("MLModel ID:", this.id);
+        console.log("MLModel serialized:", this.serialized);
+        console.log("MLModel serialized.min_pos_points:", this.serialized.min_pos_points);
+        console.log("MLModel serialized.min_neg_points:", this.serialized.min_neg_points);
+        console.log("MLModel serialized.startswith_box:", this.serialized.startswith_box);
+        console.log("MLModel serialized.startswith_box_optional:", this.serialized.startswith_box_optional);
+        
+        const params = {
             canvas: {
                 minPosVertices: this.serialized.min_pos_points,
                 minNegVertices: this.serialized.min_neg_points,
@@ -66,8 +74,12 @@ export default class MLModel {
                 startWithBoxOptional: this.serialized.startswith_box_optional,
             },
         };
-
-        return result;
+        
+        console.log("Constructed params:", params);
+        console.log("Constructed params.canvas:", params.canvas);
+        console.log("=== END ML MODEL PARAMS GETTER DEBUG ===");
+        
+        return params;
     }
 
     public get tip(): MLModelTip {

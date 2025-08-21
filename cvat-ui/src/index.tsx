@@ -12,7 +12,6 @@ import { getAboutAsync } from 'actions/about-actions';
 import { authenticatedAsync } from 'actions/auth-actions';
 import { getFormatsAsync } from 'actions/formats-actions';
 import { getModelsAsync } from 'actions/models-actions';
-import { getLambdaAsync } from 'actions/models-actions';
 import { getPluginsAsync } from 'actions/plugins-actions';
 import { getUserAgreementsAsync } from 'actions/useragreements-actions';
 import CVATApplication from 'components/cvat-app';
@@ -121,8 +120,6 @@ function mapDispatchToProps(dispatch: any): DispatchToProps {
         loadUserAgreements: (): void => dispatch(getUserAgreementsAsync()),
         initPlugins: (): void => dispatch(getPluginsAsync()),
         initModels: (): void => dispatch(getModelsAsync()),
-        // initModels: (): void => dispatch(getLambdaAsync()),
-        // initAgents: (): void => dispatch(getAgentsAsync()),
         loadAbout: (): void => dispatch(getAboutAsync()),
         resetErrors: (): void => dispatch(resetErrors()),
         resetMessages: (): void => dispatch(resetMessages()),

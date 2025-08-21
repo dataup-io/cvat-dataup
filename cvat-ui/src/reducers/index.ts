@@ -48,7 +48,6 @@ export enum InstanceType {
 
 export interface ProjectsState {
     fetchingTimestamp: number;
-    initialized: boolean;
     fetching: boolean;
     count: number;
     current: Project[];
@@ -91,7 +90,6 @@ export interface JobsQuery {
 
 export interface JobsState {
     fetchingTimestamp: number;
-    initialized: boolean;
     query: JobsQuery;
     fetching: boolean;
     count: number;
@@ -108,7 +106,6 @@ export interface JobsState {
 
 export interface TasksState {
     fetchingTimestamp: number;
-    initialized: boolean;
     fetching: boolean;
     moveTask: {
         modalVisible: boolean;
@@ -224,7 +221,6 @@ interface CloudStorageStatus {
 export type CloudStorage = any;
 
 export interface CloudStoragesState {
-    initialized: boolean;
     fetching: boolean;
     count: number;
     current: CloudStorage[];
@@ -461,7 +457,6 @@ export interface ActiveInference {
 }
 
 export interface ModelsState {
-    initialized: boolean;
     fetching: boolean;
     creatingStatus: string;
     interactors: MLModel[];

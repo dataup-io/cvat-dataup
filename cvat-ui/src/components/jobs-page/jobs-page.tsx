@@ -28,17 +28,13 @@ function JobsPageComponent(): JSX.Element {
     const query = useSelector((state: CombinedState) => state.jobs.query);
     const fetching = useSelector((state: CombinedState) => state.jobs.fetching);
     const count = useSelector((state: CombinedState) => state.jobs.count);
-    const initialized = useSelector((state: CombinedState) => state.jobs.initialized);
 
     const updatedQuery = useResourceQuery<JobsQuery>(query, { pageSize: 12 });
 
     useEffect(() => {
-        // Only fetch jobs if we haven't initialized yet
-        if (!initialized) {
-            dispatch(getJobsAsync({ ...updatedQuery }));
-        }
+        dispatch(getJobsAsync({ ...updatedQuery }));
         setIsMounted(true);
-    }, [initialized, dispatch]); // Remove updatedQuery to prevent infinite loop
+    }, []);
 
     useEffect(() => {
         if (isMounted) {

@@ -52,6 +52,7 @@ export default function DeployedModelItem(props: Props): JSX.Element {
     const modelDescription = model.provider !== ModelProviders.CVAT ?
         <Text type='secondary'>{`Added ${created}`}</Text> :
         <Text type='secondary'>System model</Text>;
+    console.log(modelDescription);
 
     const menuItems: [NonNullable<MenuProps['items']>[0], number][] = [];
     const topBarItems: [JSX.Element, number][] = [];
