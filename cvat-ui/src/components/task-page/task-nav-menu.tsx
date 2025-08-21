@@ -13,7 +13,7 @@ function TaskMenuNavComponent({ items}: NavigationTopBarProps): JSX.Element {
     const current = location.pathname.split('/').pop() || '';
 
     return (
-        <Menu items={items} mode='horizontal' selectedKeys={[current]} className='data-up-custom-menu' />
+        <Menu items={items} mode='horizontal' selectedKeys={[current]} className='cvat-task-nav-menu' />
     );
 }
 

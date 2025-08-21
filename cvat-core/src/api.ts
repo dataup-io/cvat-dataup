@@ -3,7 +3,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-import AgentAPI from './agent_apis';
 import PluginRegistry from './plugins';
 import logger from './logger';
 
@@ -140,15 +139,6 @@ function build(): CVATCore {
                 const result = await PluginRegistry.apiWrapper(cvat.server.apiSchema);
                 return result;
             },
-            // dataUPHealth: {
-            //     async getOrganizationStatus(organizationUuid) {
-            //         const result = await PluginRegistry.apiWrapper(
-            //             cvat.server.dataUPHealth.getOrganizationStatus,
-            //             organizationUuid,
-            //         );
-            //         return result;
-            //     },
-            // },
         },
 
         projects: {

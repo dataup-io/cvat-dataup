@@ -10,7 +10,6 @@ import ObjectState from 'cvat-core/src/object-state';
 import Webhook from 'cvat-core/src/webhook';
 import MLModel from 'cvat-core/src/ml-model';
 import CloudStorage from 'cvat-core/src/cloud-storage';
-import StepRegistry from 'cvat-core/src/step-registry';
 import {
     Label, Attribute,
 } from 'cvat-core/src/labels';
@@ -102,7 +101,6 @@ export {
     QualityConflict,
     QualitySettings,
     ConsensusSettings,
-    StepRegistry,
     TargetMetric,
     AnnotationConflict,
     ConflictSeverity,
