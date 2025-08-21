@@ -1,17 +1,17 @@
 <p align="center">
-  <img src="/site/content/en/images/cvat-readme-gif.gif" alt="CVAT-DATAUP Platform" width="100%" max-width="800px">
+  <img src="/site/content/en/images/dataup-readme-gif.gif" alt="CVAT-DATAUP Platform" width="100%" max-width="800px">
 </p>
 
 # CVAT-DATAUP: Enhanced Computer Vision Annotation Platform
 
-[![CI][ci-img]][ci-url]
+<!-- [![CI][ci-img]][ci-url]
 [![Gitter chat][gitter-img]][gitter-url]
 [![Discord][discord-img]][discord-url]
 [![Coverage Status][coverage-img]][coverage-url]
 [![server pulls][docker-server-pulls-img]][docker-server-image-url]
 [![ui pulls][docker-ui-pulls-img]][docker-ui-image-url]
 [![DOI][doi-img]][doi-url]
-[![Status][status-img]][status-url]
+[![Status][status-img]][status-url] -->
 
 **CVAT-DATAUP** is an enhanced version of the popular open-source Computer Vision Annotation Tool (CVAT), featuring new capabilities and an improved user experience while maintaining full compatibility with existing CVAT instances.
 
