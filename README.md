@@ -35,16 +35,6 @@ docker-compose up -d
 ```
 The application will be available at `http://localhost:8080`
 
-### Documentation & Resources
-
-- [Installation guide](#installation)
-- [Agent Configuration](#agents)
-- [Pipeline Setup](#pipelines)
-- [Server API](#api)
-- [Python SDK](#sdk)
-- [Command line tool](#cli)
-- [CVAT Compatibility Guide](#cvat-compatibility)
-- [Migration from CVAT](#migration)
 
 ### CVAT Resources (Fully Compatible)
 
