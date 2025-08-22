@@ -91,7 +91,7 @@ In addition to applying the database migrations, run the following command insid
 
 ```bash
 docker exec -it cvat_server bash -ic 'python3 ~/manage.py populate_dataup_uuids'
-
+```
 
 
 ## Prebuilt Docker images 🐳
