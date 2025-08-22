@@ -1,4 +1,4 @@
-// Copyright (C) CVAT.ai Corporation
+// Copyright (C) 2022-2024 CVAT.ai Corporation
 //
 // SPDX-License-Identifier: MIT
 import React, { useEffect, useState } from 'react';
@@ -38,8 +38,8 @@ function CVATSigningInput(props: SocialAccountLinkProps): JSX.Element {
                 value={value}
                 autoComplete={autoComplete}
                 className={valueNonEmpty ? 'cvat-input-floating-label-above' : 'cvat-input-floating-label'}
+                prefix={<Text>{placeholder}</Text>}
                 id={id}
-                placeholder={placeholder}
                 onChange={onChange}
             />
         );

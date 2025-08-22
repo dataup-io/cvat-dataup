@@ -1,16 +1,14 @@
-// Copyright (C) CVAT.ai Corporation
+// Copyright (C) 2022 CVAT.ai Corporation
 //
 // SPDX-License-Identifier: MIT
 
 import './styles.scss';
 import React from 'react';
-import { Col, Row } from 'antd/lib/grid';
 import Layout from 'antd/lib/layout';
-import Icon from '@ant-design/icons';
+import { Col, Row } from 'antd/lib/grid';
 import { DataUpLogo } from 'icons';
-import LoginCarousel from 'components/login-carousel/login-carousel';
-import { EmblaOptionsType } from 'embla-carousel';
-// import SVGSigningBackground from '../../assets/signing-background.svg';
+import Icon from '@ant-design/icons';
+import SVGSigningBackground from '../../assets/signing-background.svg';
 
 interface SignInLayoutComponentProps {
     children: JSX.Element | JSX.Element[];
@@ -52,22 +50,22 @@ export const formSizes: FormSizes = {
 function SignInLayout(props: SignInLayoutComponentProps): JSX.Element {
     const { children } = props;
     const { Content, Header } = Layout;
-    // const titleSizes = {
-    //     xs: { span: 12 },
-    //     sm: { span: 12 },
-    //     md: { span: 12 },
-    //     lg: { span: 12 },
-    //     xl: { span: 12 },
-    //     xxl: { span: 12 },
-    // };
-    // const formSizes = {
-    //     xs: { span: 12 },
-    //     sm: { span: 12 },
-    //     md: { span: 12 },
-    //     lg: { span: 12 },
-    //     xl: { span: 12 },
-    //     xxl: { span: 12 },
-    // };
+    const titleSizes = {
+        xs: { span: 12 },
+        sm: { span: 12 },
+        md: { span: 12 },
+        lg: { span: 12 },
+        xl: { span: 12 },
+        xxl: { span: 12 },
+    };
+    const formSizes = {
+        xs: { span: 12 },
+        sm: { span: 12 },
+        md: { span: 12 },
+        lg: { span: 12 },
+        xl: { span: 12 },
+        xxl: { span: 12 },
+    };
     const logoSizes = {
         xs: { span: 21 },
         sm: { span: 21 },
@@ -77,13 +75,11 @@ function SignInLayout(props: SignInLayoutComponentProps): JSX.Element {
         xxl: { span: 22 },
     };
 
-    const OPTIONS: EmblaOptionsType = { loop: true, axis: 'y', direction: 'rtl' };
-    const SLIDES = ['./../../assets/slider_img1.png', './../../assets/slider_img2.png', './../../assets/slider_image3.png'];
-    const autoplayOptions = { delay: 4500, stopOnInteraction: false };
     return (
-        <Layout className='cvat-signing-layout-wrapper'>
+        <Layout>
+            <SVGSigningBackground className='cvat-signing-background' />
             <Header className='cvat-signing-header'>
-                <Row className='cvat-signing-header-logo-wrapper' justify='center' align='middle'>
+                <Row justify='center' align='middle'>
                     <Col {...logoSizes}>
                         <Row align='middle'>
                             <Icon className='cvat-logo-icon' component={DataUpLogo} />
@@ -94,42 +90,26 @@ function SignInLayout(props: SignInLayoutComponentProps): JSX.Element {
             <Layout className='cvat-signing-layout'>
                 <Content>
                     <Row style={{ height: '100%' }} className='cvat-signing-content-row'>
-                        <Col
-                            className='cvat-signing-left-side'
-                            xs={0}
-                            sm={0}
-                            md={12}
-                            lg={12}
-                            xl={12}
-                            xxl={12}
-                        >
-                            <div className='cvat-signing-carousel-container'>
-                                <LoginCarousel slides={SLIDES} options={OPTIONS} autoplayOptions={autoplayOptions} />
-                                <div className='cvat-signing-text-slider'>
-                                    <div className='cvat-signing-text-content'>
-                                        <h2>Welcome to DATAUP</h2>
-                                        <p>Computer Vision Annotation Tool</p>
-                                    </div>
-                                    <div className='cvat-signing-text-content'>
-                                        <h2>Annotate with Precision</h2>
-                                        <p>Professional annotation platform</p>
-                                    </div>
-                                    <div className='cvat-signing-text-content'>
-                                        <h2>Use Public/Custom Pipelines</h2>
-                                        <p>Advanced machine learning integration</p>
-                                    </div>
+                        <Col {...titleSizes} className='cvat-signing-left-side'>
+                            <div className='dataup-highlight-stack'>
+                                <div className='dataup-highlight-box'>
+                                    <p className='highlight-text'>
+                                        Agent-Driven Pipelines for Streamlined Data Processes
+                                    </p>
+                                </div>
+                                <div className='dataup-highlight-box'>
+                                    <p className='highlight-text'>
+                                        Enhanced CVAT-based annotation tools with extended capabilities
+                                    </p>
+                                </div>
+                                <div className='dataup-highlight-box'>
+                                    <p className='highlight-text'>
+                                        Insights That Accelerate Model Development and Testing
+                                    </p>
                                 </div>
                             </div>
                         </Col>
-                        <Col
-                            className='cvat-signing-right-side'
-                            xs={24}
-                            sm={24}
-                            md={12}
-                            lg={12}
-                            xl={12}
-                            xxl={12}
-                        >
+                        <Col {...formSizes} className='cvat-signing-right-side'>
                             {children}
                         </Col>
                     </Row>

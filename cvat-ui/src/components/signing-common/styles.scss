@@ -1,4 +1,4 @@
-// Copyright (C) CVAT.ai Corporation
+// Copyright (C) 2022-2024 CVAT.ai Corporation
 //
 // SPDX-License-Identifier: MIT
 
@@ -30,92 +30,8 @@ $social-google-background: #4286f5;
     justify-content: center;
     align-items: center;
     height: 100%;
-    background-color: rgba(0, 160, 70, 10%);
-    position: relative;
-    overflow: hidden;
-
+    background-color: rgba(0, 160, 70, 0.1);
     /* Light green background */
-}
-
-.cvat-signing-carousel-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    padding: 20px;
-}
-
-.cvat-signing-text-slider {
-    width: 100%;
-    height: 120px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-top: 20px;
-    position: relative;
-}
-
-.cvat-signing-text-content {
-    position: absolute;
-    width: 100%;
-    text-align: center;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-    animation: slideTextHorizontal 13.5s infinite;
-    opacity: 0;
-    transform: translateX(100%);
-
-    h2 {
-        font-size: 2.5rem;
-        font-weight: 600;
-        margin: 0 0 10px 0;
-        font-family: 'Sora', sans-serif;
-    }
-
-    p {
-        font-size: 1.2rem;
-        margin: 0;
-        font-family: 'Roboto Flex', sans-serif;
-    }
-
-    &:nth-child(1) {
-        animation-delay: 0s;
-    }
-
-    &:nth-child(2) {
-        animation-delay: 4.5s;
-    }
-
-    &:nth-child(3) {
-        animation-delay: 9s;
-    }
-}
-
-@keyframes slideTextHorizontal {
-    0% {
-        opacity: 0;
-        transform: translateX(100%);
-    }
-    11% {
-        opacity: 1;
-        transform: translateX(0);
-    }
-    22% {
-        opacity: 1;
-        transform: translateX(0);
-    }
-    33% {
-        opacity: 0;
-        transform: translateX(-100%);
-    }
-    100% {
-        opacity: 0;
-        transform: translateX(-100%);
-    }
 }
 
 .cvat-signing-right-side {
@@ -149,13 +65,9 @@ $social-google-background: #4286f5;
     position: fixed;
     padding: $grid-unit-size * 2 0 0 0;
     width: 100%;
-    z-index: 10000;
 
     .cvat-logo-icon {
-        svg {
-            width: 70px;
-            height: auto;
-        }
+        fill: white;
     }
 }
 
@@ -164,11 +76,6 @@ $social-google-background: #4286f5;
     width: 100%;
     height: 100%;
     min-width: $grid-unit-size * 128;
-}
-
-.cvat-signing-layout-wrapper,
-.cvat-signing-layout-wrapper .ant-layout {
-    background-color: #d8ebe3;
 }
 
 .cvat-credentials-link {
@@ -212,41 +119,31 @@ $social-google-background: #4286f5;
 
 .cvat-credentials-form-item {
     .ant-input-affix-wrapper {
-        border: 1px solid $border-color-1;
-        background-color: #f3f3f3;
-        box-shadow: none;
-        border-radius: 8px;
-        padding: $grid-unit-size * 1.5 $grid-unit-size * 2 $grid-unit-size * 1.5 $grid-unit-size * 2 !important;
+        border: none;
+        box-shadow: 0 1px 0 0 $border-color-1;
+        border-radius: 0;
+        padding: 0;
         transition: $base-transition;
     }
 
     .ant-input-affix-wrapper-focused {
         @extend .cvat-input-floating-label-above;
 
-        background-color: rgb(250, 250, 250);
-        box-shadow: none;
-        border: 1px solid $action-button-color-1;
-    }
-
-    .ant-input-affix-wrapper:hover {
-        box-shadow: none;
-        background-color: rgb(250, 250, 250);
-        border: 1px solid $action-button-color-1;
+        box-shadow: 0 2px 0 0 black;
     }
 
     .ant-input-affix-wrapper-focused:hover {
-        box-shadow: none;
+        box-shadow: 0 2px 0 0 black;
     }
 
     .ant-input {
         font-size: 20px;
-        padding: 0;
+        padding: $grid-unit-size * 1.5 0 $grid-unit-size * 0.75 0 !important;
 
         &:-webkit-autofill,
         &:-webkit-autofill:hover,
         &:-webkit-autofill:focus {
-            box-shadow: none !important;
-            border-bottom: none;
+            box-shadow: 0 0 0 1000px white inset !important;
             transition: background-color 10s ease-in-out 0s;
         }
     }
@@ -263,14 +160,14 @@ $social-google-background: #4286f5;
 .cvat-credentials-form-item.ant-form-item-has-error {
     .ant-input-affix-wrapper {
         border: none;
-        box-shadow: none;
+        box-shadow: 0 1px 0 0 $error-color;
         border-radius: 0;
-        padding: 16px;
+        padding: 0;
         transition: $base-transition;
     }
 
     .ant-input-affix-wrapper-focused {
-        box-shadow: none !important;
+        box-shadow: 0 2px 0 0 $error-color !important;
     }
 }
 
@@ -279,12 +176,10 @@ $social-google-background: #4286f5;
 }
 
 .cvat-credentials-action-button {
-    width: 80%;
-    margin: auto;
-    display: block;
+    width: 100%;
     border-radius: $border-radius-base;
     background-color: $action-button-color-1;
-    height: $grid-unit-size * 5;
+    height: $grid-unit-size * 4;
     color: white;
     font-size: 16px;
     font-weight: bold;
@@ -305,7 +200,6 @@ $social-google-background: #4286f5;
     padding: $grid-unit-size * 3;
     background: white;
     position: relative;
-    border-radius: 12px;
 
     .cvat-credentials-form-item {
         height: $grid-unit-size * 9.5;
@@ -326,7 +220,7 @@ $social-google-background: #4286f5;
 
 .cvat-signing-form {
     position: relative;
-    height: $grid-unit-size * 44;
+    height: $grid-unit-size * 52;
     width: 100%;
 
     .ant-form-item:last-child:not(.cvat-credentials-form-item) {
@@ -340,12 +234,16 @@ $social-google-background: #4286f5;
 .cvat-login-form {
     @extend .cvat-signing-form;
 
-    margin-top: 32px;
+    //margin-top: $grid-unit-size;
+
+    .ant-form-item:first-child {
+        margin-bottom: $grid-unit-size;
+    }
 }
 
 .cvat-login-form-extended {
     .ant-form-item:first-child {
-        margin-bottom: 32px;
+        margin-bottom: 0;
     }
 }
 
@@ -480,16 +378,16 @@ $social-google-background: #4286f5;
         font-weight: bold;
         margin-bottom: 2rem;
         color: #010101;
-        font-family: Sora, sans-serif;
+        font-family: 'Sora', sans-serif;
     }
 
     .feature-card {
-        background: rgba(255, 255, 255, 5%);
+        background: rgba(255, 255, 255, 0.05);
         border-radius: 12px;
         padding: 1.5rem;
         margin-bottom: 1rem;
         backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 10%);
+        border: 1px solid rgba(255, 255, 255, 0.1);
         transition: all 0.3s ease;
 
         h3 {
@@ -533,9 +431,9 @@ $social-google-background: #4286f5;
 .dataup-highlight-box {
     padding: 2rem 2.5rem;
     border-radius: 16px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 8%);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
-    font-family: Sora, sans-serif;
+    font-family: 'Sora', sans-serif;
     text-align: left;
 
     .highlight-text {
@@ -548,18 +446,18 @@ $social-google-background: #4286f5;
 
     &:hover {
         transform: translateY(-3px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 12%);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     }
 
     // First box (default green)
     &:nth-child(1) {
-        background-color: rgba(0, 160, 70, 12%);
+        background-color: rgba(0, 160, 70, 0.12);
         border-left: 6px solid #00a046;
     }
 
     // Second box (yellow theme)
     &:nth-child(2) {
-        background-color: rgba(255, 223, 100, 15%);
+        background-color: rgba(255, 223, 100, 0.15);
         border-left: 6px solid #ffd700;
 
         .highlight-text {
@@ -569,11 +467,15 @@ $social-google-background: #4286f5;
 
     // Third box (blue theme)
     &:nth-child(3) {
-        background-color: rgba(100, 179, 255, 15%);
+        background-color: rgba(100, 179, 255, 0.15);
         border-left: 6px solid #1890ff;
 
         .highlight-text {
             color: #003a8c;
         }
     }
+}
+
+.ant-layout {
+    height: 100%
 }
