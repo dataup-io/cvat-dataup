@@ -109,7 +109,7 @@ All images are based on the proven CVAT architecture with additional enhancement
 **CVAT-DATAUP** builds on top of [CVAT](https://github.com/opencv/cvat) and maintains the same licensing model.  
 Unless otherwise noted, the code is released under the [MIT License](https://opensource.org/licenses/MIT).
 
-- **/serverless**: Code in this directory is also released under the MIT License.  
+- **serverless**: Code in this directory is also released under the MIT License.  
   However, it may download and use additional assets (e.g., source code, model architectures, weights).  
   These assets may be subject to different licenses, including non-commercial ones.  
   It is your responsibility to review and comply with the licenses of these assets before use.
@@ -117,10 +117,8 @@ Unless otherwise noted, the code is released under the [MIT License](https://ope
 - **FFmpeg**: This project uses LGPL-licensed libraries from the [FFmpeg](https://www.ffmpeg.org) project.  
   The configuration and compilation steps for FFmpeg are detailed in the [Dockerfile](Dockerfile).  
 
-FFmpeg itself is open-source and licensed under LGPL and GPL.  
-See [FFmpeg Legal](https://www.ffmpeg.org/legal.html) for more details.  
-You are solely responsible for ensuring that your use of FFmpeg complies with the appropriate licenses.  
-Neither CVAT nor CVAT-DATAUP authors are responsible for obtaining additional licenses or covering any related fees.  
+FFmpeg itself is open-source and licensed under LGPL and GPL. See [FFmpeg Legal](https://www.ffmpeg.org/legal.html) for more details.  
+You are solely responsible for ensuring that your use of FFmpeg complies with the appropriate licenses. Neither CVAT nor CVAT-DATAUP authors are responsible for obtaining additional licenses or covering any related fees.  
 
 
 ## Contact us
