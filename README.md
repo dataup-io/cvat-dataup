@@ -103,7 +103,6 @@ CVAT-DATAUP provides prebuilt Docker images for easy deployment:
 
 All images are based on the proven CVAT architecture with additional enhancements.
 
-## License
 
 ## 📜 License
 
