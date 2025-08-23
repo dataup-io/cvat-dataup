@@ -42,6 +42,10 @@ ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(","
 INTERNAL_IPS = ["127.0.0.1"]
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 
+ENABLE_CLOUD_PRESIGN = True
+CLOUD_PRESIGN_TTL = 600
+
+
 
 def generate_secret_key():
     """

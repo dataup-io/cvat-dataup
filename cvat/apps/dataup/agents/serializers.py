@@ -5,6 +5,19 @@
 from rest_framework import serializers
 
 
+class AgentInferenceRequest(serializers.Serializer):
+    task_id = serializers.IntegerField()
+    job_id = serializers.IntegerField(required=False)
+    frame_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True
+    )
+    params = serializers.JSONField(required=False, default=dict)
+
+
+class AgentInferenceResponse
+
+
 class AgentSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(max_length=256, help_text="Agent name")
@@ -32,8 +45,3 @@ class AgentSerializer(serializers.Serializer):
     owner = serializers.CharField(read_only=True)
 
 
-class AgentInferSerializer(serializers.Serializer):
-    task_id = serializers.IntegerField()
-    frame_id = serializers.IntegerField(required=False)
-    frame_url = serializers.URLField(required=False)
-    args = serializers.JSONField(required=False, default=dict)

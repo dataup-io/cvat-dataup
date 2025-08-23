@@ -113,10 +113,9 @@ class AgentViewSet(DataUpBaseViewSet):
     @action(detail=True, methods=['post'], url_path='infer')
     def infer(self, request, pk=None):
         serializer = AgentInferSerializer(data=request.data)
-
+    
         if serializer.is_valid():
             infer_data = serializer.validated_data
-            print(infer_data)
             return []
             # return self.make_dataup_request(
             #     'POST', f'agents/{pk}/infer',
