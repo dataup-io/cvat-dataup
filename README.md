@@ -27,11 +27,11 @@ CVAT-DATAUP can be deployed using Docker Compose for easy setup:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/cvat-dataup.git
+git clone https://github.com/dataup-io/cvat-dataup.git
 cd cvat-dataup
 
 # Start the application
-docker-compose up -d
+docker compose up -d
 ```
 The application will be available at `http://localhost:8080`
 
