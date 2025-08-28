@@ -6,7 +6,6 @@ from typing import Any, Union
 
 import attrs
 from cvat_sdk.api_client import models
-
 from shared.tasks.interface import ITaskSpec
 from shared.tasks.utils import parse_frame_step
 

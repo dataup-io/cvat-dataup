@@ -2,13 +2,13 @@
 #
 # SPDX-License-Identifier: MIT
 
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.decorators import action
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from rest_framework.response import Response
 
-from cvat.apps.dataup.views.base import DataUpBaseViewSet
 from cvat.apps.dataup.pipelines.serializers import PipelineExecutionSerializer
+from cvat.apps.dataup.views.base import DataUpBaseViewSet
 
 
 class PipelineExecutionViewSet(DataUpBaseViewSet):
@@ -20,26 +20,28 @@ class PipelineExecutionViewSet(DataUpBaseViewSet):
     """
 
     @extend_schema(
-        summary='List all pipeline executions',
-        description='Returns a list of pipeline executions',
+        summary="List all pipeline executions",
+        description="Returns a list of pipeline executions",
         responses={
-            200: OpenApiResponse(description='List of pipeline executions'),
+            200: OpenApiResponse(description="List of pipeline executions"),
         },
         parameters=[
-            OpenApiParameter('pipeline', description='Filter by pipeline ID', required=False, type=int),
-            OpenApiParameter('status', description='Filter by status', required=False, type=str),
+            OpenApiParameter(
+                "pipeline", description="Filter by pipeline ID", required=False, type=int
+            ),
+            OpenApiParameter("status", description="Filter by status", required=False, type=str),
         ],
     )
     def list(self, request):
         params = {}
-        pipeline_id = request.query_params.get('pipeline', None)
+        pipeline_id = request.query_params.get("pipeline", None)
         if pipeline_id:
-            params['pipeline'] = pipeline_id
+            params["pipeline"] = pipeline_id
         params = self.add_organization_params(params)
-        return self.make_dataup_request('GET', 'executions/', params=params)
-    def retrieve(self, request, pk=None):
-        return self.make_dataup_request('GET', f'executions/{pk}')
+        return self.make_dataup_request("GET", "executions/", params=params)
 
+    def retrieve(self, request, pk=None):
+        return self.make_dataup_request("GET", f"executions/{pk}")
 
     # @extend_schema(        summary='Check pipeline execution status',
     #     description='Returns the status of a pipeline execution',

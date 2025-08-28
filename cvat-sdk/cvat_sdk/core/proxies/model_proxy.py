@@ -21,18 +21,16 @@ from typing import (
     overload,
 )
 
-from typing_extensions import Self
-
 from cvat_sdk.api_client import exceptions
 from cvat_sdk.api_client.model_utils import IModelData, ModelNormal, to_json
 from cvat_sdk.core.downloading import Downloader
 from cvat_sdk.core.helpers import get_paginated_collection
 from cvat_sdk.core.progress import ProgressReporter
 from cvat_sdk.core.proxies.types import Location
+from typing_extensions import Self
 
 if TYPE_CHECKING:
     from _typeshed import StrPath
-
     from cvat_sdk.core.client import Client
 
 IModel = TypeVar("IModel", bound=IModelData)

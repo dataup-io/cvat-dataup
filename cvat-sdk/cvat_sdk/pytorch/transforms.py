@@ -8,7 +8,6 @@ import attrs
 import attrs.validators
 import torch
 import torch.utils.data
-
 from cvat_sdk.datasets.common import UnsupportedDatasetError
 from cvat_sdk.pytorch.common import Target
 

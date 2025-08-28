@@ -12,7 +12,6 @@ from typing import Any, Optional, Union
 
 import tqdm
 import urllib3
-
 from cvat_sdk import exceptions
 from cvat_sdk.api_client.api_client import Endpoint
 from cvat_sdk.core.progress import BaseProgressReporter, ProgressReporter

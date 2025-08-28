@@ -36,13 +36,9 @@ class PipelineCreateSerializer(serializers.Serializer):
     description = serializers.CharField(default="", allow_blank=True)
     usage_limit = serializers.IntegerField(default=1000, min_value=0)
     is_public = serializers.BooleanField(
-        default=False,
-        help_text="If true, the pipeline is available to all organizations"
+        default=False, help_text="If true, the pipeline is available to all organizations"
     )
-    steps = serializers.ListField(
-        child=PipelineStepCreateSerializer(),
-        default=list
-    )
+    steps = serializers.ListField(child=PipelineStepCreateSerializer(), default=list)
 
 
 class PipelineUpdateSerializer(serializers.Serializer):
@@ -51,9 +47,7 @@ class PipelineUpdateSerializer(serializers.Serializer):
     usage_limit = serializers.IntegerField(min_value=0, required=False, allow_null=True)
     is_public = serializers.BooleanField(required=False, allow_null=True)
     steps = serializers.ListField(
-        child=PipelineStepCreateSerializer(),
-        required=False,
-        allow_null=True
+        child=PipelineStepCreateSerializer(), required=False, allow_null=True
     )
 
 
@@ -63,8 +57,7 @@ class PipelineSerializer(serializers.Serializer):
     description = serializers.CharField(default="")
     usage_limit = serializers.IntegerField(default=1000, min_value=0)
     is_public = serializers.BooleanField(
-        default=False,
-        help_text="If true, the pipeline is available to all organizations"
+        default=False, help_text="If true, the pipeline is available to all organizations"
     )
     owner_id = serializers.CharField(required=False, allow_null=True)
     organization_id = serializers.CharField()
@@ -72,32 +65,24 @@ class PipelineSerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField(read_only=True)
     usage_count = serializers.IntegerField(default=0)
     total_usage = serializers.IntegerField(default=0)
-    steps = serializers.ListField(
-        child=PipelineStepSerializer(),
-        default=list
-    )
+    steps = serializers.ListField(child=PipelineStepSerializer(), default=list)
 
 
 class PipelineRunSerializer(serializers.Serializer):
     input_data = serializers.JSONField(default=dict)
     step_params = serializers.JSONField(
-        default=dict,
-        help_text="Parameters for specific steps, keyed by step ID"
+        default=dict, help_text="Parameters for specific steps, keyed by step ID"
     )
     cvat_token = serializers.CharField(
         required=False,
         allow_null=True,
-        help_text="CVAT authentication token for accessing CVAT data"
+        help_text="CVAT authentication token for accessing CVAT data",
     )
     task_id = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        help_text="CVAT task ID to fetch task data and images"
+        required=False, allow_null=True, help_text="CVAT task ID to fetch task data and images"
     )
     job_id = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        help_text="CVAT job ID to fetch job data and images"
+        required=False, allow_null=True, help_text="CVAT job ID to fetch job data and images"
     )
 
 
@@ -154,23 +139,18 @@ class PipelineExecutionCreateSerializer(serializers.Serializer):
     pipeline_id = serializers.CharField()
     input_data = serializers.JSONField(default=dict)
     step_params = serializers.JSONField(
-        default=dict,
-        help_text="Parameters for specific steps, keyed by step ID"
+        default=dict, help_text="Parameters for specific steps, keyed by step ID"
     )
     cvat_token = serializers.CharField(
         required=False,
         allow_null=True,
-        help_text="CVAT authentication token for accessing CVAT data"
+        help_text="CVAT authentication token for accessing CVAT data",
     )
     task_id = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        help_text="CVAT task ID to fetch task data and images"
+        required=False, allow_null=True, help_text="CVAT task ID to fetch task data and images"
     )
     job_id = serializers.IntegerField(
-        required=False,
-        allow_null=True,
-        help_text="CVAT job ID to fetch job data and images"
+        required=False, allow_null=True, help_text="CVAT job ID to fetch job data and images"
     )
 
 
@@ -183,10 +163,7 @@ class PipelineExecutionSerializer(serializers.Serializer):
     started_at = serializers.DateTimeField(read_only=True)
     completed_at = serializers.DateTimeField(required=False, allow_null=True)
     error_message = serializers.CharField(required=False, allow_null=True)
-    step_executions = serializers.ListField(
-        child=PipelineExecutionStepSerializer(),
-        default=list
-    )
+    step_executions = serializers.ListField(child=PipelineExecutionStepSerializer(), default=list)
 
 
 class PipelineExecutionResponseSerializer(PipelineExecutionSerializer):

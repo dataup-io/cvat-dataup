@@ -9,7 +9,6 @@ from typing import Callable, ClassVar
 
 import attrs
 from PIL import Image
-
 from shared.tasks.base import TaskSpecBase
 from shared.tasks.enums import SourceDataType
 from shared.utils.helpers import read_video_file

@@ -5,7 +5,6 @@
 from collections.abc import Mapping
 
 import attrs
-
 from cvat_sdk.datasets.common import FrameAnnotations
 
 

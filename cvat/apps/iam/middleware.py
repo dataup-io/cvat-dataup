@@ -31,7 +31,9 @@ def get_organization(request: HttpRequest):
         org_uuid = request.GET.get("organization_uuid")
         org_header = request.headers.get("X-Organization")
 
-        if org_id is not None and (org_slug is not None or org_header is not None or org_uuid is not None):
+        if org_id is not None and (
+            org_slug is not None or org_header is not None or org_uuid is not None
+        ):
             raise ValidationError(
                 'You cannot specify "org_id" query parameter with '
                 '"org" query parameter, "X-Organization" HTTP header, or "organization_uuid" parameter at the same time.'

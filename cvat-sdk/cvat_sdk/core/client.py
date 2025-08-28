@@ -18,7 +18,6 @@ import packaging.specifiers as specifiers
 import packaging.version as pv
 import platformdirs
 import urllib3
-
 from cvat_sdk.api_client import ApiClient, Configuration, exceptions, models
 from cvat_sdk.core.exceptions import (
     BackgroundRequestException,

@@ -7,9 +7,8 @@ from collections.abc import Sequence, Set
 from typing import Optional, Protocol, TypeVar
 
 import attrs
-import PIL.Image
-
 import cvat_sdk.models as models
+import PIL.Image
 
 from ..attributes import attribute_value_validator
 from .exceptions import BadFunctionError

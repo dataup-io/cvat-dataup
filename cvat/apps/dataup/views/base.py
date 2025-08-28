@@ -1,13 +1,14 @@
-from rest_framework import viewsets, status
-from rest_framework.response import Response
-from django.conf import settings
-from rest_framework.permissions import IsAuthenticated
 import requests
-from cvat.apps.engine.log import ServerLogManager
-from cvat.apps.dataup.api_keys.models import DataUpAPIKey
+from django.conf import settings
+from rest_framework import status, viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
+from cvat.apps.dataup.api_keys.models import DataUpAPIKey
+from cvat.apps.engine.log import ServerLogManager
 
 slogger = ServerLogManager(__name__)
+
 
 class DataUpBaseViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -24,22 +25,24 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
         # Get DataUp user and organization UUIDs
         try:
             from cvat.apps.dataup.models import DataUpUser
+
             dataup_user = DataUpUser.objects.get(user=user)
         except DataUpUser.DoesNotExist:
             raise Exception("A valid user is mandatory to perform this action")
 
         try:
             from cvat.apps.dataup.models import DataUpOrganization
+
             org_uuid = DataUpOrganization.objects.get(organization=organization).id
         except DataUpOrganization.DoesNotExist:
             slogger.glob.info("Cannot find DataUp organization for this user - use personal key")
             org_uuid = None
-        
+
         # Use the classmethod to get the appropriate API key
         api_key = DataUpAPIKey.get_api_key(
             user_uuid=dataup_user.id,
             org_uuid=org_uuid,
-            role=getattr(request.iam_context.get("membership", {}), "role", "")
+            role=getattr(request.iam_context.get("membership", {}), "role", ""),
         )
 
         if not api_key:
@@ -55,7 +58,7 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
         if organization:
             headers = {
                 "X-API-KEY": api_key,
-                "X-Organization-ID": str(getattr(organization.dataup, "id", ""))
+                "X-Organization-ID": str(getattr(organization.dataup, "id", "")),
             }
         else:
             headers = {"X-API-KEY": api_key}
@@ -67,18 +70,18 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
         """
         params = params or {}
         organization = self.request.iam_context.get("organization")
-        if organization and hasattr(organization, 'dataup'):
-            params['organization_id'] = str(organization.dataup.id)
+        if organization and hasattr(organization, "dataup"):
+            params["organization_id"] = str(organization.dataup.id)
         return params
 
     def add_owner_data(self, data):
         """
         Add owner and organization information to the data being sent.
         """
-        data['owner_id'] = str(self.request.user.id)
+        data["owner_id"] = str(self.request.user.id)
         organization = self.request.iam_context.get("organization")
-        if organization and hasattr(organization, 'dataup'):
-            data['organization_id'] = str(organization.dataup.id)
+        if organization and hasattr(organization, "dataup"):
+            data["organization_id"] = str(organization.dataup.id)
         return data
 
     def handle_dataup_response(self, response, success_status=status.HTTP_200_OK):
@@ -106,7 +109,7 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
 
         return Response(
             {"error": f"Error calling DataUP API: {str(error)}"},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
     def _get_error_data(self, error):
@@ -118,7 +121,15 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
         except ValueError:
             return {"error": "Bad request"}
 
-    def make_dataup_request(self, method, endpoint, version="v1", data=None, params=None, success_status=status.HTTP_200_OK):
+    def make_dataup_request(
+        self,
+        method,
+        endpoint,
+        version="v1",
+        data=None,
+        params=None,
+        success_status=status.HTTP_200_OK,
+    ):
         """
         Make a request to the DataUP backend with standard error handling.
         """
@@ -127,7 +138,9 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
 
         request_method = getattr(requests, method.lower(), None)
         if not request_method:
-            return Response({"error": f"Unsupported HTTP method: {method}"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": f"Unsupported HTTP method: {method}"}, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
             response = request_method(url, json=data, params=params, headers=headers)

@@ -5,14 +5,13 @@
 import math
 from collections.abc import Iterator
 
-import numpy as np
-import PIL.Image
-from skimage import measure
-from torch import Tensor
-
 import cvat_sdk.auto_annotation as cvataa
 import cvat_sdk.models as models
+import numpy as np
+import PIL.Image
 from cvat_sdk.masks import encode_mask
+from skimage import measure
+from torch import Tensor
 
 from ._torchvision import TorchvisionFunction
 

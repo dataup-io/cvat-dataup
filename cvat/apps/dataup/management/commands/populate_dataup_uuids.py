@@ -1,8 +1,11 @@
-from django.core.management.base import BaseCommand
-from cvat.apps.organizations.models import Organization
-from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
-from django.contrib.auth.models import User
 from uuid import uuid4
+
+from django.contrib.auth.models import User
+from django.core.management.base import BaseCommand
+
+from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
+from cvat.apps.organizations.models import Organization
+
 
 class Command(BaseCommand):
     help = "Create missing DataUpOrganization entries for existing Organizations"

@@ -2,14 +2,16 @@
 #
 # SPDX-License-Identifier: MIT
 
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
 
-from cvat.apps.dataup.views.base import DataUpBaseViewSet
 from cvat.apps.dataup.pipelines.serializers import (
-    PipelineStepSerializer, PipelineStepCreateSerializer, PipelineStepUpdateSerializer
+    PipelineStepCreateSerializer,
+    PipelineStepSerializer,
+    PipelineStepUpdateSerializer,
 )
+from cvat.apps.dataup.views.base import DataUpBaseViewSet
 
 
 class PipelineStepViewSet(DataUpBaseViewSet):
@@ -21,25 +23,27 @@ class PipelineStepViewSet(DataUpBaseViewSet):
     """
 
     @extend_schema(
-        summary='List all pipeline steps',
-        description='Returns a list of pipeline steps',
+        summary="List all pipeline steps",
+        description="Returns a list of pipeline steps",
         responses={
-            200: OpenApiResponse(description='List of pipeline steps'),
+            200: OpenApiResponse(description="List of pipeline steps"),
         },
         parameters=[
-            OpenApiParameter('pipeline_id', description='Filter by pipeline ID', required=False, type=int),
+            OpenApiParameter(
+                "pipeline_id", description="Filter by pipeline ID", required=False, type=int
+            ),
         ],
     )
     def list(self, request):
         params = {}
 
         # Filter by pipeline_id if provided
-        pipeline_id = request.query_params.get('pipeline_id', None)
+        pipeline_id = request.query_params.get("pipeline_id", None)
         if pipeline_id:
-            params['pipeline_id'] = pipeline_id
+            params["pipeline_id"] = pipeline_id
 
         params = self.add_organization_params(params)
-        return self.make_dataup_request('GET', 'pipeline-steps', params=params)
+        return self.make_dataup_request("GET", "pipeline-steps", params=params)
 
     # @extend_schema(
     #     summary='Create a pipeline step',

@@ -11,7 +11,6 @@ from typing import Optional
 import av
 import av.video.reformatter
 from PIL import Image
-
 from shared.fixtures.init import get_server_image_tag
 
 

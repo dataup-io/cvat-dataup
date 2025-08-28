@@ -4,9 +4,8 @@
 
 from functools import cached_property
 
-import torchvision.models
-
 import cvat_sdk.auto_annotation as cvataa
+import torchvision.models
 
 
 class TorchvisionFunction:

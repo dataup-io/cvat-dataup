@@ -697,10 +697,11 @@ class _TaskDataGetter(_DataGetter):
         )
 
     def _generate_data_url(self) -> str:
-        from django.urls import reverse
-        from django.conf import settings
         import secrets
         import time
+
+        from django.conf import settings
+        from django.urls import reverse
 
         # Check if task uses cloud storage
         if hasattr(self._db_task.data, "cloud_storage_id") and self._db_task.data.cloud_storage_id:
@@ -912,10 +913,11 @@ class _JobDataGetter(_DataGetter):
         )
 
     def _generate_data_url(self) -> str:
-        from django.urls import reverse
-        from django.conf import settings
         import secrets
         import time
+
+        from django.conf import settings
+        from django.urls import reverse
 
         # Check if job's task uses cloud storage
         task = self._db_job.segment.task

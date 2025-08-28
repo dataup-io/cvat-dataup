@@ -15,7 +15,6 @@ from typing import Union
 import pytest
 import requests
 import yaml
-
 from shared.utils.config import ASSETS_DIR, get_server_url
 
 logger = logging.getLogger(__name__)

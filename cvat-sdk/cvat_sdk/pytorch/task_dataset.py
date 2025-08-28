@@ -7,10 +7,9 @@ import types
 from collections.abc import Mapping
 from typing import Callable, Optional
 
-import torchvision.datasets
-
 import cvat_sdk.core
 import cvat_sdk.core.exceptions
+import torchvision.datasets
 from cvat_sdk.datasets.caching import UpdatePolicy, make_cache_manager
 from cvat_sdk.datasets.task_dataset import TaskDataset
 from cvat_sdk.pytorch.common import Target

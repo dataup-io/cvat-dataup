@@ -8,11 +8,10 @@ import zipfile
 from collections.abc import Iterable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 
-import PIL.Image
-
 import cvat_sdk.core
 import cvat_sdk.core.exceptions
 import cvat_sdk.models as models
+import PIL.Image
 from cvat_sdk.datasets.caching import CacheManager, UpdatePolicy, make_cache_manager
 from cvat_sdk.datasets.common import (
     FrameAnnotations,

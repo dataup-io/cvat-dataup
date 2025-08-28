@@ -10,8 +10,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, Spec
 from rest_framework import routers
 
 from . import views
-from .temp_access_views import TempAccessView
 from .batch_temp_access_views import BatchTempAccessView
+from .temp_access_views import TempAccessView
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register("projects", views.ProjectViewSet)

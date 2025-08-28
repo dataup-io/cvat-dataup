@@ -6,13 +6,15 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('dataup', '0003_dataupuser_dataupapikey_owner'),
+        ("dataup", "0003_dataupuser_dataupapikey_owner"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='dataupapikey',
-            name='default',
-            field=models.BooleanField(default=False, help_text='Is this the default API key for the organization/User'),
+            model_name="dataupapikey",
+            name="default",
+            field=models.BooleanField(
+                default=False, help_text="Is this the default API key for the organization/User"
+            ),
         ),
     ]

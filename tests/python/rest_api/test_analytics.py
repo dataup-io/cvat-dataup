@@ -14,10 +14,9 @@ from time import sleep
 from typing import Optional
 
 import pytest
+import shared.utils.s3 as s3
 from cvat_sdk.api_client import ApiClient
 from dateutil import parser as datetime_parser
-
-import shared.utils.s3 as s3
 from shared.utils.config import delete_method, get_method, make_api_client, server_get
 from shared.utils.helpers import generate_image_files
 

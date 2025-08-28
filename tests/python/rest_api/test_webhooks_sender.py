@@ -8,7 +8,6 @@ from time import sleep, time
 
 import pytest
 from deepdiff import DeepDiff
-
 from shared.fixtures.init import CVAT_ROOT_DIR, _run
 from shared.utils.config import delete_method, get_method, patch_method, post_method
 

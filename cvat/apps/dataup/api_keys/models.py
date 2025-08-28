@@ -14,6 +14,7 @@ from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
 
 class APIKeyRoleNotAllowed(Exception):
     """Raised when an org-scoped API key does not allow the caller's role."""
+
     pass
 
 
@@ -25,7 +26,7 @@ class DataUpAPIKey(models.Model):
     organization = models.ForeignKey(
         DataUpOrganization,
         on_delete=models.CASCADE,
-        related_name='api_keys',
+        related_name="api_keys",
         null=True,
         blank=True,
         help_text="Organization this key belongs to (optional).",
@@ -33,14 +34,20 @@ class DataUpAPIKey(models.Model):
     owner = models.ForeignKey(
         DataUpUser,
         on_delete=models.CASCADE,
-        related_name='api_keys',
+        related_name="api_keys",
         null=True,
         blank=True,
         help_text="User this key belongs to (optional).",
     )
-    allowed_roles = models.JSONField(default=list, help_text="Org roles allowed to use this key (applies to org-owned keys).")
-    label = models.CharField(max_length=255, blank=True, null=True, help_text="Optional label for the API key")
-    default = models.BooleanField(default=False, help_text="Mark as the default key within its scope")
+    allowed_roles = models.JSONField(
+        default=list, help_text="Org roles allowed to use this key (applies to org-owned keys)."
+    )
+    label = models.CharField(
+        max_length=255, blank=True, null=True, help_text="Optional label for the API key"
+    )
+    default = models.BooleanField(
+        default=False, help_text="Mark as the default key within its scope"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     last_used_at = models.DateTimeField(null=True, blank=True)
 
@@ -91,13 +98,17 @@ class DataUpAPIKey(models.Model):
         if self.default:
             if self.owner_id and self.organization_id:
                 # user+org scope
-                qs = DataUpAPIKey.objects.filter(owner_id=self.owner_id, organization_id=self.organization_id)
+                qs = DataUpAPIKey.objects.filter(
+                    owner_id=self.owner_id, organization_id=self.organization_id
+                )
             elif self.owner_id and self.organization_id is None:
                 # personal scope (owner, org NULL)
                 qs = DataUpAPIKey.objects.filter(owner_id=self.owner_id, organization__isnull=True)
             elif self.organization_id and self.owner_id is None:
                 # org-only scope (org, owner NULL)
-                qs = DataUpAPIKey.objects.filter(owner__isnull=True, organization_id=self.organization_id)
+                qs = DataUpAPIKey.objects.filter(
+                    owner__isnull=True, organization_id=self.organization_id
+                )
             else:
                 # Should not happen due to CheckConstraint; be defensive
                 qs = DataUpAPIKey.objects.none()
@@ -137,8 +148,8 @@ class DataUpAPIKey(models.Model):
     @classmethod
     def _recent(cls, qs):
         return qs.order_by(
-            Coalesce('last_used_at', 'created_at').desc(),
-            '-created_at',
+            Coalesce("last_used_at", "created_at").desc(),
+            "-created_at",
         )
 
     @classmethod
@@ -182,7 +193,6 @@ class DataUpAPIKey(models.Model):
         if key := cls._pick_default_then_newest(user_org_qs):
             return key
 
-       
         # 2) Org-only key (must allow role)
         org_only_qs = cls.objects.filter(organization_id=org_uuid)
         if key := cls._pick_default_then_newest(org_only_qs):

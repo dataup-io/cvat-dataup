@@ -4,10 +4,9 @@
 
 from functools import cached_property
 
-import PIL.Image
-
 import cvat_sdk.auto_annotation as cvataa
 import cvat_sdk.models as models
+import PIL.Image
 
 from ._torchvision import TorchvisionFunction
 
