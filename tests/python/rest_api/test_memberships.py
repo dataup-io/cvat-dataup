@@ -10,6 +10,7 @@ import pytest
 from cvat_sdk.api_client.api_client import ApiClient, Endpoint
 from cvat_sdk.api_client.exceptions import ForbiddenException
 from deepdiff import DeepDiff
+
 from shared.utils.config import get_method, make_api_client, patch_method
 
 from .utils import CollectionSimpleFilterTestBase

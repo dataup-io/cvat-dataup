@@ -57,7 +57,6 @@ from utils.dataset_manifest import ImageManifestManager
 
 slogger = ServerLogManager(__name__)
 
-
 class WriteOnceMixin:
     """
     Adds support for write once fields to serializers.
@@ -170,7 +169,6 @@ class _CollectionSummarySerializer(serializers.Serializer):
     def get_attribute(self, instance):
         return instance
 
-
 class JobsSummarySerializer(_CollectionSummarySerializer):
     count = serializers.IntegerField(source='total_jobs_count', default=0)
     completed = serializers.IntegerField(source='completed_jobs_count', allow_null=True)
@@ -189,7 +187,6 @@ class TasksSummarySerializer(_CollectionSummarySerializer):
 
 class CommentsSummarySerializer(_CollectionSummarySerializer):
     pass
-
 
 class LabelsSummarySerializer(serializers.Serializer):
     url = serializers.URLField(read_only=True)
@@ -666,7 +663,6 @@ class LabelSerializer(SublabelSerializer):
         self.instance = models.Label.objects.get(pk=instance.pk)
         return self.instance
 
-
 class StorageSerializer(serializers.ModelSerializer):
     cloud_storage_id = serializers.IntegerField(required=False, allow_null=True)
 
@@ -1108,7 +1104,6 @@ class JobWriteSerializer(WriteOnceMixin, serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
         return instance
 
-
 class SimpleJobSerializer(serializers.ModelSerializer):
     assignee = BasicUserSerializer(allow_null=True)
 
@@ -1544,7 +1539,6 @@ class JobValidationLayoutReadSerializer(serializers.Serializer):
 
         return super().to_representation(data)
 
-
 class _TaskValidationLayoutBulkUpdateContext:
     def __init__(
         self,
@@ -1752,7 +1746,6 @@ class TaskValidationLayoutWriteSerializer(serializers.Serializer):
 
         # Import it here to avoid circular import
         from cvat.apps.engine.cache import MediaCache
-
         media_cache = MediaCache()
         media_cache.remove_segments_chunks(bulk_context.chunks_to_be_removed)
         media_cache.remove_context_images_chunks(bulk_context.context_image_chunks_to_be_removed)
@@ -2225,7 +2218,6 @@ class ValidationParamsSerializer(serializers.ModelSerializer):
 
         return instance
 
-
 class DataSerializer(serializers.ModelSerializer):
     """
     Read more about parameters here:
@@ -2430,10 +2422,10 @@ class DataSerializer(serializers.ModelSerializer):
     # pylint: disable=no-self-use
     def validate(self, attrs):
         print(f"[DEBUG DataSerializer.validate] Starting validation with attrs keys: {list(attrs.keys())}")
-        
+
         # Debug client_files specifically
         client_files = attrs.get("client_files", [])
-        
+
         if (
             "start_frame" in attrs
             and "stop_frame" in attrs
@@ -3046,7 +3038,6 @@ class PluginsSerializer(serializers.Serializer):
     MODELS = serializers.BooleanField()
     PREDICT = serializers.BooleanField()
 
-
 class DataMetaReadSerializer(serializers.ModelSerializer):
     frames = FrameMetaSerializer(many=True, allow_null=True)
     image_quality = serializers.IntegerField(min_value=0, max_value=100)
@@ -3136,7 +3127,6 @@ class DataMetaWriteSerializer(serializers.ModelSerializer):
 
         return super().update(instance, validated_data)
 
-
 class JobDataMetaWriteSerializer(serializers.ModelSerializer):
     deleted_frames = serializers.ListField(child=serializers.IntegerField(min_value=0))
 
@@ -3216,7 +3206,6 @@ class JobDataMetaWriteSerializer(serializers.ModelSerializer):
 
         return instance
 
-
 class AttributeValSerializer(serializers.Serializer):
     spec_id = serializers.IntegerField()
     value = serializers.CharField(max_length=4096, allow_blank=True)
@@ -3294,7 +3283,6 @@ class OptimizedFloatListField(serializers.ListField):
 
         raise exceptions.ValidationError(errors)
 
-
 class ShapeSerializer(serializers.Serializer):
     type = serializers.ChoiceField(choices=models.ShapeType.choices())
     occluded = serializers.BooleanField(default=False)
@@ -3338,7 +3326,6 @@ class ShapeSerializer(serializers.Serializer):
 class SubLabeledShapeSerializer(ShapeSerializer, AnnotationSerializer):
     attributes = AttributeValSerializer(many=True, default=[])
 
-
 class LabeledShapeSerializer(SubLabeledShapeSerializer):
     elements = SubLabeledShapeSerializer(many=True, required=False)
 
@@ -3380,7 +3367,6 @@ class LabeledImageSerializerFromDB(serializers.BaseSerializer):
 
         return convert_tag(instance)
 
-
 class LabeledShapeSerializerFromDB(serializers.BaseSerializer):
     # Use this serializer to export data from the database
     # Because default DRF serializer is too slow on huge collections
@@ -3409,7 +3395,6 @@ class LabeledShapeSerializerFromDB(serializers.BaseSerializer):
 
         return convert_shape(instance)
 
-
 class LabeledTrackSerializerFromDB(serializers.BaseSerializer):
     # Use this serializer to export data from the database
     # Because default DRF serializer is too slow on huge collections
@@ -3437,12 +3422,10 @@ class LabeledTrackSerializerFromDB(serializers.BaseSerializer):
 
         return convert_track(instance)
 
-
 class TrackedShapeSerializer(ShapeSerializer):
     id = serializers.IntegerField(default=None, allow_null=True)
     frame = serializers.IntegerField(min_value=0)
     attributes = AttributeValSerializer(many=True, default=[])
-
 
 class SubLabeledTrackSerializer(AnnotationSerializer):
     shapes = TrackedShapeSerializer(many=True, allow_empty=True)
@@ -4018,7 +4001,6 @@ def _configure_related_storages(
             storage_instance.save()
             storages[i] = storage_instance
     return storages
-
 
 class AssetReadSerializer(WriteOnceMixin, serializers.ModelSerializer):
     filename = serializers.CharField(required=True, max_length=MAX_FILENAME_LENGTH)

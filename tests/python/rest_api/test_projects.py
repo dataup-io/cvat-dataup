@@ -25,6 +25,7 @@ from cvat_sdk.api_client.exceptions import ForbiddenException
 from cvat_sdk.core.helpers import get_paginated_collection
 from deepdiff import DeepDiff
 from PIL import Image
+
 from shared.utils.config import (
     BASE_URL,
     USER_PASS,

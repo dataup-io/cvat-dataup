@@ -5,7 +5,4 @@
 
 import 'redux-thunk/extend-redux';
 
-/// <reference types="react" />
-/// <reference types="react-dom" />
-
 declare module '*.svg';

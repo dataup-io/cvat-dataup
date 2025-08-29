@@ -160,7 +160,7 @@ function HeaderComponent(props: Props): JSX.Element {
     } = props;
 
     const {
-        CHANGELOG_URL, LICENSE_URL, DISCORD_URL,
+        CHANGELOG_URL, LICENSE_URL, GITHUB_URL, GUIDE_URL, DISCORD_URL,
     } = config;
 
     const isMounted = useIsMounted();
@@ -197,6 +197,7 @@ function HeaderComponent(props: Props): JSX.Element {
     }, []);
 
     const history = useHistory();
+    const location = useLocation();
 
     const handlers: Record<keyof typeof componentShortcuts, (event?: KeyboardEvent) => void> = {
         SWITCH_SHORTCUTS: (event: KeyboardEvent | undefined) => {
@@ -256,8 +257,8 @@ function HeaderComponent(props: Props): JSX.Element {
                         <Text type='secondary'>{` ${about.packageVersion.ui}`}</Text>
                     </p>
                     <Row justify='space-around'>
-                        {aboutLinks.sort((item1, item2) => item1[1] - item2[1])
-                            .map((item) => item[0])}
+                        { aboutLinks.sort((item1, item2) => item1[1] - item2[1])
+                            .map((item) => item[0]) }
                     </Row>
                 </div>
             ),
@@ -361,12 +362,12 @@ function HeaderComponent(props: Props): JSX.Element {
             }, {
                 key: '$personal',
                 label: 'Personal workspace',
-                className: 'cvat-header-menu-organization-item',
+                className: !currentOrganization ? 'cvat-header-menu-active-organization-item' : 'cvat-header-menu-organization-item',
                 onClick: resetOrganization,
             }, ...organizationsList.map((organization: Organization) => ({
                 key: organization.slug,
                 onClick: () => setNewOrganization(organization),
-                className: 'cvat-header-menu-organization-item',
+                className: currentOrganization?.slug === organization.slug ? 'cvat-header-menu-active-organization-item' : 'cvat-header-menu-organization-item',
                 label: organization.slug,
             }))] : []),
         ],

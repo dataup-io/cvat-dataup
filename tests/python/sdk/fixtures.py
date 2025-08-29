@@ -9,6 +9,7 @@ import pytest
 from cvat_sdk import Client
 from cvat_sdk.core.proxies.types import Location
 from PIL import Image
+
 from shared.utils.config import BASE_URL, IMPORT_EXPORT_BUCKET_ID, USER_PASS
 from shared.utils.helpers import generate_image_file
 

@@ -1,0 +1,7 @@
+[bandit]
+# B101 : assert_used
+# B102 : exec_used
+# B404 : import_subprocess
+# B406 : import_xml_sax
+skips: B101,B102,B404,B406
+exclude: **/tests/**,tests

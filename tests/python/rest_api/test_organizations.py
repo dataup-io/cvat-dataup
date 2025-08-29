@@ -11,6 +11,7 @@ from typing import Optional
 import pytest
 from cvat_sdk.api_client.api_client import ApiClient, Endpoint
 from deepdiff import DeepDiff
+
 from shared.utils.config import (
     delete_method,
     get_method,

@@ -238,7 +238,7 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
 
     # Events over time (hourly aggregation)
     time_query = f"""
-        SELECT 
+        SELECT
             toStartOfHour(timestamp) as hour,
             COUNT(*) as count
         FROM events
@@ -341,7 +341,7 @@ def _get_summary_analytics_data(client, query_params: dict) -> dict:
 
     # Get summary statistics
     summary_query = f"""
-        SELECT 
+        SELECT
             COUNT(*) as total_events,
             COUNT(DISTINCT user_id) as unique_users,
             COUNT(DISTINCT project_id) as unique_projects,

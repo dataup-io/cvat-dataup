@@ -16,6 +16,7 @@ from typing import Any, Optional, Union
 import pytest
 import requests
 from cvat_sdk import make_client
+
 from shared.utils.config import BASE_URL, USER_PASS
 from shared.utils.helpers import generate_image_file
 

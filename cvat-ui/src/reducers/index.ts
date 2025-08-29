@@ -48,6 +48,7 @@ export enum InstanceType {
 
 export interface ProjectsState {
     fetchingTimestamp: number;
+    initialized: boolean;
     fetching: boolean;
     count: number;
     current: Project[];
@@ -106,6 +107,7 @@ export interface JobsState {
 
 export interface TasksState {
     fetchingTimestamp: number;
+    initialized: boolean;
     fetching: boolean;
     moveTask: {
         modalVisible: boolean;
@@ -221,6 +223,7 @@ interface CloudStorageStatus {
 export type CloudStorage = any;
 
 export interface CloudStoragesState {
+    initialized: boolean;
     fetching: boolean;
     count: number;
     current: CloudStorage[];
@@ -355,7 +358,7 @@ export interface PluginsState {
                 menu: {
                     items: PluginComponent[];
                 };
-                topBar: {
+                topBar:{
                     menu: {
                         items: PluginComponent[];
                     };
@@ -457,6 +460,7 @@ export interface ActiveInference {
 }
 
 export interface ModelsState {
+    initialized: boolean;
     fetching: boolean;
     creatingStatus: string;
     interactors: MLModel[];
@@ -464,7 +468,6 @@ export interface ModelsState {
     trackers: MLModel[];
     reid: MLModel[];
     totalCount: number;
-    serverError?: boolean;
     requestedInferenceIDs: {
         [index: string]: boolean;
     };
@@ -1055,40 +1058,6 @@ export interface NavigationState {
     prevLocation: string | null;
 }
 
-export interface AgentAPIsQuery {
-    page?: number;
-    page_size?: number;
-    id?: string;
-    search?: string;
-    filter?: string;
-    sort?: string;
-}
-
-export interface AgentAPIsState {
-    initialized: boolean;
-    fetching: boolean;
-    count: number;
-    current: any[];
-    gettingQuery: AgentAPIsQuery;
-    activities: {
-        creates: {
-            id: string | null;
-            error: string;
-            fetching: boolean;
-        };
-        updates: {
-            id: string | null;
-            error: string;
-            fetching: boolean;
-        };
-        deletes: {
-            id: string | null;
-            error: string;
-            fetching: boolean;
-        };
-    };
-}
-
 export interface CombinedState {
     auth: AuthState;
     projects: ProjectsState;
@@ -1114,7 +1083,6 @@ export interface CombinedState {
     requests: RequestsState;
     serverAPI: ServerAPIState;
     navigation: NavigationState;
-    agentApis: AgentAPIsState;
 }
 
 export interface Indexable {

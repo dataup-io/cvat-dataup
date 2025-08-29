@@ -9,6 +9,7 @@ from http import HTTPStatus
 import pytest
 from cvat_sdk.api_client.api_client import ApiClient, Endpoint
 from deepdiff import DeepDiff
+
 from shared.utils.config import get_method, make_api_client, post_method
 
 from .utils import CollectionSimpleFilterTestBase

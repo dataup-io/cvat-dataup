@@ -9,11 +9,12 @@ from collections.abc import Mapping, Sequence
 from typing import Callable, Optional, Union
 
 import attrs
+from typing_extensions import TypeAlias
+
 import cvat_sdk.models as models
 from cvat_sdk.core import Client
 from cvat_sdk.core.progress import NullProgressReporter, ProgressReporter
 from cvat_sdk.datasets.task_dataset import TaskDataset
-from typing_extensions import TypeAlias
 
 from ..attributes import attribute_value_validator
 from .exceptions import BadFunctionError

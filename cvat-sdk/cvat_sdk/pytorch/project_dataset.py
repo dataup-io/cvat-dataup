@@ -6,12 +6,13 @@ import os
 from collections.abc import Container, Mapping
 from typing import Callable, Optional
 
-import cvat_sdk.core
-import cvat_sdk.core.exceptions
-import cvat_sdk.models as models
 import torch
 import torch.utils.data
 import torchvision.datasets
+
+import cvat_sdk.core
+import cvat_sdk.core.exceptions
+import cvat_sdk.models as models
 from cvat_sdk.datasets.caching import UpdatePolicy, make_cache_manager
 from cvat_sdk.pytorch.task_dataset import TaskVisionDataset
 

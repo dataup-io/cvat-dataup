@@ -12,6 +12,7 @@ from cvat_sdk import Client, models
 from cvat_sdk.core.client import Config, make_client
 from cvat_sdk.core.exceptions import IncompatibleVersionException, InvalidHostException
 from cvat_sdk.exceptions import ApiException
+
 from shared.utils.config import BASE_URL, USER_PASS
 
 

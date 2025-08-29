@@ -20,7 +20,6 @@ import { clamp } from 'utils/math';
 import {
     MLModel, ModelKind, DimensionType, Label, LabelType,
 } from 'cvat-core-wrapper';
-import { AgentType } from 'cvat-core/src/agent_apis';
 
 import LabelsMapperComponent, { LabelInterface, FullMapping } from './labels-mapper';
 
@@ -64,13 +63,6 @@ function convertMappingToServer(mapping: FullMapping): ServerMapping {
     ), {});
 }
 
-/* function extractThresholdsFromMapping(mapping: FullMapping): Record<string, number> {
-    return mapping.reduce<Record<string, number>>((acc, [modelLabel, , , , threshold]) => {
-        acc[modelLabel.name] = threshold || 0.5;
-        return acc;
-    }, {});
-} */
-
 function DetectorRunner(props: Props): JSX.Element {
     const {
         models, withCleanup, labels, dimension, runInference,
@@ -78,32 +70,21 @@ function DetectorRunner(props: Props): JSX.Element {
 
     const [modelID, setModelID] = useState<string | null>(null);
     const [threshold, setThreshold] = useState<number>(0.5);
-    const [detectorThreshold, setDetectorThreshold] = useState<number>(0.5);
     const [distance, setDistance] = useState<number>(50);
     const [cleanup, setCleanup] = useState<boolean>(false);
     const [mapping, setMapping] = useState<FullMapping>([]);
     const [convertMasksToPolygons, setConvertMasksToPolygons] = useState<boolean>(false);
-    // const [detectorThreshold, setDetectorThreshold] = useState<number | null>(null);
+    const [detectorThreshold, setDetectorThreshold] = useState<number | null>(null);
     const [modelLabels, setModelLabels] = useState<LabelInterface[]>([]);
     const [taskLabels, setTaskLabels] = useState<LabelInterface[]>([]);
 
     const model = models.find((_model): boolean => _model.id === modelID);
     const isDetector = model?.kind === ModelKind.DETECTOR;
     const isReId = model?.kind === ModelKind.REID;
-    const isAgent = model?.provider === 'agent';
-    const isAgentDetector = isAgent && model?.meta?.agent_type === AgentType.DETECTOR;
-    const isAgentInteractor = isAgent && model?.meta?.agent_type === AgentType.INTERACTOR;
-    const isAgentReId = isAgent && model?.meta?.agent_type === AgentType.REID;
-    const isAgentTracker = isAgent && model?.meta?.agent_type === AgentType.TRACKER;
-
     const convertMasks2PolygonVisible = isDetector &&
         [LabelType.ANY, LabelType.MASK].includes(model.returnType);
 
-    const buttonEnabled = model && (isReId || isAgentReId ||
-        (isDetector && mapping.length) ||
-        (isAgentDetector && mapping.length) ||
-        isAgentInteractor ||
-        isAgentTracker);
+    const buttonEnabled = model && (isReId || (isDetector && mapping.length));
 
     useEffect(() => {
         const converted = labels.map((label) => ({
@@ -112,9 +93,8 @@ function DetectorRunner(props: Props): JSX.Element {
             color: label.color,
             attributes: label.attributes.map((attr) => ({
                 name: attr.name,
-                mutable: attr.mutable,
-                inputType: attr.inputType,
-                values: attr.values,
+                input_type: attr.inputType,
+                values: [...attr.values],
             })),
             sublabels: (label.structure?.sublabels || []).map((sublabel) => ({
                 name: sublabel.name,
@@ -122,17 +102,16 @@ function DetectorRunner(props: Props): JSX.Element {
                 color: sublabel.color,
                 attributes: sublabel.attributes.map((attr) => ({
                     name: attr.name,
-                    mutable: attr.mutable,
-                    inputType: attr.inputType,
-                    values: attr.values,
+                    input_type: attr.inputType,
+                    values: [...attr.values],
                 })),
             })),
         }));
 
         setTaskLabels(converted);
         if (model) {
-            setModelLabels(model.labels || []);
-            if (!(model.labels?.length) && model.kind !== ModelKind.REID) {
+            setModelLabels(model.labels);
+            if (!model.labels.length && model.kind !== ModelKind.REID) {
                 notification.warning({ message: 'This model does not have specified labels' });
             }
         } else {
@@ -203,8 +182,7 @@ function DetectorRunner(props: Props): JSX.Element {
                     <Text>Clean previous annotations</Text>
                 </div>
             )}
-
-            {(isDetector || isAgentDetector) && (
+            {isDetector && (
                 <div className='cvat-detector-runner-threshold-wrapper'>
                     <Row align='middle' justify='start'>
                         <Col>
@@ -279,9 +257,7 @@ function DetectorRunner(props: Props): JSX.Element {
                         onClick={() => {
                             if (!model) return;
                             const serverMapping = convertMappingToServer(mapping);
-                            if (model.kind === ModelKind.DETECTOR ||
-                                (isAgent && model.meta?.agent_type === AgentType.DETECTOR)) {
-                                // we need to include Agent call here as well
+                            if (model.kind === ModelKind.DETECTOR) {
                                 const body: AnnotateTaskRequestBody = {
                                     type: 'annotate_task',
                                     mapping: serverMapping,
@@ -291,15 +267,8 @@ function DetectorRunner(props: Props): JSX.Element {
                                 };
 
                                 runInference(model, body);
-                            } else if (model.kind === ModelKind.REID ||
-                                (isAgent && model.meta?.agent_type === AgentType.REID)) {
+                            } else if (model.kind === ModelKind.REID) {
                                 runInference(model, { threshold, max_distance: distance });
-                            } else if (isAgent &&
-                                (model.meta?.agent_type === AgentType.INTERACTOR ||
-                                    model.meta?.agent_type === AgentType.TRACKER)) {
-                                runInference(model, {
-                                    cleanup,
-                                });
                             }
                         }}
                     >

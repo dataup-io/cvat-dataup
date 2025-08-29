@@ -6,6 +6,7 @@ from abc import ABCMeta, abstractmethod
 
 from cvat_sdk.api_client import models
 from PIL import Image
+
 from shared.tasks.enums import SourceDataType
 
 

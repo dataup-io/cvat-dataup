@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-// Removed lodash dependency - using native JS instead
+import { omit } from 'lodash';
 import config from './config';
 import { ArgumentError } from './exceptions';
 import {
@@ -714,10 +714,7 @@ export function implementTask(Task: typeof TaskClass): typeof TaskClass {
                 const labels = await serverProxy.labels.get({ task_id: this.id });
                 const jobs = await serverProxy.jobs.get({ task_id: this.id }, true);
                 return new Task({
-                    ...(() => {
-                    const { jobs, labels, ...rest } = serializedTask;
-                    return rest;
-                })(),
+                    ...omit(serializedTask, ['jobs', 'labels']),
                     progress: serializedTask.jobs,
                     jobs,
                     labels: labels.results,
@@ -796,10 +793,7 @@ export function implementTask(Task: typeof TaskClass): typeof TaskClass {
             }, true);
 
             return new Task({
-                ...(() => {
-                    const { jobs, labels, ...rest } = task;
-                    return rest;
-                })(),
+                ...omit(task, ['jobs', 'labels']),
                 jobs,
                 progress: task.jobs,
                 labels: labels.results,
@@ -816,8 +810,7 @@ export function implementTask(Task: typeof TaskClass): typeof TaskClass {
             if (Number.isInteger(this.id) && this.size === 0) {
                 const request = await requestsManager.listen(rqID, options);
                 const [serializedTask] = await serverProxy.tasks.get({ id: request.operation.taskID });
-                const { labels, jobs, ...rest } = serializedTask;
-        return new Task(rest);
+                return new Task(omit(serializedTask, ['labels', 'jobs']));
             }
 
             return this;

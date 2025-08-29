@@ -23,6 +23,7 @@ interface Canvas {
     html(): HTMLDivElement;
     setup(frameData: any, objectStates: any[], zLayer?: number): void;
     setupIssueRegions(issueRegions: Record<number, { hidden: boolean; points: number[] }>): void;
+    translateFromSVG(points: number[]): number[];
     setupConflictRegions(clientID: number): number[];
     activate(clientID: number | null, attributeID?: number): void;
     highlight(clientIDs: number[] | null, severity: HighlightSeverity | null): void;
@@ -79,6 +80,10 @@ class CanvasImpl implements Canvas {
         this.model.setupIssueRegions(issueRegions);
     }
 
+    public translateFromSVG(points: number[]): number[] {
+        return this.view.translateFromSVG(points);
+    }
+
     public setupConflictRegions(clientID: number): number[] {
         return this.view.setupConflictRegions(clientID);
     }
@@ -128,14 +133,7 @@ class CanvasImpl implements Canvas {
     }
 
     public interact(interactionData: InteractionData): void {
-        console.log("=== CANVAS INTERACT DEBUG ===");
-        console.log("Canvas interact called with:", interactionData);
-        console.log("InteractionData enabled:", interactionData.enabled);
-        console.log("InteractionData shapeType:", interactionData.shapeType);
-        console.log("InteractionData properties:", Object.keys(interactionData));
-        
         this.model.interact(interactionData);
-        console.log("=== END CANVAS INTERACT DEBUG ===");
     }
 
     public draw(drawData: DrawData): void {

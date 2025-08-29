@@ -9,6 +9,7 @@ from itertools import product
 import pytest
 from cvat_sdk.api_client.api_client import ApiClient, Endpoint
 from deepdiff import DeepDiff
+
 from shared.utils.config import delete_method, get_method, patch_method, post_method
 
 from .utils import CollectionSimpleFilterTestBase

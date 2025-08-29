@@ -16,6 +16,7 @@ from cvat_sdk.core.helpers import get_paginated_collection
 from dateutil.parser import isoparse as parse_datetime
 from deepdiff import DeepDiff
 from pytest_cases import fixture, fixture_ref, parametrize
+
 from shared.utils.config import delete_method, get_method, make_api_client, patch_method
 
 from .utils import CollectionSimpleFilterTestBase, build_exclude_paths_expr, get_attrs

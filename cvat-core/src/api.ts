@@ -5,7 +5,6 @@
 
 import PluginRegistry from './plugins';
 import logger from './logger';
-
 import { Event } from './event';
 import ObjectState from './object-state';
 import Statistics from './statistics';
@@ -48,7 +47,6 @@ import CVATCore from '.';
 
 function build(): CVATCore {
     const cvat: CVATCore = {
-
         server: {
             async about() {
                 const result = await PluginRegistry.apiWrapper(cvat.server.about);
@@ -140,7 +138,6 @@ function build(): CVATCore {
                 return result;
             },
         },
-
         projects: {
             async get(filter = {}) {
                 const result = await PluginRegistry.apiWrapper(cvat.projects.get, filter);
@@ -172,10 +169,6 @@ function build(): CVATCore {
         frames: {
             async getMeta(type, id) {
                 const result = await PluginRegistry.apiWrapper(cvat.frames.getMeta, type, id);
-                return result;
-            },
-            async getFrameUrl(taskId, frameNumber) {
-                const result = await PluginRegistry.apiWrapper(cvat.frames.getFrameUrl, taskId, frameNumber);
                 return result;
             },
         },
@@ -502,7 +495,6 @@ function build(): CVATCore {
     cvat.frames = Object.freeze(cvat.frames);
     cvat.users = Object.freeze(cvat.users);
     cvat.plugins = Object.freeze(cvat.plugins);
-    cvat.agents = Object.freeze(cvat.agents);
     cvat.lambda = Object.freeze(cvat.lambda);
     // logger: todo: logger storage implemented other way
     cvat.config = Object.freeze(cvat.config);
@@ -515,9 +507,6 @@ function build(): CVATCore {
     cvat.analytics = Object.freeze(cvat.analytics);
     cvat.classes = Object.freeze(cvat.classes);
     cvat.utils = Object.freeze(cvat.utils);
-    cvat.agentApis = Object.freeze(cvat.agentApis);
-    cvat.pipelines = Object.freeze(cvat.pipelines);
-    cvat.dataUpApiKeys = Object.freeze(cvat.dataUpApiKeys);
     const implemented = Object.freeze(implementAPI(cvat));
     return implemented;
 }

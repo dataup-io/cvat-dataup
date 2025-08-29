@@ -96,7 +96,6 @@ class UploadMixin:
         start_upload = request.headers.get('Upload-Start', None) is not None
         finish_upload = request.headers.get('Upload-Finish', None) is not None
         one_request_upload = start_upload and finish_upload
-
         if one_request_upload or finish_upload:
             return self.upload_finished(request)
         elif start_upload:

@@ -26,6 +26,7 @@ from cvat_sdk.core.helpers import get_paginated_collection
 from deepdiff import DeepDiff
 from PIL import Image
 from pytest_cases import parametrize
+
 from shared.tasks.utils import parse_frame_step
 from shared.utils.config import make_api_client
 from shared.utils.helpers import generate_image_files
@@ -712,7 +713,7 @@ class TestGetGtJobData:
         task_id = task["id"]
         with make_api_client(user) as api_client:
             (task_meta, _) = api_client.tasks_api.retrieve_data_meta(task_id)
-            frame_step = parse_frame_step(task_meta.frame_filter.split("=")[-1])
+            frame_step = parse_frame_step(task_meta.frame_filter)
 
         job_frame_ids = list(range(task_meta.start_frame, task_meta.stop_frame, frame_step))[
             :job_frame_count
@@ -818,7 +819,7 @@ class TestGetGtJobData:
         task_id = task["id"]
         with make_api_client(user) as api_client:
             (task_meta, _) = api_client.tasks_api.retrieve_data_meta(task_id)
-            frame_step = parse_frame_step(task_meta.frame_filter.split("=")[-1])
+            frame_step = parse_frame_step(task_meta.frame_filter)
 
         task_frame_ids = range(task_meta.start_frame, task_meta.stop_frame + 1, frame_step)
         rng = np.random.Generator(np.random.MT19937(42))
@@ -901,7 +902,7 @@ class TestGetGtJobData:
         task_id = task["id"]
         with make_api_client(user) as api_client:
             (task_meta, _) = api_client.tasks_api.retrieve_data_meta(task_id)
-            frame_step = parse_frame_step(task_meta.frame_filter.split("=")[-1])
+            frame_step = parse_frame_step(task_meta.frame_filter)
 
         job_frame_ids = list(range(task_meta.start_frame, task_meta.stop_frame, frame_step))[
             :job_frame_count

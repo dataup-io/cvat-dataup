@@ -281,17 +281,17 @@ export function useResourceQuery<QueryType extends {
     return updatedQuery;
 }
 
-interface KeyMapping {
-    [pattern: string]: string;
-}
+// interface KeyMapping {
+//     [pattern: string]: string;
+// }
 
-export function useSelectedMenuKey(keyMapping: KeyMapping): string {
-    const location = useLocation();
-    for (const [pattern, key] of Object.entries(keyMapping)) {
-        const match = matchPath(location.pathname, { path: pattern, exact: false });
-        if (match) {
-            return key;
-        }
-    }
-    return '';
+// export function useSelectedMenuKey(keyMapping: KeyMapping): string {
+//     const location = useLocation();
+//     for (const [pattern, key] of Object.entries(keyMapping)) {
+//         const match = matchPath(location.pathname, { path: pattern, exact: false });
+//         if (match) {
+//             return key;
+//         }
+//     }
+//     return '';
 }

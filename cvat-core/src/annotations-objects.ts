@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-// Removed lodash dependency - using native JS instead
+import { omit } from 'lodash';
 import config from './config';
 import ObjectState, { SerializedData } from './object-state';
 import { checkObjectType, clamp } from './common';
@@ -568,8 +568,7 @@ export class Shape extends Drawn {
         }
 
         if (this.parentID !== null) {
-            const { elements, ...rest } = result;
-            return rest;
+            return omit(result, 'elements');
         }
 
         return result;
@@ -916,8 +915,7 @@ export class Track extends Drawn {
         }
 
         if (this.parentID !== null) {
-            const { elements, ...rest } = result;
-            return rest;
+            return omit(result, 'elements');
         }
 
         return result;
@@ -1524,8 +1522,6 @@ export class Tag extends Annotation {
     }
 }
 
-
-
 export class RectangleShape extends Shape {
     constructor(data: SerializedShape, clientID: number, color: string, injection: AnnotationInjection) {
         super(data, clientID, color, injection);
@@ -1549,7 +1545,6 @@ export class RectangleShape extends Shape {
         return Math.min.apply(null, [rotX - xtl, rotY - ytl, xbr - rotX, ybr - rotY]);
     }
 }
-
 
 export class EllipseShape extends Shape {
     constructor(data: SerializedShape, clientID: number, color: string, injection: AnnotationInjection) {

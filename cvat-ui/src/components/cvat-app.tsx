@@ -2,7 +2,6 @@
 // Copyright (C) CVAT.ai Corporation
 //
 // SPDX-License-Identifier: MIT
-/* eslint-disable max-len */
 import React from 'react';
 import { Redirect, Route, Switch } from 'react-router';
 import { RouteComponentProps, withRouter } from 'react-router-dom';
@@ -739,23 +738,23 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
             console.error('Error in CVATApplication render:', error);
             // Return a fallback UI to prevent the app from crashing
             return (
-                <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'center', 
-                    alignItems: 'center', 
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
                     height: '100vh',
                     flexDirection: 'column',
                     gap: '16px'
                 }}>
                     <h2>Application Error</h2>
                     <p>Something went wrong while loading the application.</p>
-                    <button 
-                        onClick={() => window.location.reload()} 
-                        style={{ 
-                            padding: '8px 16px', 
-                            background: '#1890ff', 
-                            color: 'white', 
-                            border: 'none', 
+                    <button
+                        onClick={() => window.location.reload()}
+                        style={{
+                            padding: '8px 16px',
+                            background: '#1890ff',
+                            color: 'white',
+                            border: 'none',
                             borderRadius: '4px',
                             cursor: 'pointer'
                         }}

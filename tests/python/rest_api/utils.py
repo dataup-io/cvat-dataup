@@ -20,10 +20,11 @@ from cvat_sdk.api_client.api_client import ApiClient, Endpoint
 from cvat_sdk.api_client.exceptions import ForbiddenException
 from cvat_sdk.core.helpers import get_paginated_collection
 from deepdiff import DeepDiff
-from shared.utils.config import USER_PASS, make_api_client, post_method
 from urllib3 import HTTPResponse
 
-DEFAULT_RETRIES = 100
+from shared.utils.config import USER_PASS, make_api_client, post_method
+
+DEFAULT_RETRIES = 50
 DEFAULT_INTERVAL = 0.1
 
 

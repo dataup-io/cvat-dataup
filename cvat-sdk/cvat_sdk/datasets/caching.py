@@ -11,8 +11,9 @@ from enum import Enum, auto
 from pathlib import Path
 from typing import Any, Callable, TypeVar, Union, cast
 
-import cvat_sdk.models as models
 from attrs import define
+
+import cvat_sdk.models as models
 from cvat_sdk.api_client.model_utils import OpenApiModel, to_json
 from cvat_sdk.core.client import Client
 from cvat_sdk.core.proxies.projects import Project

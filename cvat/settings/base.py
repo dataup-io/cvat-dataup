@@ -352,7 +352,6 @@ RQ_QUEUES = {
     },
 }
 
-
 NUCLIO = {
     "SCHEME": os.getenv("CVAT_NUCLIO_SCHEME", "http"),
     "HOST": os.getenv("CVAT_NUCLIO_HOST", "localhost"),

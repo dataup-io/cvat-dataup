@@ -2,8 +2,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { AgentAPIsFilter, SerializedUser } from 'server-response-types';
-import AgentAPI, { AgentAPIData } from 'agent_apis';
 import {
     LabelType, ModelKind, RQStatus, ShapeType,
 } from './enums';
@@ -56,7 +54,6 @@ export interface SerializedModel {
     startswith_box_optional?: boolean;
     created_date?: string;
     updated_date?: string;
-    is_agent_api?: boolean;
 }
 
 export interface UpdateStatusData {

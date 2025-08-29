@@ -18,6 +18,7 @@ from cvat_sdk.core.proxies.types import Location
 from cvat_sdk.core.uploading import Uploader, _MyTusUploader
 from PIL import Image
 from pytest_cases import fixture_ref, parametrize
+
 from shared.fixtures.data import CloudStorageAssets
 from shared.utils.helpers import generate_image_files
 

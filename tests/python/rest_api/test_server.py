@@ -6,6 +6,7 @@
 from http import HTTPStatus
 
 import pytest
+
 from shared.utils.config import make_api_client, put_method
 
 

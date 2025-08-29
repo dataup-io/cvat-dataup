@@ -8,10 +8,11 @@ from typing import Optional
 
 import attrs
 import attrs.validators
+import PIL.Image
+
 import cvat_sdk.core
 import cvat_sdk.core.exceptions
 import cvat_sdk.models as models
-import PIL.Image
 
 
 class UnsupportedDatasetError(cvat_sdk.core.exceptions.CvatSdkException):

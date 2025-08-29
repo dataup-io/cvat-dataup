@@ -75,7 +75,6 @@ class StatusChoice(str, Enum):
     def __str__(self):
         return self.value
 
-
 class LabelType(str, Enum):
     ANY = 'any'
     CUBOID = 'cuboid'
@@ -178,7 +177,6 @@ class SortingMethod(str, Enum):
     def __str__(self):
         return self.value
 
-
 class JobType(str, Enum):
     ANNOTATION = 'annotation'
     GROUND_TRUTH = 'ground_truth'
@@ -279,7 +277,6 @@ class ValidationParams(models.Model):
     frame_share = models.FloatField(null=True)
     frames_per_job_count = models.IntegerField(null=True)
     frames_per_job_share = models.FloatField(null=True)
-
 
 class ValidationFrame(models.Model):
     validation_params = models.ForeignKey(
@@ -466,7 +463,6 @@ class Image(models.Model):
     class Meta:
         default_permissions = ()
 
-
 class TimestampedModel(models.Model):
     created_date = models.DateTimeField(auto_now_add=True)
     updated_date = models.DateTimeField(auto_now=True)
@@ -601,7 +597,6 @@ class Project(TimestampedModel, FileSystemRelatedModel):
 
     def __str__(self):
         return self.name
-
 
 class TaskQuerySet(models.QuerySet):
     class JobSummaryFields(str, Enum):
@@ -871,7 +866,7 @@ class Segment(models.Model):
         frame_range = range(
             data_start_frame + self.start_frame * step,
             min(data_start_frame + self.stop_frame * step, data_stop_frame) + step,
-            step,
+            step
         )
 
         if self.type == SegmentType.RANGE:
@@ -1063,7 +1058,6 @@ class Job(TimestampedModel, FileSystemRelatedModel):
 class InvalidLabel(ValueError):
     pass
 
-
 class Label(models.Model):
     task = models.ForeignKey(Task, null=True, blank=True, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, null=True, blank=True, on_delete=models.CASCADE)
@@ -1148,7 +1142,6 @@ class AttributeType(str, Enum):
     def __str__(self):
         return self.value
 
-
 class AttributeSpec(models.Model):
     label = models.ForeignKey(Label, on_delete=models.CASCADE)
     name = models.CharField(max_length=64)
@@ -1163,7 +1156,6 @@ class AttributeSpec(models.Model):
 
     def __str__(self):
         return self.name
-
 
 class AttributeVal(models.Model):
     # TODO: add a validator here to be sure that it corresponds to self.label
@@ -1194,7 +1186,6 @@ class ShapeType(str, Enum):
     def __str__(self):
         return self.value
 
-
 class SourceType(str, Enum):
     AUTO = 'auto'
     SEMI_AUTO = 'semi-auto'
@@ -1209,7 +1200,6 @@ class SourceType(str, Enum):
     def __str__(self):
         return self.value
 
-
 class Annotation(models.Model):
     id = models.BigAutoField(primary_key=True)
     job = models.ForeignKey(Job, on_delete=models.DO_NOTHING)
@@ -1223,7 +1213,6 @@ class Annotation(models.Model):
     class Meta:
         abstract = True
         default_permissions = ()
-
 
 class Shape(models.Model):
     type = models.CharField(max_length=16, choices=ShapeType.choices())
@@ -1513,7 +1502,6 @@ class AnnotationGuide(TimestampedModel):
     def organization_id(self):
         return self.target.organization_id
 
-
 class Asset(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     filename = models.CharField(max_length=1024)
@@ -1537,79 +1525,12 @@ class RequestAction(TextChoices):
     IMPORT = "import"
     EXPORT = "export"
 
-
 class RequestTarget(TextChoices):
     PROJECT = "project"
     TASK = "task"
     JOB = "job"
 
-
 class RequestSubresource(TextChoices):
     ANNOTATIONS = "annotations"
     DATASET = "dataset"
     BACKUP = "backup"
-
-
-# Agents APIs
-# ==============================================================
-
-
-# class AgentAPI(models.Model):
-#     name = models.CharField(max_length=256)
-#     endpoint = models.CharField(max_length=1024)
-#     api_key = models.CharField(max_length=256)
-#     owner = models.ForeignKey(
-#         User, null=True, blank=True, on_delete=models.SET_NULL, related_name="agent_api_owners"
-#     )
-#     created_date = models.DateTimeField(auto_now_add=True)
-#     updated_date = models.DateTimeField(auto_now=True)
-#     organization = models.ForeignKey(
-#         "organizations.Organization",
-#         null=True,
-#         default=None,
-#         blank=True,
-#         on_delete=models.SET_NULL,
-#         related_name="agent_apis",
-#     )
-#     status = models.CharField(
-#         max_length=32, choices=StageChoice.choices(), default=StageChoice.ANNOTATION
-#     )
-#     last_used = models.DateTimeField(null=True, blank=True)
-#     usage_count = models.PositiveIntegerField(default=0)
-#     error_count = models.PositiveIntegerField(default=0)
-#     last_error = models.TextField(null=True, blank=True)
-#     timeout = models.PositiveIntegerField(default=30)
-#     rate_limit = models.PositiveIntegerField(default=100)
-#     labels = models.ManyToManyField("Label", related_name="agent_apis")
-
-#     class Meta:
-#         default_permissions = ()
-#         indexes = [
-#             models.Index(fields=["owner", "organization"]),
-#             models.Index(fields=["status"]),
-#             models.Index(fields=["created_date"]),
-#             models.Index(fields=["last_used"]),
-#         ]
-
-
-# class AgentAPIVisibility(models.Model):
-#     api = models.ForeignKey(
-#         "AgentAPI", on_delete=models.CASCADE, related_name="visibility_settings"
-#     )
-#     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="visible_apis")
-#     added_by = models.ForeignKey(
-#         User, on_delete=models.SET_NULL, null=True, related_name="api_visibility_grants"
-#     )
-#     added_date = models.DateTimeField(auto_now_add=True)
-#     organization = models.ForeignKey(
-#         "organizations.Organization",
-#         on_delete=models.CASCADE,
-#         related_name="api_visibility_settings",
-#     )
-
-#     class Meta:
-#         unique_together = ("api", "user", "organization")
-#         indexes = [
-#             models.Index(fields=["api", "user", "organization"]),
-#             models.Index(fields=["organization", "user"]),
-#         ]

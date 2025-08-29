@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 import requests
 import urllib3
+
 from cvat_sdk.api_client.api_client import ApiClient, Endpoint
 from cvat_sdk.api_client.exceptions import ApiException
 from cvat_sdk.api_client.rest import RESTClientObject

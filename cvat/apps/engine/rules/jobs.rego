@@ -275,21 +275,6 @@ allow if {
 }
 
 allow if {
-    input.scope == utils.UPDATE_STAGE
-    utils.is_sandbox
-    utils.has_perm(utils.WORKER)
-    is_job_assignee
-}
-
-allow if {
-    input.scope == utils.UPDATE_STAGE
-    input.auth.organization.id == input.resource.organization.id
-    utils.has_perm(utils.WORKER)
-    organizations.has_perm(organizations.WORKER)
-    is_job_assignee
-}
-
-allow if {
     input.scope in {utils.VIEW_VALIDATION_LAYOUT, utils.UPDATE_VALIDATION_LAYOUT}
     utils.is_sandbox
     is_task_staff

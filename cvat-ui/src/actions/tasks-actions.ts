@@ -12,7 +12,7 @@ import { filterNull } from 'utils/filter-null';
 import { ThunkDispatch, ThunkAction } from 'utils/redux';
 
 import { ValidationMode } from 'components/create-task-page/quality-configuration-form';
-// import { getInferenceStatusAsync } from './models-actions';
+import { getInferenceStatusAsync } from './models-actions';
 import { updateRequestProgress } from './requests-actions';
 
 const cvat = getCore();
@@ -93,7 +93,7 @@ export function getTasksAsync(
 
         if (isRequestRelevant()) {
             const array = Array.from(result);
-            // dispatch(getInferenceStatusAsync()); // Removed automatic annotation
+            dispatch(getInferenceStatusAsync());
             dispatch(getTasksSuccess(array, result.count));
         }
     };
