@@ -565,11 +565,9 @@ class _DataGetter(metaclass=ABCMeta):
         data_type: str,
         data_num: Optional[Union[str, int]],
         data_quality: str,
-        response_type: str = "binary",
     ) -> None:
         possible_data_type_values = ("chunk", "frame", "preview", "context_image")
         possible_quality_values = ("compressed", "original")
-        possible_response_type_values = ("binary", "url")
 
         if not data_type or data_type not in possible_data_type_values:
             raise ValidationError("Data type not specified or has wrong value")
@@ -579,32 +577,20 @@ class _DataGetter(metaclass=ABCMeta):
             elif data_quality not in possible_quality_values:
                 raise ValidationError("Wrong quality value")
 
-        if response_type not in possible_response_type_values:
-            raise ValidationError("Response type not specified or has wrong value")
 
         self.type = data_type
         self.number = int(data_num) if data_num is not None else None
         self.quality = (
             FrameQuality.COMPRESSED if data_quality == "compressed" else FrameQuality.ORIGINAL
         )
-        self.response_type = response_type
 
     @abstractmethod
     def _get_frame_provider(self) -> IFrameProvider: ...
-
-    @abstractmethod
-    def _generate_data_url(self) -> str: ...
 
     def __call__(self):
         frame_provider = self._get_frame_provider()
 
         try:
-            if self.response_type == "url":
-                # Generate URL for the requested data
-                url = self._generate_data_url()
-                return Response(data={"url": url}, status=status.HTTP_200_OK)
-
-            # Original binary response logic
             if self.type == "chunk":
                 data = frame_provider.get_chunk(self.number, quality=self.quality)
                 return HttpResponse(
@@ -677,14 +663,11 @@ class _TaskDataGetter(_DataGetter):
         data_type: str,
         data_quality: str,
         data_num: Optional[Union[str, int]] = None,
-        response_type: str = "binary",
     ) -> None:
         super().__init__(
             data_type=data_type,
             data_num=data_num,
-            data_quality=data_quality,
-            response_type=response_type,
-        )
+            data_quality=data_quality        )
         self._db_task = db_task
 
     def _get_frame_provider(self) -> TaskFrameProvider:
@@ -1265,14 +1248,6 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
                 description="A unique number value identifying chunk or frame",
             ),
             OpenApiParameter(
-                "response_type",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.STR,
-                enum=["binary", "url"],
-                description="Specifies the response type: 'binary' for raw data, 'url' for signed URL",
-            ),
-            OpenApiParameter(
                 _DATA_CHECKSUM_HEADER_NAME,
                 location=OpenApiParameter.HEADER,
                 type=OpenApiTypes.STR,
@@ -1321,14 +1296,11 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
             data_type = request.query_params.get("type", None)
             data_num = request.query_params.get("number", None)
             data_quality = request.query_params.get("quality", "compressed")
-            response_type = request.query_params.get("response_type", "binary")
-
             data_getter = _TaskDataGetter(
                 self._object,
                 data_type=data_type,
                 data_num=data_num,
                 data_quality=data_quality,
-                response_type=response_type,
             )
             return data_getter()
 
@@ -2083,14 +2055,6 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
                 type=OpenApiTypes.INT,
                 description="A unique number value identifying chunk, starts from 0 for each job",
             ),
-            OpenApiParameter(
-                "response_type",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.STR,
-                enum=["binary", "url"],
-                description="Specifies the response type: 'binary' for raw data, 'url' for signed URL",
-            ),
         ],
         responses={
             "200": OpenApiResponse(OpenApiTypes.BINARY, description="Data of a specific type"),
@@ -2107,7 +2071,6 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
         data_num = request.query_params.get('number', None)
         data_index = request.query_params.get('index', None)
         data_quality = request.query_params.get('quality', 'compressed')
-        response_type = request.query_params.get("response_type", "binary")
 
         data_getter = _JobDataGetter(
             db_job,
@@ -2115,7 +2078,6 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
             data_quality=data_quality,
             data_index=data_index,
             data_num=data_num,
-            response_type=response_type,
         )
         return data_getter()
 
