@@ -11,7 +11,7 @@
 
 - **🤖 Agent Support**: Leverage intelligent agents for data processing and automation 🔜
 - **⚡ Pipeline Architecture**: Design customizable pipelines for scalable data processing 🔜
-- **✨ Enhanced Annotation Experience**: Improved UI/UX for faster and more intuitive annotation 
+- **✨ Enhanced Annotation Experience**: Improved UI/UX for faster and more intuitive annotation
 - **🔄 Full CVAT Compatibility**: Seamlessly work with existing CVAT projects and data
 - **📊 Advanced Analytics**: Better insights into annotation progress and quality
 
@@ -59,10 +59,10 @@ CVAT-DATAUP introduces intelligent agents that extend beyond traditional annotat
 
 Pipelines in **CVAT-DATAUP** are built by chaining modular steps — these steps can be **AI agents**, **data processing tasks**, or **integrations with external systems** (e.g., databases, storage, or model APIs). This flexible design makes it possible to automate complex workflows, from raw data ingestion to final dataset export.
 
-- **🔧 Pre-processing Pipelines**: Data cleaning, preparation, and augmentation before annotation  
-- **🖊️ Annotation Pipelines**: Structured annotation flows that ensure consistency and efficiency  
-- **✅ Post-processing Pipelines**: Automated validation, quality control, and export of processed data  
-- **⚡ Custom Pipeline Builder**: A visual interface for designing and deploying pipelines tailored to your needs  
+- **🔧 Pre-processing Pipelines**: Data cleaning, preparation, and augmentation before annotation
+- **🖊️ Annotation Pipelines**: Structured annotation flows that ensure consistency and efficiency
+- **✅ Post-processing Pipelines**: Automated validation, quality control, and export of processed data
+- **⚡ Custom Pipeline Builder**: A visual interface for designing and deploying pipelines tailored to your needs
 
 > ⚠️ *Pipeline functionality is in active development and will be available in future releases.*
 
@@ -71,12 +71,12 @@ Pipelines in **CVAT-DATAUP** are built by chaining modular steps — these steps
 
 **CVAT-DATAUP** is fully compatible with existing **CVAT** deployments, ensuring a smooth transition without breaking workflows:
 
-- **📦 Project Migration**: Import and continue working with your existing CVAT projects  
-- **🗂️ Data Format Support**: All annotation formats supported by CVAT remain fully compatible  
-- **🔌 API Compatibility**: Existing CVAT-based integrations work out of the box  
-- **📤 Export Compatibility**: Annotations can be exported in standard CVAT formats  
+- **📦 Project Migration**: Import and continue working with your existing CVAT projects
+- **🗂️ Data Format Support**: All annotation formats supported by CVAT remain fully compatible
+- **🔌 API Compatibility**: Existing CVAT-based integrations work out of the box
+- **📤 Export Compatibility**: Annotations can be exported in standard CVAT formats
 
-If you already have **CVAT** installed, migrating to **CVAT-DATAUP** is straightforward.  
+If you already have **CVAT** installed, migrating to **CVAT-DATAUP** is straightforward.
 In addition to applying the database migrations, run the following command inside your CVAT server container:
 
 ```bash
@@ -96,19 +96,19 @@ All images are based on the proven CVAT architecture with additional enhancement
 
 ## 📜 License
 
-**CVAT-DATAUP** builds on top of [CVAT](https://github.com/opencv/cvat) and maintains the same licensing model.  
+**CVAT-DATAUP** builds on top of [CVAT](https://github.com/opencv/cvat) and maintains the same licensing model.
 Unless otherwise noted, the code is released under the [MIT License](https://opensource.org/licenses/MIT).
 
-- **serverless**: Code in this directory is also released under the MIT License.  
-  However, it may download and use additional assets (e.g., source code, model architectures, weights).  
-  These assets may be subject to different licenses, including non-commercial ones.  
+- **serverless**: Code in this directory is also released under the MIT License.
+  However, it may download and use additional assets (e.g., source code, model architectures, weights).
+  These assets may be subject to different licenses, including non-commercial ones.
   It is your responsibility to review and comply with the licenses of these assets before use.
 
-- **FFmpeg**: This project uses LGPL-licensed libraries from the [FFmpeg](https://www.ffmpeg.org) project.  
-  The configuration and compilation steps for FFmpeg are detailed in the [Dockerfile](Dockerfile).  
+- **FFmpeg**: This project uses LGPL-licensed libraries from the [FFmpeg](https://www.ffmpeg.org) project.
+  The configuration and compilation steps for FFmpeg are detailed in the [Dockerfile](Dockerfile).
 
-FFmpeg itself is open-source and licensed under LGPL and GPL. See [FFmpeg Legal](https://www.ffmpeg.org/legal.html) for more details.  
-You are solely responsible for ensuring that your use of FFmpeg complies with the appropriate licenses. Neither CVAT nor CVAT-DATAUP authors are responsible for obtaining additional licenses or covering any related fees.  
+FFmpeg itself is open-source and licensed under LGPL and GPL. See [FFmpeg Legal](https://www.ffmpeg.org/legal.html) for more details.
+You are solely responsible for ensuring that your use of FFmpeg complies with the appropriate licenses. Neither CVAT nor CVAT-DATAUP authors are responsible for obtaining additional licenses or covering any related fees.
 
 
 ## Contact us

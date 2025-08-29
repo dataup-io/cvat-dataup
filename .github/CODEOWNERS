@@ -1,0 +1,59 @@
+# https://help.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners
+
+# These owners will be the default owners for everything in
+# the repo. Unless a later match takes precedence, they will
+# be requested for review when someone opens a pull request.
+*               @nmanovic
+
+# Order is important; the last matching pattern takes the most
+# precedence. When someone opens a pull request that only
+# modifies components below, only the list of owners and not
+# the global owner(s) will be requested for a review.
+
+# Component: Server
+/cvat/                      @SpecLad
+/cvat/apps/dataset_manager/ @zhiltsov-max
+/cvat/apps/consensus/       @zhiltsov-max
+/cvat/apps/quality_control/ @zhiltsov-max
+
+# Component: CVAT SDK/CLI
+/cvat-sdk/       @SpecLad
+/cvat/schema.yml @SpecLad
+/cvat-cli/       @SpecLad
+
+# Component: Documentation
+/site/          @bsekachev
+/CHANGELOG.md   @bsekachev
+/README.md      @bsekachev
+
+# Component: CVAT UI
+/cvat-ui/       @bsekachev
+/cvat-data/     @bsekachev
+/cvat-canvas/   @bsekachev
+/cvat-canvas3d/ @bsekachev
+/cvat-core/     @bsekachev
+
+# Advanced components (e.g. analytics)
+/components/    @azhavoro
+
+# Component: Tests
+/tests/         @bsekachev
+/tests/python/  @zhiltsov-max
+
+# Component: Serverless functions
+/serverless/    @bsekachev
+
+# Infrastructure
+Dockerfile*     @azhavoro
+docker-compose* @azhavoro
+.*              @azhavoro
+*.js             @bsekachev
+*.conf          @azhavoro
+*.sh            @azhavoro
+/supervisord/   @azhavoro
+/helm-chart/    @azhavoro
+/utils/         @SpecLad
+/.github/       @SpecLad
+/dev/           @SpecLad
+.regal/         @SpecLad
+/LICENSE        @nmanovic

@@ -1,7 +1,10 @@
-from django.db import models
-from django.contrib.auth.models import User
-from cvat.apps.organizations.models import Organization
 import uuid
+
+from django.contrib.auth.models import User
+from django.db import models
+
+from cvat.apps.organizations.models import Organization
+
 
 class DataUpOrganization(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -22,6 +25,6 @@ class DataUpUser(models.Model):
         on_delete=models.CASCADE,
         related_name="dataup",
     )
-    
+
     def __str__(self):
         return f"DataUpUser: {self.user.username}"

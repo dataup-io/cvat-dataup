@@ -328,17 +328,6 @@ class CreateTaskContent extends React.PureComponent<Props & RouteComponentProps,
     };
 
     private handleUploadLocalFiles = (uploadedFiles: File[]): void => {
-        console.log('[CVAT Upload Debug] Handling local file upload:', {
-            fileCount: uploadedFiles.length,
-            files: uploadedFiles.map(f => ({
-                name: f.name,
-                size: f.size,
-                type: f.type,
-                lastModified: f.lastModified
-            })),
-            many: this.props.many
-        });
-        
         const { many } = this.props;
         const { files } = this.state;
 
@@ -349,18 +338,10 @@ class CreateTaskContent extends React.PureComponent<Props & RouteComponentProps,
             uploadFileErrorMessage = excludedManifests.every((it) => (
                 getFileContentType(it) === SupportedShareTypes.IMAGE
             )) ? '' : UploadFileErrorMessages.one;
-            
-            if (uploadFileErrorMessage) {
-                console.log('[CVAT Upload Debug] Single task validation failed: too many files or wrong type');
-            }
         } else if (many) {
             uploadFileErrorMessage = excludedManifests.every(
                 (it) => getFileContentType(it) === SupportedShareTypes.VIDEO,
             ) ? '' : UploadFileErrorMessages.multi;
-            
-            if (uploadFileErrorMessage) {
-                // Multi-task validation failed: not all files are videos
-            }
         }
 
         this.setState({
@@ -378,7 +359,6 @@ class CreateTaskContent extends React.PureComponent<Props & RouteComponentProps,
     };
 
     private handleUploadRemoteFiles = (urls: string[]): void => {
-        
         const { many } = this.props;
 
         const { files } = this.state;
@@ -390,19 +370,9 @@ class CreateTaskContent extends React.PureComponent<Props & RouteComponentProps,
             if (!many && length > 1) {
                 let index = 0;
                 while (index < length) {
-                    const contentType = getContentTypeRemoteFile(urls[index]);
-                    const isImageFile = contentType === 'image';
-                    
-                    console.log('[CVAT Upload Debug] Remote file validation (single task):', {
-                        url: urls[index],
-                        contentType,
-                        isImageFile,
-                        index
-                    });
-                    
+                    const isImageFile = getContentTypeRemoteFile(urls[index]) === 'image';
                     if (!isImageFile) {
                         uploadFileErrorMessage = UploadFileErrorMessages.one;
-                        console.log('[CVAT Upload Debug] Single task remote validation failed: not an image');
                         break;
                     }
                     index++;
@@ -410,19 +380,9 @@ class CreateTaskContent extends React.PureComponent<Props & RouteComponentProps,
             } else if (many) {
                 let index = 0;
                 while (index < length) {
-                    const contentType = getContentTypeRemoteFile(urls[index]);
-                    const isVideoFile = contentType === 'video';
-                    
-                    console.log('[CVAT Upload Debug] Remote file validation (multi-task):', {
-                        url: urls[index],
-                        contentType,
-                        isVideoFile,
-                        index
-                    });
-                    
+                    const isVideoFile = getContentTypeRemoteFile(urls[index]) === 'video';
                     if (!isVideoFile) {
                         uploadFileErrorMessage = UploadFileErrorMessages.multi;
-                        console.log('[CVAT Upload Debug] Multi-task remote validation failed: not a video');
                         break;
                     }
                     index++;
@@ -430,23 +390,13 @@ class CreateTaskContent extends React.PureComponent<Props & RouteComponentProps,
             }
         } catch (err) {
             uploadFileErrorMessage = `We can't process it. ${err}`;
-            console.error('[CVAT Upload Debug] Remote file validation error:', {
-                error: err,
-                urls
-            });
         }
-
-        console.log('[CVAT Upload Debug] Remote file validation result:', {
-            hasError: !!uploadFileErrorMessage,
-            errorMessage: uploadFileErrorMessage
-        });
 
         this.setState({
             uploadFileErrorMessage,
         });
 
         if (!uploadFileErrorMessage) {
-            console.log('[CVAT Upload Debug] Remote files accepted, updating state');
             this.setState({
                 files: {
                     ...files,
@@ -457,28 +407,13 @@ class CreateTaskContent extends React.PureComponent<Props & RouteComponentProps,
     };
 
     private handleUploadShareFiles = (shareFiles: RemoteFile[]): void => {
-        console.log('[CVAT Upload Debug] Handling share file upload:', {
-            fileCount: shareFiles.length,
-            shareFiles: shareFiles.map(f => ({ name: f.name, key: f.key, type: f.type, mimeType: f.mimeType })),
-            many: this.props.many
-        });
-        
         const { files } = this.state;
         const { many } = this.props;
         const uploadFileErrorMessage = validateRemoteFiles(shareFiles, many);
         const filteredFiles = filterFiles(shareFiles, many);
-        
-        console.log('[CVAT Upload Debug] Share file validation result:', {
-            hasError: !!uploadFileErrorMessage,
-            errorMessage: uploadFileErrorMessage,
-            originalCount: shareFiles.length,
-            filteredCount: filteredFiles.length
-        });
-        
         this.setState({ uploadFileErrorMessage });
 
         if (!uploadFileErrorMessage) {
-            console.log('[CVAT Upload Debug] Share files accepted, updating state');
             this.setState({
                 files: {
                     ...files,

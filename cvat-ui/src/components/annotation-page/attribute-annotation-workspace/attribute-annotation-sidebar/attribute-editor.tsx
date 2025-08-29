@@ -11,8 +11,6 @@ import Radio, { RadioChangeEvent } from 'antd/lib/radio';
 import Input from 'antd/lib/input';
 import { TextAreaRef } from 'antd/lib/input/TextArea';
 import InputNumber from 'antd/lib/input-number';
-import { Button, Space, Tooltip } from 'antd';
-import { AlignLeftOutlined, AlignRightOutlined } from '@ant-design/icons';
 import GlobalHotKeys, { KeyMap, KeyMapItem } from 'utils/mousetrap-react';
 import config from 'config';
 import { ShortcutScope } from 'utils/enums';

@@ -18,9 +18,6 @@ class AxiosHttpResponse implements tus.HttpResponse {
     getHeader(header: string): string | undefined {
         return this.#axiosResponse.headers[header.toLowerCase()];
     }
-    getAllHeaders(): Record<string, string> {
-        return this.#axiosResponse.headers;
-    }
     getBody(): string {
         return this.#axiosResponse.data;
     }

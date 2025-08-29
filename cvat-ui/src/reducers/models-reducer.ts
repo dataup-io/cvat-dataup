@@ -23,7 +23,6 @@ const defaultState: ModelsState = {
     requestedInferenceIDs: {},
     inferences: {},
     totalCount: 0,
-    serverError: false,
     query: {
         page: 1,
         pageSize: 12,
@@ -75,14 +74,6 @@ export default function (state = defaultState, action: ModelsActions | AuthActio
                 ...state,
                 initialized: true,
                 fetching: false,
-            };
-        }
-        case ModelsActionTypes.GET_MODELS_SERVER_ERROR: {
-            return {
-                ...state,
-                initialized: true,
-                fetching: false,
-                serverError: true, // Track server error state
             };
         }
         case ModelsActionTypes.SHOW_RUN_MODEL_DIALOG: {

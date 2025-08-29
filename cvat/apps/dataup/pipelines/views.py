@@ -2,16 +2,19 @@
 #
 # SPDX-License-Identifier: MIT
 
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
-from rest_framework.response import Response
 from rest_framework.decorators import action
-from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiResponse
+from rest_framework.response import Response
 
-from cvat.apps.dataup.views.base import DataUpBaseViewSet
 from cvat.apps.dataup.pipelines.serializers import (
-    PipelineSerializer, PipelineCreateSerializer, PipelineUpdateSerializer,
-    PipelineRunSerializer, PipelineResponseSerializer
+    PipelineCreateSerializer,
+    PipelineResponseSerializer,
+    PipelineRunSerializer,
+    PipelineSerializer,
+    PipelineUpdateSerializer,
 )
+from cvat.apps.dataup.views.base import DataUpBaseViewSet
 
 
 class PipelineViewSet(DataUpBaseViewSet):
@@ -23,42 +26,42 @@ class PipelineViewSet(DataUpBaseViewSet):
     """
 
     @extend_schema(
-        summary='List all pipelines',
-        description='Returns a list of pipelines',
+        summary="List all pipelines",
+        description="Returns a list of pipelines",
         responses={
-            200: OpenApiResponse(description='List of pipelines'),
+            200: OpenApiResponse(description="List of pipelines"),
         },
         parameters=[
-            OpenApiParameter('name', description='Filter by name', required=False, type=str),
+            OpenApiParameter("name", description="Filter by name", required=False, type=str),
         ],
     )
     def list(self, request):
 
         params = {}
-        name = request.query_params.get('name', None)
+        name = request.query_params.get("name", None)
         if name:
-            params['name'] = name
+            params["name"] = name
         params = self.add_organization_params(params)
-        return self.make_dataup_request('GET', 'pipelines/', params=params)
+        return self.make_dataup_request("GET", "pipelines/", params=params)
 
     @extend_schema(
-        summary='Get a pipeline',
-        description='Returns a pipeline',
+        summary="Get a pipeline",
+        description="Returns a pipeline",
         responses={
-            200: OpenApiResponse(description='Pipeline details'),
-            404: OpenApiResponse(description='Pipeline not found'),
+            200: OpenApiResponse(description="Pipeline details"),
+            404: OpenApiResponse(description="Pipeline not found"),
         },
     )
     def retrieve(self, request, pk=None):
         # Make request to DataUP backend
-        return self.make_dataup_request('GET', f'pipelines/{pk}')
+        return self.make_dataup_request("GET", f"pipelines/{pk}")
 
     @extend_schema(
-        summary='Create a pipeline',
-        description='Creates a new pipeline',
+        summary="Create a pipeline",
+        description="Creates a new pipeline",
         responses={
-            201: OpenApiResponse(description='Pipeline created'),
-            400: OpenApiResponse(description='Invalid input'),
+            201: OpenApiResponse(description="Pipeline created"),
+            400: OpenApiResponse(description="Invalid input"),
         },
     )
     def create(self, request):
@@ -68,20 +71,18 @@ class PipelineViewSet(DataUpBaseViewSet):
             request_data = serializer.validated_data
             request_data = self.add_owner_data(request_data)
             return self.make_dataup_request(
-                'POST', 'pipelines/',
-                data=request_data,
-                success_status=status.HTTP_201_CREATED
+                "POST", "pipelines/", data=request_data, success_status=status.HTTP_201_CREATED
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        summary='Update a pipeline',
-        description='Updates a pipeline',
+        summary="Update a pipeline",
+        description="Updates a pipeline",
         responses={
-            200: OpenApiResponse(description='Pipeline updated'),
-            400: OpenApiResponse(description='Invalid input'),
-            404: OpenApiResponse(description='Pipeline not found'),
+            200: OpenApiResponse(description="Pipeline updated"),
+            400: OpenApiResponse(description="Invalid input"),
+            404: OpenApiResponse(description="Pipeline not found"),
         },
     )
     def update(self, request, pk=None):
@@ -89,24 +90,20 @@ class PipelineViewSet(DataUpBaseViewSet):
 
         if serializer.is_valid():
             request_data = serializer.validated_data
-            return self.make_dataup_request(
-                'PUT', f'pipelines/{pk}',
-                data=request_data
-            )
+            return self.make_dataup_request("PUT", f"pipelines/{pk}", data=request_data)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        summary='Delete a pipeline',
-        description='Deletes a pipeline',
+        summary="Delete a pipeline",
+        description="Deletes a pipeline",
         responses={
-            204: OpenApiResponse(description='Pipeline deleted'),
-            404: OpenApiResponse(description='Pipeline not found'),
+            204: OpenApiResponse(description="Pipeline deleted"),
+            404: OpenApiResponse(description="Pipeline not found"),
         },
     )
     def destroy(self, request, pk=None):
-        return self.make_dataup_request('DELETE', f'pipelines/{pk}')
-
+        return self.make_dataup_request("DELETE", f"pipelines/{pk}")
 
     # @extend_schema(
     #     summary='Run a pipeline',

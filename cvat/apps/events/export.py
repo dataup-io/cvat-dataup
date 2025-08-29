@@ -93,15 +93,15 @@ def _get_analytics_data_json(request, perm):
     """
     try:
         clickhouse_settings = settings.CLICKHOUSE["events"]
-        
+
         # Apply permission filtering
         filter_query = perm.filter(request.query_params)
-        
+
         # Extract query parameters
         resource_filters = ("org_id", "project_id", "task_id", "job_id", "user_id")
         datetime_filters = ("from", "to")
         query_params = {k: filter_query.get(k) for k in resource_filters + datetime_filters}
-        
+
         # Parse datetime parameters
         for datetime_filter in datetime_filters:
             if query_params[datetime_filter]:
@@ -111,7 +111,7 @@ def _get_analytics_data_json(request, perm):
                     raise serializers.ValidationError(
                         f"Cannot parse {datetime_filter!r} datetime parameter: {query_params[datetime_filter]}"
                     )
-        
+
         # Set default time range if not provided
         if not query_params["from"]:
             query_params["from"] = find_minimal_date_for_filter(
@@ -120,14 +120,14 @@ def _get_analytics_data_json(request, perm):
                 project_id=query_params["project_id"],
                 org_id=query_params["org_id"],
             )
-        
+
         if not query_params["to"]:
             query_params["to"] = datetime.now(timezone.utc)
-        
+
         # Get format and grouping parameters
         data_format = request.query_params.get("format", "aggregated")
         group_by = request.query_params.get("group_by")
-        
+
         # Connect to ClickHouse
         with clickhouse_connect.get_client(
             host=clickhouse_settings["HOST"],
@@ -136,14 +136,14 @@ def _get_analytics_data_json(request, perm):
             username=clickhouse_settings["USER"],
             password=clickhouse_settings["PASSWORD"],
         ) as client:
-            
+
             if data_format == "raw":
                 return _get_raw_analytics_data(client, query_params)
             elif data_format == "summary":
                 return _get_summary_analytics_data(client, query_params)
             else:  # aggregated (default)
                 return _get_aggregated_analytics_data(client, query_params, group_by)
-                
+
     except Exception as e:
         slogger.glob.exception("Failed to retrieve analytics data")
         raise
@@ -156,46 +156,46 @@ def _get_raw_analytics_data(client, query_params: dict) -> dict:
     query = "SELECT * FROM events"
     conditions = ["source in ('server', 'client')", "scope != 'send:exception'"]
     parameters = {}
-    
+
     # Add time filters
     if query_params["from"]:
         conditions.append("timestamp >= {from:DateTime64}")
         parameters["from"] = query_params["from"]
-    
+
     if query_params["to"]:
         conditions.append("timestamp <= {to:DateTime64}")
         parameters["to"] = query_params["to"]
-    
+
     # Add resource filters
     for param, value in query_params.items():
         if value and param not in ("from", "to"):
             conditions.append(f"{param} = {{{param}:UInt64}}")
             parameters[param] = value
-    
+
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
-    
+
     query += " ORDER BY timestamp DESC LIMIT 1000"  # Limit for performance
-    
+
     result = client.query(query, parameters=parameters)
-    
+
     # Convert to list of dictionaries
     events = []
     for row in result.result_rows:
         event = dict(zip(result.column_names, row))
         # Convert timestamp to ISO format
-        if 'timestamp' in event:
-            event['timestamp'] = event['timestamp'].isoformat()
+        if "timestamp" in event:
+            event["timestamp"] = event["timestamp"].isoformat()
         events.append(event)
-    
+
     return {
         "format": "raw",
         "total_count": len(events),
         "events": events,
         "metadata": {
             "query_time": datetime.now(timezone.utc).isoformat(),
-            "filters": {k: v for k, v in query_params.items() if v is not None}
-        }
+            "filters": {k: v for k, v in query_params.items() if v is not None},
+        },
     }
 
 
@@ -205,26 +205,26 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
     """
     base_conditions = ["source in ('server', 'client')", "scope != 'send:exception'"]
     parameters = {}
-    
+
     # Add time filters
     if query_params["from"]:
         base_conditions.append("timestamp >= {from:DateTime64}")
         parameters["from"] = query_params["from"]
-    
+
     if query_params["to"]:
         base_conditions.append("timestamp <= {to:DateTime64}")
         parameters["to"] = query_params["to"]
-    
+
     # Add resource filters
     for param, value in query_params.items():
         if value and param not in ("from", "to"):
             base_conditions.append(f"{param} = {{{param}:UInt64}}")
             parameters[param] = value
-    
+
     where_clause = " WHERE " + " AND ".join(base_conditions) if base_conditions else ""
-    
+
     analytics_data = {}
-    
+
     # Event counts by scope
     scope_query = f"""
         SELECT scope, COUNT(*) as count
@@ -234,13 +234,11 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
         ORDER BY count DESC
     """
     scope_result = client.query(scope_query, parameters=parameters)
-    analytics_data["events_by_scope"] = {
-        row[0]: row[1] for row in scope_result.result_rows
-    }
-    
+    analytics_data["events_by_scope"] = {row[0]: row[1] for row in scope_result.result_rows}
+
     # Events over time (hourly aggregation)
     time_query = f"""
-        SELECT 
+        SELECT
             toStartOfHour(timestamp) as hour,
             COUNT(*) as count
         FROM events
@@ -250,10 +248,9 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
     """
     time_result = client.query(time_query, parameters=parameters)
     analytics_data["events_over_time"] = [
-        {"timestamp": row[0].isoformat(), "count": row[1]}
-        for row in time_result.result_rows
+        {"timestamp": row[0].isoformat(), "count": row[1]} for row in time_result.result_rows
     ]
-    
+
     # User activity (if not filtered by specific user)
     if not query_params.get("user_id"):
         user_query = f"""
@@ -266,10 +263,8 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
             LIMIT 20
         """
         user_result = client.query(user_query, parameters=parameters)
-        analytics_data["top_users"] = {
-            str(row[0]): row[1] for row in user_result.result_rows
-        }
-    
+        analytics_data["top_users"] = {str(row[0]): row[1] for row in user_result.result_rows}
+
     # Project activity (if not filtered by specific project)
     if not query_params.get("project_id"):
         project_query = f"""
@@ -282,10 +277,8 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
             LIMIT 20
         """
         project_result = client.query(project_query, parameters=parameters)
-        analytics_data["top_projects"] = {
-            str(row[0]): row[1] for row in project_result.result_rows
-        }
-    
+        analytics_data["top_projects"] = {str(row[0]): row[1] for row in project_result.result_rows}
+
     # Custom grouping if specified
     if group_by and group_by in ["scope", "user_id", "project_id", "task_id", "job_id"]:
         group_query = f"""
@@ -300,7 +293,7 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
         analytics_data[f"grouped_by_{group_by}"] = {
             str(row[0]): row[1] for row in group_result.result_rows
         }
-    
+
     # Calculate total events
     total_query = f"""
         SELECT COUNT(*) as total
@@ -309,7 +302,7 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
     """
     total_result = client.query(total_query, parameters=parameters)
     total_count = total_result.result_rows[0][0] if total_result.result_rows else 0
-    
+
     return {
         "format": "aggregated",
         "total_events": total_count,
@@ -317,8 +310,8 @@ def _get_aggregated_analytics_data(client, query_params: dict, group_by: str = N
         "metadata": {
             "query_time": datetime.now(timezone.utc).isoformat(),
             "filters": {k: v for k, v in query_params.items() if v is not None},
-            "group_by": group_by
-        }
+            "group_by": group_by,
+        },
     }
 
 
@@ -328,27 +321,27 @@ def _get_summary_analytics_data(client, query_params: dict) -> dict:
     """
     base_conditions = ["source in ('server', 'client')", "scope != 'send:exception'"]
     parameters = {}
-    
+
     # Add time filters
     if query_params["from"]:
         base_conditions.append("timestamp >= {from:DateTime64}")
         parameters["from"] = query_params["from"]
-    
+
     if query_params["to"]:
         base_conditions.append("timestamp <= {to:DateTime64}")
         parameters["to"] = query_params["to"]
-    
+
     # Add resource filters
     for param, value in query_params.items():
         if value and param not in ("from", "to"):
             base_conditions.append(f"{param} = {{{param}:UInt64}}")
             parameters[param] = value
-    
+
     where_clause = " WHERE " + " AND ".join(base_conditions) if base_conditions else ""
-    
+
     # Get summary statistics
     summary_query = f"""
-        SELECT 
+        SELECT
             COUNT(*) as total_events,
             COUNT(DISTINCT user_id) as unique_users,
             COUNT(DISTINCT project_id) as unique_projects,
@@ -359,10 +352,10 @@ def _get_summary_analytics_data(client, query_params: dict) -> dict:
         FROM events
         {where_clause}
     """
-    
+
     result = client.query(summary_query, parameters=parameters)
     row = result.result_rows[0] if result.result_rows else [0] * 7
-    
+
     return {
         "format": "summary",
         "summary": {
@@ -373,12 +366,12 @@ def _get_summary_analytics_data(client, query_params: dict) -> dict:
             "unique_jobs": row[4],
             "earliest_event": row[5].isoformat() if row[5] else None,
             "latest_event": row[6].isoformat() if row[6] else None,
-            "time_range_days": (row[6] - row[5]).days if row[5] and row[6] else 0
+            "time_range_days": (row[6] - row[5]).days if row[5] and row[6] else 0,
         },
         "metadata": {
             "query_time": datetime.now(timezone.utc).isoformat(),
-            "filters": {k: v for k, v in query_params.items() if v is not None}
-        }
+            "filters": {k: v for k, v in query_params.items() if v is not None},
+        },
     }
 
 

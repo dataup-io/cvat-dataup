@@ -52,7 +52,7 @@ export function checkExclusiveFields(obj, exclusive, ignore): void {
         exclusive: [],
         other: [],
     };
-    
+
     for (const field in obj) {
         if (!(ignore.includes(field))) {
             if (exclusive.includes(field)) {
@@ -174,7 +174,7 @@ export function filterFieldsToSnakeCase(
     }
 
     if (searchParams.filter) {
-        const parsed = JSON.parse(String(searchParams.filter));
+        const parsed = JSON.parse(searchParams.filter);
         searchParams.filter = JSON.stringify({ and: [parsed, ...filtersGroup] });
     } else if (filtersGroup.length) {
         searchParams.filter = JSON.stringify({ and: [...filtersGroup] });

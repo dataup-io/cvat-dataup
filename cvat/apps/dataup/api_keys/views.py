@@ -1,19 +1,19 @@
-from django.http import Http404
 from django.contrib.auth.models import User
+from django.http import Http404
 from django.utils.translation import gettext_lazy as _
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets
-from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiResponse
+from rest_framework.response import Response
 
-from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
 from cvat.apps.dataup.api_keys.models import DataUpAPIKey
+from cvat.apps.dataup.api_keys.permissions import DataUpAPIKeyPerm, DataUpPolicyEnforcer
 from cvat.apps.dataup.api_keys.serializers import (
     DataUpAPIKeyReadSerializer,
     DataUpAPIKeyWriteSerializer,
 )
-from cvat.apps.dataup.api_keys.permissions import DataUpAPIKeyPerm, DataUpPolicyEnforcer
+from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
 
 
 @extend_schema_view(
@@ -26,9 +26,9 @@ from cvat.apps.dataup.api_keys.permissions import DataUpAPIKeyPerm, DataUpPolicy
     create=extend_schema(
         summary="Create API key",
         description="Create a new API key (user-only, org-only, or user+org). "
-                    "You may pass ?org=<slug> or body {org: <slug>} to set organization by slug.",
+        "You may pass ?org=<slug> or body {org: <slug>} to set organization by slug.",
         tags=["DataUp API Keys"],
-        responses={201: OpenApiResponse(description='API Key created')},
+        responses={201: OpenApiResponse(description="API Key created")},
     ),
     retrieve=extend_schema(
         summary="Get API key",
@@ -60,6 +60,7 @@ class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
     - You may also specify organization by slug via ?org=<slug> or body {"org": "<slug>"}.
     - If neither 'owner' nor 'organization' provided, defaults to a personal key for the current user.
     """
+
     serializer_class = DataUpAPIKeyWriteSerializer
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
     search_fields = ["name", "label"]
@@ -68,7 +69,11 @@ class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
     iam_organization_field = None
 
     def get_serializer_class(self):
-        return DataUpAPIKeyReadSerializer if self.action in ("list", "retrieve") else DataUpAPIKeyWriteSerializer
+        return (
+            DataUpAPIKeyReadSerializer
+            if self.action in ("list", "retrieve")
+            else DataUpAPIKeyWriteSerializer
+        )
 
     def get_queryset(self):
         qs = DataUpAPIKey.objects.select_related("organization", "owner").all()
@@ -86,7 +91,9 @@ class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
         except Http404:
             raise ValidationError({"owner": _("No DataUp user linked to the current account.")})
 
-        org_slug = kwargs.get("org_slug") or request.query_params.get("org") or request.data.get("org")
+        org_slug = (
+            kwargs.get("org_slug") or request.query_params.get("org") or request.data.get("org")
+        )
         dataup_org = None
         if org_slug:
             try:
@@ -107,7 +114,7 @@ class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
         return Response(
             DataUpAPIKeyReadSerializer(serializer.instance).data,
             status=201,
-            headers=self.get_success_headers(serializer.data)
+            headers=self.get_success_headers(serializer.data),
         )
 
     def perform_create(self, serializer):
@@ -115,14 +122,15 @@ class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
 
     def perform_update(self, serializer):
         from django.utils import timezone
+
         instance = self.get_object()
         old_key = instance.key
 
         instance = serializer.save()
 
-        if 'key' in serializer.validated_data and instance.key != old_key:
+        if "key" in serializer.validated_data and instance.key != old_key:
             instance.last_used_at = timezone.now()
-            instance.save(update_fields=['last_used_at'])
+            instance.save(update_fields=["last_used_at"])
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -145,7 +153,7 @@ class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
 
     def get_dataup_org(self, org_slug: str) -> DataUpOrganization:
         try:
-            return DataUpOrganization.objects.select_related('organization').get(
+            return DataUpOrganization.objects.select_related("organization").get(
                 organization__slug=org_slug
             )
         except DataUpOrganization.DoesNotExist:
@@ -153,6 +161,6 @@ class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
 
     def get_dataup_user(self, user: User) -> DataUpUser:
         try:
-            return DataUpUser.objects.select_related('user').get(user=user)
+            return DataUpUser.objects.select_related("user").get(user=user)
         except DataUpUser.DoesNotExist:
             raise Http404("DataUp user not found")

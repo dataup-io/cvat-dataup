@@ -19,7 +19,6 @@ export default class User {
     public readonly isActive: boolean;
     public readonly isVerified: boolean;
     public readonly hasAnalyticsAccess: boolean;
-    public readonly plan?: string;
 
     constructor(initialData: SerializedUser) {
         const data = {
@@ -36,7 +35,6 @@ export default class User {
             is_active: null,
             email_verification_required: null,
             has_analytics_access: null,
-            plan: null,
         };
 
         for (const property in data) {
@@ -86,9 +84,6 @@ export default class User {
                 },
                 hasAnalyticsAccess: {
                     get: () => data.has_analytics_access,
-                },
-                plan: {
-                    get: () => data.plan,
                 },
             }),
         );

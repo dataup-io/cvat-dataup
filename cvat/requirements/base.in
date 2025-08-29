@@ -36,7 +36,6 @@ lxml>=5.2.1,<6
 natsort==8.0.0
 numpy~=1.22.2
 opencv-python-headless~=4.8
-# django-encrypted-model-fields>=0.6.0
 
 # Partial json reading
 json-stream>=2.0,<3

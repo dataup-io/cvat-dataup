@@ -3,14 +3,13 @@
 //
 // SPDX-License-Identifier: MIT
 
-// Removed lodash dependency - using native JS instead
+import { omit } from 'lodash';
 import config from './config';
+
 import PluginRegistry from './plugins';
 import serverProxy from './server-proxy';
 import lambdaManager from './lambda-manager';
 import requestsManager from './requests-manager';
-
-
 import {
     isBoolean,
     isInteger,
@@ -62,7 +61,7 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.actions.run, runAction);
     implementationMixin(cvat.actions.call, callAction);
 
-      implementationMixin(cvat.lambda.list, lambdaManager.list.bind(lambdaManager));
+    implementationMixin(cvat.lambda.list, lambdaManager.list.bind(lambdaManager));
     implementationMixin(cvat.lambda.run, lambdaManager.run.bind(lambdaManager));
     implementationMixin(cvat.lambda.call, lambdaManager.call.bind(lambdaManager));
     implementationMixin(cvat.lambda.cancel, lambdaManager.cancel.bind(lambdaManager));
@@ -79,10 +78,7 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     });
     implementationMixin(cvat.server.share, async (directory: string, searchPrefix?: string) => {
         const result = await serverProxy.server.share(directory, searchPrefix);
-        return result.map((item) => {
-            const { mime_type: mimeType, ...rest } = item;
-            return { ...rest, mimeType };
-        });
+        return result.map((item) => ({ ...omit(item, 'mime_type'), mimeType: item.mime_type }));
     });
     implementationMixin(cvat.server.formats, async () => {
         const result = await serverProxy.server.formats();
@@ -109,7 +105,7 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
             userConfirmations,
         );
 
-        return new User(user as any);
+        return new User(user);
     });
     implementationMixin(cvat.server.login, async (username, password) => {
         await serverProxy.server.login(username, password);
@@ -180,7 +176,7 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
             users = await serverProxy.users.self();
             users = [users];
         } else {
-            const searchParams: any = {};
+            const searchParams = {};
             for (const key in filter) {
                 if (filter[key] && key !== 'self') {
                     searchParams[key] = filter[key];
@@ -226,22 +222,16 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
 
         const jobsData = await serverProxy.jobs.get(searchParams, aggregate);
         if (query.type === JobType.GROUND_TRUTH && jobsData.count === 1) {
-            const labelsData = await serverProxy.labels.get({ job_id: jobsData[0].id });
+            const labels = await serverProxy.labels.get({ job_id: jobsData[0].id });
             return Object.assign([
                 new Job({
-                    ...(() => {
-                        const { labels, ...rest } = jobsData[0];
-                        return rest;
-                    })(),
-                    labels: labelsData.results,
+                    ...omit(jobsData[0], 'labels'),
+                    labels: labels.results,
                 }),
             ], { count: 1 });
         }
 
-        const jobs = jobsData.map((jobData) => {
-            const { labels, ...rest } = jobData;
-            return new Job(rest);
-        });
+        const jobs = jobsData.map((jobData) => new Job(omit(jobData, 'labels')));
         return Object.assign(jobs, { count: jobsData.count });
     });
 
@@ -267,24 +257,18 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
         const tasks = await Promise.all(tasksData.map(async (taskItem) => {
             if ('id' in filter) {
                 // When request task by ID we also need to add labels and jobs to work with them
-                const labelsData = await serverProxy.labels.get({ task_id: taskItem.id });
-                const jobsData = await serverProxy.jobs.get({ task_id: taskItem.id }, true);
+                const labels = await serverProxy.labels.get({ task_id: taskItem.id });
+                const jobs = await serverProxy.jobs.get({ task_id: taskItem.id }, true);
                 return new Task({
-                    ...(() => {
-                        const { jobs, labels, ...rest } = taskItem;
-                        return rest;
-                    })(),
+                    ...omit(taskItem, ['jobs', 'labels']),
                     progress: taskItem.jobs,
-                    jobs: jobsData,
-                    labels: labelsData.results,
+                    jobs,
+                    labels: labels.results,
                 });
             }
 
             return new Task({
-                ...(() => {
-                    const { jobs, labels, ...rest } = taskItem;
-                    return rest;
-                })(),
+                ...omit(taskItem, ['jobs', 'labels']),
                 progress: taskItem.jobs,
             });
         }));
@@ -562,7 +546,7 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
             filename: isString,
         });
 
-        checkExclusiveFields(filter, ['jobId', 'taskId', 'projectId'], ['from', 'to', 'format', 'groupBy', 'orgId', 'userId']);
+        checkExclusiveFields(filter, ['jobId', 'taskId', 'projectId'], ['from', 'to']);
 
         const params = fieldsToSnakeCase(filter);
         return serverProxy.events.export(params);
@@ -586,7 +570,7 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
         checkExclusiveFields(filter, ['jobId', 'taskId', 'projectId'], ['from', 'to', 'format', 'groupBy', 'filename', 'orgId', 'userId']);
 
         const params = fieldsToSnakeCase(filter);
-        
+
         return serverProxy.analytics.events.getJSON(params);
     });
 
@@ -606,10 +590,6 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
 
     implementationMixin(cvat.frames.getMeta, async (type: 'job' | 'task', id: number) => {
         const result = await getFramesMeta(type, id);
-        return result;
-    });
-    implementationMixin(cvat.frames.getFrameUrl, async (taskId: number, frameNumber: number) => {
-        const result = await serverProxy.frames.getFrameUrl(taskId, frameNumber);
         return result;
     });
 

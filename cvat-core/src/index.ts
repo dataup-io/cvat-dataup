@@ -175,7 +175,6 @@ export default interface CVATCore {
     };
     frames: {
         getMeta: any;
-        getFrameUrl: (taskId: number, frameNumber: number) => Promise<string>;
     };
     requests: {
         list: () => Promise<PaginatedResource<Request>>;

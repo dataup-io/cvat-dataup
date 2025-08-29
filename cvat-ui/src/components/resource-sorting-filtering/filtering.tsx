@@ -7,7 +7,8 @@ import React, { useState, useEffect } from 'react';
 import {
     Builder, Config, AntdConfig, ImmutableTree, Query, Utils as QbUtils,
 } from '@react-awesome-query-builder/antd';
-import '@react-awesome-query-builder/antd/css/styles.css';
+// import '@react-awesome-query-builder/antd/css/styles.css'; # TODO: check what is the difference here
+import '@modules/@react-awesome-query-builder/antd/css/styles.css';
 import {
     DownOutlined, FilterFilled, FilterOutlined,
 } from '@ant-design/icons';
