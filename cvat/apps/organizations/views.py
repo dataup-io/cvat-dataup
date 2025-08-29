@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: MIT
 
 from django.core.exceptions import ImproperlyConfigured
-from django.db import models, transaction
+from django.db import transaction
 from django.utils.crypto import get_random_string
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import mixins, status, viewsets

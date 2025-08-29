@@ -42,7 +42,7 @@ function TasksPageComponent(props: Props): JSX.Element {
     useEffect(() => {
         dispatch(getTasksAsync({ ...updatedQuery }));
         setIsMounted(true);
-    }, []); // Remove updatedQuery to prevent infinite loop
+    }, []);
 
     useEffect(() => {
         if (isMounted) {

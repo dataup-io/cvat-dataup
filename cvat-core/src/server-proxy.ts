@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 // @ts-ignore
+import FormData from 'form-data';
 import store from 'store';
 import Axios, { AxiosError, AxiosResponse } from 'axios';
 import * as tus from 'tus-js-client';
@@ -23,8 +24,6 @@ import {
     SerializedRequest, SerializedJobValidationLayout, SerializedTaskValidationLayout, SerializedConsensusSettingsData,
     APIClassDistributionFilter,
     SerializedClassDistribution,
-    AgentAPIsFilter,
-    SerializedAgentAPI,
 } from './server-response-types';
 import { PaginatedResource, UpdateStatusData } from './core-types';
 import { Request } from './request';
@@ -127,7 +126,6 @@ async function chunkUpload(file: File, uploadConfig): Promise<{ uploadSentSize: 
         endpoint, chunkSize, totalSize, onUpdate, metadata, totalSentSize,
     } = uploadConfig;
     const uploadResult = { uploadSentSize: 0, filename: file.name };
-
     return new Promise((resolve, reject) => {
         const upload = new tus.Upload(file, {
             endpoint,
@@ -140,21 +138,14 @@ async function chunkUpload(file: File, uploadConfig): Promise<{ uploadSentSize: 
             chunkSize,
             retryDelays: [2000, 4000, 8000, 16000, 32000, 64000],
             onShouldRetry(err: tus.DetailedError | Error): boolean {
-                console.log('[CVAT Upload Debug] Upload error, checking if should retry:', {
-                    error: err.message,
-                    errorType: err.constructor.name,
-                    filename: file.name,
-                });
-
                 if (err instanceof tus.DetailedError) {
                     const { originalResponse } = (err as tus.DetailedError);
                     const code = (originalResponse?.getStatus() || 0);
-                    const shouldRetry = !(code >= 400 && code < 500) || [409, 423, 429, 0].includes(code);
 
                     // do not retry if (code >= 400 && code < 500) is default tus behaviour
                     // retry if code === 409 or 423 is default tus behaviour
                     // additionally handle codes 429 and 0
-                    return shouldRetry;
+                    return !(code >= 400 && code < 500) || [409, 423, 429, 0].includes(code);
                 }
 
                 return false;
@@ -180,7 +171,6 @@ async function chunkUpload(file: File, uploadConfig): Promise<{ uploadSentSize: 
                 });
             },
         });
-
         upload.start();
     });
 }
@@ -265,15 +255,15 @@ function generateError(errorData: AxiosError): ServerError {
     return new ServerError(message, 0);
 }
 
-function prepareData(details): any {
+function prepareData(details) {
     const data = new FormData();
     for (const [key, value] of Object.entries(details)) {
         if (Array.isArray(value)) {
             value.forEach((element, idx) => {
-                data.append(`${key}[${idx}]`, String(element));
+                data.append(`${key}[${idx}]`, element);
             });
         } else {
-            data.set(key, String(value));
+            data.set(key, value);
         }
     }
     return data;
@@ -307,7 +297,7 @@ class WorkerWrappedAxios {
             return requestId++;
         }
 
-        async function get(url: string, requestConfig): Promise<any> {
+        async function get(url: string, requestConfig) {
             return new Promise((resolve, reject) => {
                 const newRequestId = getRequestId();
                 requests[newRequestId] = { resolve, reject };
@@ -353,7 +343,7 @@ Axios.interceptors.request.use((reqConfig) => {
     const { backendAPI } = config;
     const getInvitations = reqConfig.url.endsWith('/invitations') && reqConfig.method === 'get';
     const acceptDeclineInvitation = reqConfig.url.startsWith(`${backendAPI}/invitations`) &&
-        (reqConfig.url.endsWith('/accept') || reqConfig.url.endsWith('/decline'));
+                                    (reqConfig.url.endsWith('/accept') || reqConfig.url.endsWith('/decline'));
     if (getInvitations || acceptDeclineInvitation) {
         return reqConfig;
     }
@@ -883,7 +873,7 @@ async function mergeConsensusJobs(id: number, instanceType: string): Promise<str
                     reject(generateError(response));
                 }
             } catch (errorData) {
-                reject(generateError(errorData as AxiosError));
+                reject(generateError(errorData));
             }
         }
         setTimeout(request);
@@ -1151,7 +1141,7 @@ async function restoreProject(storage: Storage, file: File | string): Promise<st
 
     try {
         if (isCloudStorage) {
-            params.filename = typeof file === 'string' ? file : file.name;
+            params.filename = file;
             response = await Axios.post(url,
                 new FormData(),
                 {
@@ -1213,10 +1203,10 @@ async function createTask(
     for (const [key, value] of Object.entries(taskDataSpec)) {
         if (Array.isArray(value)) {
             value.forEach((element, idx) => {
-                taskData.append(`${key}[${idx}]`, String(element));
+                taskData.append(`${key}[${idx}]`, element);
             });
         } else if (typeof value !== 'object') {
-            taskData.set(key, String(value));
+            taskData.set(key, value);
         }
     }
 
@@ -1360,7 +1350,7 @@ async function getJobs(
     return response.data.results;
 }
 
-async function getIssues(filter): Promise<any> {
+async function getIssues(filter) {
     const { backendAPI } = config;
 
     let response = null;
@@ -1400,7 +1390,7 @@ async function getIssues(filter): Promise<any> {
     return response.results;
 }
 
-async function createComment(data): Promise<any> {
+async function createComment(data) {
     const { backendAPI } = config;
 
     let response = null;
@@ -1413,7 +1403,7 @@ async function createComment(data): Promise<any> {
     return response.data;
 }
 
-async function createIssue(data): Promise<any> {
+async function createIssue(data) {
     const { backendAPI } = config;
 
     let response = null;
@@ -1554,22 +1544,6 @@ function getPreview(instance: 'projects' | 'tasks' | 'jobs' | 'cloudstorages' | 
             throw new ServerError(`Could not get preview for "${instance}/${id}"`, code);
         }
     };
-}
-
-async function getFrameUrl(taskId: number, frameNumber: number): Promise<string> {
-    const { backendAPI } = config;
-    const authToken = getStoredAuthToken();
-
-    const response = await Axios.get(
-        `${backendAPI}/tasks/${taskId}/data?type=frame&number=${frameNumber}&response_type=url`,
-        {
-            headers: {
-                Authorization: `Bearer ${authToken}`,
-            },
-        },
-    );
-
-    return response.data.url;
 }
 
 async function getImageContext(jid: number, frame: number): Promise<ArrayBuffer> {
@@ -1906,63 +1880,6 @@ async function cancelLambdaRequest(requestId) {
     }
 }
 
-async function getAgentRequests() {
-    const { backendAPI } = config;
-    const authToken = getStoredAuthToken();
-    try {
-        const response = await Axios.get(`${backendAPI}/dataup/agent-requests`, {
-            headers: {
-                Authorization: `Bearer ${authToken}`,
-            },
-        });
-        return response.data;
-    } catch (errorData) {
-        throw generateError(errorData);
-    }
-}
-
-async function getAgentRequestStatus(requestID) {
-    const { backendAPI } = config;
-    const authToken = getStoredAuthToken();
-    try {
-        const response = await Axios.get(`${backendAPI}/dataup/agent-requests/${requestID}`, {
-            headers: {
-                Authorization: `Bearer ${authToken}`,
-            },
-        });
-        return response.data;
-    } catch (errorData) {
-        throw generateError(errorData);
-    }
-}
-async function cancelAgentRequest(requestId) {
-    const { backendAPI } = config;
-    const authToken = getStoredAuthToken();
-    try {
-        await Axios.delete(`${backendAPI}/dataup/agent-requests/${requestId}`, {
-            headers: {
-                Authorization: `Bearer ${authToken}`,
-            },
-        });
-    } catch (errorData) {
-        throw generateError(errorData);
-    }
-}
-
-async function runAgentRequest(body) {
-    const { backendAPI } = config;
-    const authToken = getStoredAuthToken();
-    try {
-        const response = await Axios.post(`${backendAPI}/dataup/agent-requests`, body, {
-            headers: {
-                Authorization: `Bearer ${authToken}`,
-            },
-        });
-        return response.data;
-    } catch (errorData) {
-        throw generateError(errorData);
-    }
-}
 async function installedApps() {
     const { backendAPI } = config;
     try {
@@ -2376,7 +2293,7 @@ async function createAsset(file: File, guideId: number): Promise<SerializedAsset
     const { backendAPI } = config;
     const form = new FormData();
     form.append('file', file);
-    form.append('guide_id', String(guideId));
+    form.append('guide_id', guideId);
 
     try {
         const response = await Axios.post(`${backendAPI}/assets`, form, {
@@ -2538,39 +2455,6 @@ async function getQualityReports(
     return response.data.results;
 }
 
-async function getAgentAPIs(filter: AgentAPIsFilter = {}): Promise<PaginatedResource<SerializedAgentAPI>> {
-    // Template for future implementation - open source release
-    return {
-        results: [],
-        count: 0,
-    };
-}
-
-async function getAgentAPI(id: string): Promise<SerializedAgentAPI> {
-    // Template for future implementation - open source release
-    throw new Error('Agent API not available in open source release');
-}
-
-async function createAgentAPI(agentAPIData: any): Promise<SerializedAgentAPI> {
-    // Template for future implementation - open source release
-    throw new Error('Agent API creation not available in open source release');
-}
-
-async function updateAgentAPI(id: string, agentAPIData: any): Promise<SerializedAgentAPI> {
-    // Template for future implementation - open source release
-    throw new Error('Agent API update not available in open source release');
-}
-
-async function deleteAgentAPI(id: string): Promise<void> {
-    // Template for future implementation - open source release
-    throw new Error('Agent API deletion not available in open source release');
-}
-
-async function callAgentAPI(id: string, taskId: number, data: Record<string, unknown>): Promise<any> {
-    // Template for future implementation - open source release
-    throw new Error('Agent API call not available in open source release');
-}
-
 export default Object.freeze({
     server: Object.freeze({
         setAuthData,
@@ -2645,7 +2529,6 @@ export default Object.freeze({
         saveMeta,
         getPreview,
         getImageContext,
-        getFrameUrl,
     }),
 
     annotations: Object.freeze({
@@ -2753,115 +2636,4 @@ export default Object.freeze({
         status: getRequestStatus,
         cancel: cancelRequest,
     }),
-
-    agents: Object.freeze({
-        get: getAgentAPIs,
-        getOne: getAgentAPI,
-        create: createAgentAPI,
-        update: updateAgentAPI,
-        delete: deleteAgentAPI,
-        call: callAgentAPI,
-    }),
-
-    agent_requests: Object.freeze({
-        list: getAgentRequests,
-        cancel: cancelAgentRequest,
-        status: getAgentRequestStatus,
-        run: runAgentRequest,
-    }),
-
-    pipelines: Object.freeze({
-        get: async (filter = {}) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        getById: async (id) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        create: async (pipelineData) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        update: async (id, pipelineData) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        delete: async (id) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        incrementUsage: async (id) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        usage: async (id) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        run: async (id, requestData = {}) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-    }),
-
-    pipelineSteps: Object.freeze({
-        get: async (filter = {}) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        create: async (stepData) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        update: async (id, stepData) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        delete: async (id) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-    }),
-
-    stepRegistry: Object.freeze({
-        get: async (filter = {}) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-    }),
-
-    pipelineExecutions: Object.freeze({
-        get: async (filter = {}) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        checkStatus: async (id) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        delete: async (id) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-
-        cancel: async (id) => {
-            throw new Error('Pipeline functionality will be available in a future release');
-        },
-    }),
-
-    dataUpApiKeys: Object.freeze({
-        get: async (filter: { [key: string]: any } = {}) => {
-            throw new Error('DataUp API Keys functionality will be available in a future release');
-        },
-
-        create: async (keyData) => {
-            throw new Error('DataUp API Keys functionality will be available in a future release');
-        },
-
-        update: async (id, keyData) => {
-            throw new Error('DataUp API Keys functionality will be available in a future release');
-        },
-
-        delete: async (id) => {
-            throw new Error('DataUp API Keys functionality will be available in a future release');
-        },
-    }),
-
 });

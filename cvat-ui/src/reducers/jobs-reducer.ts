@@ -8,7 +8,6 @@ import { JobsState } from '.';
 
 const defaultState: JobsState = {
     fetchingTimestamp: Date.now(),
-    initialized: false,
     fetching: false,
     count: 0,
     query: {
@@ -31,7 +30,6 @@ export default (state: JobsState = defaultState, action: JobsActions): JobsState
             return {
                 ...state,
                 fetchingTimestamp: action.payload.fetchingTimestamp,
-                initialized: false,
                 fetching: true,
                 query: {
                     ...defaultState.query,
@@ -42,7 +40,6 @@ export default (state: JobsState = defaultState, action: JobsActions): JobsState
         case JobsActionTypes.GET_JOBS_SUCCESS: {
             return {
                 ...state,
-                initialized: true,
                 fetching: false,
                 count: action.payload.jobs.count,
                 current: action.payload.jobs,
@@ -51,7 +48,6 @@ export default (state: JobsState = defaultState, action: JobsActions): JobsState
         case JobsActionTypes.GET_JOBS_FAILED: {
             return {
                 ...state,
-                initialized: true,
                 fetching: false,
             };
         }

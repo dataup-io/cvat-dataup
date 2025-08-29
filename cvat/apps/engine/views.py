@@ -565,11 +565,9 @@ class _DataGetter(metaclass=ABCMeta):
         data_type: str,
         data_num: Optional[Union[str, int]],
         data_quality: str,
-        response_type: str = "binary",
     ) -> None:
         possible_data_type_values = ("chunk", "frame", "preview", "context_image")
         possible_quality_values = ("compressed", "original")
-        possible_response_type_values = ("binary", "url")
 
         if not data_type or data_type not in possible_data_type_values:
             raise ValidationError("Data type not specified or has wrong value")
@@ -579,32 +577,20 @@ class _DataGetter(metaclass=ABCMeta):
             elif data_quality not in possible_quality_values:
                 raise ValidationError("Wrong quality value")
 
-        if response_type not in possible_response_type_values:
-            raise ValidationError("Response type not specified or has wrong value")
 
         self.type = data_type
         self.number = int(data_num) if data_num is not None else None
         self.quality = (
             FrameQuality.COMPRESSED if data_quality == "compressed" else FrameQuality.ORIGINAL
         )
-        self.response_type = response_type
 
     @abstractmethod
     def _get_frame_provider(self) -> IFrameProvider: ...
-
-    @abstractmethod
-    def _generate_data_url(self) -> str: ...
 
     def __call__(self):
         frame_provider = self._get_frame_provider()
 
         try:
-            if self.response_type == "url":
-                # Generate URL for the requested data
-                url = self._generate_data_url()
-                return Response(data={"url": url}, status=status.HTTP_200_OK)
-
-            # Original binary response logic
             if self.type == "chunk":
                 data = frame_provider.get_chunk(self.number, quality=self.quality)
                 return HttpResponse(
@@ -677,14 +663,11 @@ class _TaskDataGetter(_DataGetter):
         data_type: str,
         data_quality: str,
         data_num: Optional[Union[str, int]] = None,
-        response_type: str = "binary",
     ) -> None:
         super().__init__(
             data_type=data_type,
             data_num=data_num,
-            data_quality=data_quality,
-            response_type=response_type,
-        )
+            data_quality=data_quality        )
         self._db_task = db_task
 
     def _get_frame_provider(self) -> TaskFrameProvider:
@@ -692,139 +675,8 @@ class _TaskDataGetter(_DataGetter):
 
     def _get_chunk_response_headers(self, chunk_data: DataWithMeta) -> dict[str, str]:
         return self._make_chunk_response_headers(
-            self._get_chunk_checksum(chunk_data),
-            self._db_task.get_chunks_updated_date(),
+            self._get_chunk_checksum(chunk_data), self._db_task.get_chunks_updated_date(),
         )
-
-    def _generate_data_url(self) -> str:
-        from django.urls import reverse
-        from django.conf import settings
-        import secrets
-        import time
-
-        # Check if task uses cloud storage
-        if hasattr(self._db_task.data, "cloud_storage_id") and self._db_task.data.cloud_storage_id:
-            # Generate cloud storage signed URL
-            cloud_storage = self._db_task.data.cloud_storage
-            frame_provider = self._get_frame_provider()
-
-            try:
-                if self.type == "chunk":
-                    # For cloud storage, generate signed URL for chunk
-                    return cloud_storage.generate_signed_url(
-                        f"chunks/{self._db_task.id}/{self.number}.{self.quality}.zip",
-                        expiration_seconds=300,  # 5 minutes
-                    )
-                elif self.type == "frame":
-                    # For cloud storage, generate signed URL for frame
-                    return cloud_storage.generate_signed_url(
-                        f"frames/{self._db_task.id}/{self.number}.{self.quality}.jpg",
-                        expiration_seconds=300,
-                    )
-                elif self.type == "preview":
-                    return cloud_storage.generate_signed_url(
-                        f"preview/{self._db_task.id}/preview.jpg", expiration_seconds=300
-                    )
-                elif self.type == "context_image":
-                    return cloud_storage.generate_signed_url(
-                        f"context/{self._db_task.id}/{self.number}.jpg", expiration_seconds=300
-                    )
-            except Exception:
-                # Fallback to temporary access URL if cloud storage fails
-                pass
-
-        # Generate temporary access URL for local storage
-        from django.core.cache import cache
-
-        # Create a deterministic cache key for token reuse
-        data_key = f"task_data:{self._db_task.id}:{self.type}:{self.number}:{self.quality}"
-        existing_token = cache.get(data_key)
-
-        if existing_token:
-            # Check if existing token is still valid
-            token_cache_key = f"temp_access:{existing_token}"
-            token_data = cache.get(token_cache_key)
-            if token_data and token_data.get("expiry", 0) > int(time.time()) + 60:
-                # Token exists and has more than 1 minute remaining, reuse it
-                token = existing_token
-            else:
-                # Token expired or about to expire, generate new one
-                token = secrets.token_urlsafe(32)
-                cache.delete(data_key)  # Clean up old mapping
-        else:
-            # No existing token, generate new one
-            token = secrets.token_urlsafe(32)
-
-        expiry = int(time.time()) + 300  # 5 minutes from now
-        cache_key = f"temp_access:{token}"
-        cache_data = {
-            "task_id": self._db_task.id,
-            "data_type": self.type,
-            "data_num": self.number,
-            "data_quality": "compressed" if self.quality == FrameQuality.COMPRESSED else "original",
-            "expiry": expiry,
-        }
-
-        # Set both cache entries and verify they're set before returning URL
-        cache.set(cache_key, cache_data, timeout=300)
-        cache.set(data_key, token, timeout=300)
-
-        # Verify both entries are immediately available to prevent race condition
-        if not cache.get(cache_key) or not cache.get(data_key):
-            # Retry once if cache operations failed
-            time.sleep(0.1)  # Brief delay
-            cache.set(cache_key, cache_data, timeout=300)
-            cache.set(data_key, token, timeout=300)
-
-        # Generate temporary access URL only after cache verification
-        base_url = getattr(settings, "CVAT_BASE_URL", "http://localhost:8080")
-        if self.type == "frame":
-            temp_url = f"{base_url}/api/temp-access/{token}/frame_{self.number}.jpg"
-        else:
-            temp_url = f"{base_url}/api/temp-access/{token}/"
-        return temp_url
-
-
-class _PaginatedTaskDataGetter:
-    def __init__(
-        self,
-        db_task: models.Task,
-        *,
-        data_type: str,
-        data_quality: str,
-        offset: int = 0,
-        limit: int = 10,
-        response_type: str = "binary",
-    ) -> None:
-        self._db_task = db_task
-        self._data_type = data_type
-        self._data_quality = data_quality
-        self._offset = offset
-        self._limit = limit
-        self._response_type = response_type
-
-    def _get_frame_provider(self) -> TaskFrameProvider:
-        return TaskFrameProvider(self._db_task)
-
-    def get_urls(self) -> list[str]:
-        frame_provider = self._get_frame_provider()
-        total_frames = len(frame_provider)
-        start = self._offset
-        end = min(start + self._limit, total_frames)
-
-        urls = []
-        for frame_num in range(start, end):
-            single_getter = _TaskDataGetter(
-                db_task=self._db_task,
-                data_type=self._data_type,
-                data_quality=self._data_quality,
-                data_num=frame_num,
-                response_type=self._response_type,
-            )
-            url = single_getter._generate_data_url()
-            urls.append(url)
-
-        return urls
 
 
 class _JobDataGetter(_DataGetter):
@@ -836,37 +688,30 @@ class _JobDataGetter(_DataGetter):
         data_quality: str,
         data_num: Optional[Union[str, int]] = None,
         data_index: Optional[Union[str, int]] = None,
-        response_type: str = "binary",
     ) -> None:
-        possible_data_type_values = ("chunk", "frame", "preview", "context_image")
-        possible_quality_values = ("compressed", "original")
-        possible_response_type_values = ("binary", "url")
+        possible_data_type_values = ('chunk', 'frame', 'preview', 'context_image')
+        possible_quality_values = ('compressed', 'original')
 
         if not data_type or data_type not in possible_data_type_values:
-            raise ValidationError("Data type not specified or has wrong value")
-        elif data_type == "chunk" or data_type == "frame" or data_type == "preview":
-            if data_type == "chunk":
+            raise ValidationError('Data type not specified or has wrong value')
+        elif data_type == 'chunk' or data_type == 'frame' or data_type == 'preview':
+            if data_type == 'chunk':
                 if data_num is None and data_index is None:
-                    raise ValidationError("Number or Index is not specified")
+                    raise ValidationError('Number or Index is not specified')
                 if data_num is not None and data_index is not None:
-                    raise ValidationError("Number and Index cannot be used together")
-            elif data_num is None and data_type != "preview":
-                raise ValidationError("Number is not specified")
+                    raise ValidationError('Number and Index cannot be used together')
+            elif data_num is None and data_type != 'preview':
+                raise ValidationError('Number is not specified')
             elif data_quality not in possible_quality_values:
-                raise ValidationError("Wrong quality value")
-
-        if response_type not in possible_response_type_values:
-            raise ValidationError("Response type not specified or has wrong value")
+                raise ValidationError('Wrong quality value')
 
         self.type = data_type
-        self.response_type = response_type
 
         self.index = int(data_index) if data_index is not None else None
         self.number = int(data_num) if data_num is not None else None
 
-        self.quality = (
-            FrameQuality.COMPRESSED if data_quality == "compressed" else FrameQuality.ORIGINAL
-        )
+        self.quality = FrameQuality.COMPRESSED \
+            if data_quality == 'compressed' else FrameQuality.ORIGINAL
 
         self._db_job = db_job
 
@@ -874,7 +719,7 @@ class _JobDataGetter(_DataGetter):
         return JobFrameProvider(self._db_job)
 
     def __call__(self):
-        if self.type == "chunk":
+        if self.type == 'chunk':
             # Reproduce the task chunk indexing
             frame_provider = self._get_frame_provider()
 
@@ -908,158 +753,46 @@ class _JobDataGetter(_DataGetter):
 
     def _get_chunk_response_headers(self, chunk_data: DataWithMeta) -> dict[str, str]:
         return self._make_chunk_response_headers(
-            self._get_chunk_checksum(chunk_data), self._db_job.segment.chunks_updated_date
+            self._get_chunk_checksum(chunk_data),
+            self._db_job.segment.chunks_updated_date
         )
 
-    def _generate_data_url(self) -> str:
-        from django.urls import reverse
-        from django.conf import settings
-        import secrets
-        import time
 
-        # Check if job's task uses cloud storage
-        task = self._db_job.segment.task
-        if hasattr(task.data, "cloud_storage_id") and task.data.cloud_storage_id:
-            # Generate cloud storage signed URL
-            cloud_storage = task.data.cloud_storage
-            frame_provider = self._get_frame_provider()
-
-            try:
-                if self.type == "chunk":
-                    # For cloud storage, generate signed URL for chunk
-                    chunk_id = self.index if self.index is not None else self.number
-                    return cloud_storage.generate_signed_url(
-                        f"chunks/{task.id}/{chunk_id}.{self.quality}.zip",
-                        expiration_seconds=300,  # 5 minutes
-                    )
-                elif self.type == "frame":
-                    # For cloud storage, generate signed URL for frame
-                    return cloud_storage.generate_signed_url(
-                        f"frames/{task.id}/{self.number}.{self.quality}.jpg", expiration_seconds=300
-                    )
-                elif self.type == "preview":
-                    return cloud_storage.generate_signed_url(
-                        f"preview/{task.id}/preview.jpg", expiration_seconds=300
-                    )
-                elif self.type == "context_image":
-                    return cloud_storage.generate_signed_url(
-                        f"context/{task.id}/{self.number}.jpg", expiration_seconds=300
-                    )
-            except Exception:
-                # Fallback to temporary access URL if cloud storage fails
-                pass
-
-        # Generate temporary access URL for local storage
-        from django.core.cache import cache
-
-        # Create a deterministic cache key for token reuse
-        data_key = (
-            f"job_data:{self._db_job.id}:{self.type}:{self.number}:{self.index}:{self.quality}"
-        )
-        existing_token = cache.get(data_key)
-
-        if existing_token:
-            # Check if existing token is still valid
-            token_cache_key = f"temp_access:{existing_token}"
-            token_data = cache.get(token_cache_key)
-            if token_data and token_data.get("expiry", 0) > int(time.time()) + 60:
-                # Token exists and has more than 1 minute remaining, reuse it
-                token = existing_token
-            else:
-                # Token expired or about to expire, generate new one
-                token = secrets.token_urlsafe(32)
-                cache.delete(data_key)  # Clean up old mapping
-        else:
-            # No existing token, generate new one
-            token = secrets.token_urlsafe(32)
-
-        expiry = int(time.time()) + 300  # 5 minutes from now
-        cache_key = f"temp_access:{token}"
-        cache_data = {
-            "job_id": self._db_job.id,
-            "data_type": self.type,
-            "data_num": self.number,
-            "data_index": self.index,
-            "data_quality": "compressed" if self.quality == FrameQuality.COMPRESSED else "original",
-            "expiry": expiry,
-        }
-
-        # Set both cache entries and verify they're set before returning URL
-        cache.set(cache_key, cache_data, timeout=300)
-        cache.set(data_key, token, timeout=300)
-
-        # Verify both entries are immediately available to prevent race condition
-        if not cache.get(cache_key) or not cache.get(data_key):
-            # Retry once if cache operations failed
-            time.sleep(0.1)  # Brief delay
-            cache.set(cache_key, cache_data, timeout=300)
-            cache.set(data_key, token, timeout=300)
-
-        # Generate temporary access URL only after cache verification
-        base_url = getattr(settings, "CVAT_BASE_URL", "http://localhost:8080")
-        if self.type == "frame":
-            temp_url = f"{base_url}/api/temp-access/{token}/frame_{self.number}.jpg"
-        else:
-            temp_url = f"{base_url}/api/temp-access/{token}/"
-        return temp_url
-
-
-class _PaginatedJobDataGetter:
-    def __init__(
-        self,
-        db_job: models.Job,
-        *,
-        data_type: str,
-        data_quality: str,
-        offset: int = 0,
-        limit: int = 10,
-        response_type: str = "binary",
-    ) -> None:
-        self._db_job = db_job
-        self._data_type = data_type
-        self._data_quality = data_quality
-        self._offset = offset
-        self._limit = limit
-        self._response_type = response_type
-
-
-@extend_schema(tags=["tasks"])
+@extend_schema(tags=['tasks'])
 @extend_schema_view(
     list=extend_schema(
-        summary="List tasks",
+        summary='List tasks',
         responses={
-            "200": TaskReadSerializer(many=True),
-        },
-    ),
+            '200': TaskReadSerializer(many=True),
+        }),
     create=extend_schema(
-        summary="Create a task",
-        description=textwrap.dedent(
-            """\
+        summary='Create a task',
+        description=textwrap.dedent("""\
             The new task will not have any attached images or videos.
             To attach them, use the /api/tasks/<id>/data endpoint.
-        """
-        ),
+        """),
         request=TaskWriteSerializer,
         parameters=ORGANIZATION_OPEN_API_PARAMETERS,
         responses={
-            "201": TaskReadSerializer,  # check TaskWriteSerializer.to_representation
-        },
-    ),
-    retrieve=extend_schema(summary="Get task details", responses={"200": TaskReadSerializer}),
-    destroy=extend_schema(
-        summary="Delete a task",
-        description="All attached jobs, annotations and data will be deleted as well.",
+            '201': TaskReadSerializer, # check TaskWriteSerializer.to_representation
+        }),
+    retrieve=extend_schema(
+        summary='Get task details',
         responses={
-            "204": OpenApiResponse(description="The task has been deleted"),
-        },
-    ),
+            '200': TaskReadSerializer
+        }),
+    destroy=extend_schema(
+        summary='Delete a task',
+        description='All attached jobs, annotations and data will be deleted as well.',
+        responses={
+            '204': OpenApiResponse(description='The task has been deleted'),
+        }),
     partial_update=extend_schema(
-        summary="Update a task",
+        summary='Update a task',
         request=TaskWriteSerializer(partial=True),
         responses={
-            "200": TaskReadSerializer,  # check TaskWriteSerializer.to_representation
-        },
-    ),
+            '200': TaskReadSerializer, # check TaskWriteSerializer.to_representation
+        })
 )
 
 class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
@@ -1515,14 +1248,6 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
                 description="A unique number value identifying chunk or frame",
             ),
             OpenApiParameter(
-                "response_type",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.STR,
-                enum=["binary", "url"],
-                description="Specifies the response type: 'binary' for raw data, 'url' for signed URL",
-            ),
-            OpenApiParameter(
                 _DATA_CHECKSUM_HEADER_NAME,
                 location=OpenApiParameter.HEADER,
                 type=OpenApiTypes.STR,
@@ -1571,14 +1296,11 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
             data_type = request.query_params.get("type", None)
             data_num = request.query_params.get("number", None)
             data_quality = request.query_params.get("quality", "compressed")
-            response_type = request.query_params.get("response_type", "binary")
-
             data_getter = _TaskDataGetter(
                 self._object,
                 data_type=data_type,
                 data_num=data_num,
                 data_quality=data_quality,
-                response_type=response_type,
             )
             return data_getter()
 
@@ -2333,14 +2055,6 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
                 type=OpenApiTypes.INT,
                 description="A unique number value identifying chunk, starts from 0 for each job",
             ),
-            OpenApiParameter(
-                "response_type",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.STR,
-                enum=["binary", "url"],
-                description="Specifies the response type: 'binary' for raw data, 'url' for signed URL",
-            ),
         ],
         responses={
             "200": OpenApiResponse(OpenApiTypes.BINARY, description="Data of a specific type"),
@@ -2357,7 +2071,6 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
         data_num = request.query_params.get('number', None)
         data_index = request.query_params.get('index', None)
         data_quality = request.query_params.get('quality', 'compressed')
-        response_type = request.query_params.get("response_type", "binary")
 
         data_getter = _JobDataGetter(
             db_job,
@@ -2365,7 +2078,6 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
             data_quality=data_quality,
             data_index=data_index,
             data_num=data_num,
-            response_type=response_type,
         )
         return data_getter()
 
@@ -2449,13 +2161,12 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
         if db_job.type == models.JobType.GROUND_TRUTH:
             deleted_frames.update(db_data.validation_layout.disabled_frames)
 
-        # Filter data with segment size
-        db_data.deleted_frames = sorted(
-            filter(
-                lambda frame: frame >= start_frame and frame <= stop_frame,
-                deleted_frames,
-            )
+        # Keep only frames from the job segment
+        task_frame_provider = TaskFrameProvider(db_task)
+        segment_rel_frame_set = set(
+            map(task_frame_provider.get_rel_frame_number, db_segment.frame_set)
         )
+        db_data.deleted_frames = sorted(deleted_frames.intersection(segment_rel_frame_set))
 
         db_data.start_frame = data_start_frame
         db_data.stop_frame = data_stop_frame

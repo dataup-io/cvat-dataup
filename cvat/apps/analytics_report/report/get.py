@@ -2,9 +2,9 @@
 #
 # SPDX-License-Identifier: MIT
 
-from cvat.apps.engine.models import LabeledShape, LabeledImage
 from django.db.models import Count
 
+from cvat.apps.engine.models import LabeledImage, LabeledShape
 
 
 def get_class_distribution(task_id=None, job_id=None, project_id=None):
@@ -27,22 +27,17 @@ def get_class_distribution(task_id=None, job_id=None, project_id=None):
 
     # Count labels in Annotation
     tag_counts = (
-        LabeledImage.objects.filter(**filters)
-        .values("label__name")
-        .annotate(count=Count("id"))
+        LabeledImage.objects.filter(**filters).values("label__name").annotate(count=Count("id"))
     )
     merged_counts = {"class_counts": {}, "tag_counts": {}}
 
-
     for entry in class_counts:
         label = entry["label__name"]
-        merged_counts['class_counts'][label] = merged_counts.get(label, 0) + entry["count"]
-
-
+        merged_counts["class_counts"][label] = merged_counts.get(label, 0) + entry["count"]
 
     for entry in tag_counts:
         label = entry["label__name"]
-        merged_counts['tag_counts'][label] = merged_counts.get(label, 0) + entry["count"]
+        merged_counts["tag_counts"][label] = merged_counts.get(label, 0) + entry["count"]
 
     return merged_counts
     # return [{"class": entry["label__name"], "count": entry["count"]} for entry in class_counts]

@@ -3,21 +3,15 @@
 // SPDX-License-Identifier: MIT
 
 import React, { useCallback, useRef } from 'react';
-import { Row, Col } from 'antd/lib/grid';
-import InputNumber from 'antd/lib/input-number';
-import Text from 'antd/lib/typography/Text';
 
 import { Attribute, Label, LabelType } from 'cvat-core-wrapper';
-import CVATTooltip from 'components/common/cvat-tooltip';
-import { clamp } from 'utils/math';
 import ObjectMatcher from './object-mapper';
 
 export type Md2JobAttributesMapping = [AttributeInterface | null, AttributeInterface | null][];
 export type Md2JobLabelsMapping = [LabelInterface, LabelInterface][];
 
 // The latest tuple element is child mapping (e.g. for skeleton points)
-// Added threshold as the 5th element: [modelLabel, taskLabel, attributesMapping, subMapping, threshold]
-export type FullMapping = [LabelInterface, LabelInterface, Md2JobAttributesMapping, FullMapping, number][];
+export type FullMapping = [LabelInterface, LabelInterface, Md2JobAttributesMapping, FullMapping][];
 
 export interface AttributeInterface {
     name: Attribute['name'];
@@ -102,18 +96,6 @@ function LabelsMapperComponent(props: Props): JSX.Element {
         return [-1, undefined];
     }
 
-    function updateThreshold(
-        modelLabel: LabelInterface, taskLabel: LabelInterface, newThreshold: number,
-    ): void {
-        const mapping = mappingRef.current;
-        const [index, item] = getMappingItem(modelLabel, taskLabel, mapping);
-        if (index !== -1 && item) {
-            const copy = mapping.filter((_, _index: number) => index !== _index);
-            copy.push([modelLabel, taskLabel, item[2], item[3], newThreshold] as FullMapping[0]);
-            setMapping(copy);
-        }
-    }
-
     const updateSublabelAttributesMapping = (
         modelLabel: LabelInterface, taskLabel: LabelInterface,
     ) => (
@@ -123,16 +105,15 @@ function LabelsMapperComponent(props: Props): JSX.Element {
     ) => {
         const mapping = mappingRef.current;
         const [parentIndex, parentItem] = getMappingItem(modelLabel, taskLabel, mapping);
-        const copy = mapping.filter((_: any, index) => index !== parentIndex);
+        const copy = mapping.filter((_, index) => index !== parentIndex);
         if (parentItem) {
             const [childIndex] = getMappingItem(modelSublabel, taskSublabel, parentItem[3]);
             copy.push([
                 modelLabel, taskLabel, parentItem[2],
                 [
-                    ...parentItem[3].filter((_: any, index) => index !== childIndex),
-                    [modelSublabel, taskSublabel, _attrMapping, [], 0.5],
+                    ...parentItem[3].filter((_, index) => index !== childIndex),
+                    [modelSublabel, taskSublabel, _attrMapping, []],
                 ],
-                parentItem[4] || 0.5
             ]);
 
             setMapping(copy);
@@ -152,12 +133,12 @@ function LabelsMapperComponent(props: Props): JSX.Element {
                     return [...acc, item];
                 }
 
-                return [...acc, [modelSublabel, taskSublabel, [], [], 0.5]];
+                return [...acc, [modelSublabel, taskSublabel, [], []]];
             }, []);
 
-            const copy = mapping.filter((_: any, _index: number) => index !== _index);
+            const copy = mapping.filter((_, _index: number) => index !== _index);
             copy.push([
-                modelLabel, taskLabel, parentItem[2], updated, parentItem[4] || 0.5
+                modelLabel, taskLabel, parentItem[2], updated,
             ] as FullMapping[0]);
             setMapping(copy);
         }
@@ -230,7 +211,7 @@ function LabelsMapperComponent(props: Props): JSX.Element {
                                     const [index, item] = getMappingItem(modelLabel, taskLabel, mapping);
                                     if (index !== -1 && item) {
                                         const copy = mapping.filter((_, _index: number) => index !== _index);
-                                        copy.push([modelLabel, taskLabel, _attrMapping, item[3], item[4] || 0.5] as FullMapping[0]);
+                                        copy.push([modelLabel, taskLabel, _attrMapping, item[3]] as FullMapping[0]);
                                         setMapping(copy);
                                     }
                                 }}
@@ -321,7 +302,7 @@ function LabelsMapperComponent(props: Props): JSX.Element {
                         return [...acc, item];
                     }
 
-                    return [...acc, [modelLabel, taskLabel, [], [], 0.5]];
+                    return [...acc, [modelLabel, taskLabel, [], []]];
                 }, []);
 
                 setMapping(updated);

@@ -45,6 +45,7 @@ import {
 export interface CanvasView {
     html(): HTMLDivElement;
     setupConflictRegions(clientID: number): number[];
+    translateFromSVG(points: number[]): number[];
 }
 
 export class CanvasViewImpl implements CanvasView, Listener {
@@ -1139,9 +1140,9 @@ export class CanvasViewImpl implements CanvasView, Listener {
     private draggable(
         state: any,
         shape: SVG.Shape,
-        onDragStart: () => void = () => { },
-        onDragMove: () => void = () => { },
-        onDragEnd: () => void = () => { },
+        onDragStart: () => void = () => {},
+        onDragMove: () => void = () => {},
+        onDragEnd: () => void = () => {},
     ): void {
         let draggableInstance = shape;
         if (shape.classes().includes('cvat_canvas_shape_skeleton')) {
@@ -1273,9 +1274,9 @@ export class CanvasViewImpl implements CanvasView, Listener {
     private resizable(
         state: any,
         shape: SVG.Shape,
-        onResizeStart: () => void = () => { },
-        onResizing: () => void = () => { },
-        onResizeEnd: () => void = () => { },
+        onResizeStart: () => void = () => {},
+        onResizing: () => void = () => {},
+        onResizeEnd: () => void = () => {},
     ): void {
         let resizableInstance = shape;
         let skeletonSVGTemplate: SVG.G = null;
@@ -2241,6 +2242,10 @@ export class CanvasViewImpl implements CanvasView, Listener {
         return [cx, cy];
     }
 
+    public translateFromSVG(point: number[]): number[] {
+        return translateFromSVG(this.content, point);
+    }
+
     private redrawBitmap(): void {
         this.bitmapUpdateReqId++;
         const { bitmapUpdateReqId } = this;
@@ -2310,17 +2315,17 @@ export class CanvasViewImpl implements CanvasView, Listener {
                     const [left, top, right, bottom] = points.slice(-4);
                     const imageBitmap = expandChannels(255, 255, 255, points);
                     imageDataToDataURL(imageBitmap, right - left + 1, bottom - top + 1, (dataURL: string) => new
-                        Promise((resolve) => {
-                            if (bitmapUpdateReqId === this.bitmapUpdateReqId) {
-                                const img = document.createElement('img');
-                                img.addEventListener('load', () => {
-                                    ctx.drawImage(img, left, top);
-                                    URL.revokeObjectURL(dataURL);
-                                    resolve();
-                                });
-                                img.src = dataURL;
-                            }
-                        }));
+                    Promise((resolve) => {
+                        if (bitmapUpdateReqId === this.bitmapUpdateReqId) {
+                            const img = document.createElement('img');
+                            img.addEventListener('load', () => {
+                                ctx.drawImage(img, left, top);
+                                URL.revokeObjectURL(dataURL);
+                                resolve();
+                            });
+                            img.src = dataURL;
+                        }
+                    }));
                 }
 
                 if (state.shapeType === 'cuboid') {
@@ -2885,34 +2890,10 @@ export class CanvasViewImpl implements CanvasView, Listener {
             });
 
             showDirection();
-
-            (shape as any).on('dblclick', (e: MouseEvent) => {
-                this.canvas.dispatchEvent(
-                    new CustomEvent('canvas.shapedbclick', {
-                        bubbles: false,
-                        cancelable: true,
-                        detail: {
-                            state,
-                        },
-                    }),
-                );
-                e.stopPropagation();
-            });
         } else {
             (shape as any).on('dblclick', (e: MouseEvent) => {
                 if (e.shiftKey) {
                     this.controller.edit({ enabled: true, state });
-                    e.stopPropagation();
-                } else {
-                    this.canvas.dispatchEvent(
-                        new CustomEvent('canvas.shapedbclick', {
-                            bubbles: false,
-                            cancelable: true,
-                            detail: {
-                                state,
-                            },
-                        }),
-                    );
                     e.stopPropagation();
                 }
             });
@@ -2922,7 +2903,7 @@ export class CanvasViewImpl implements CanvasView, Listener {
             this.draggable(state, shape, () => {
                 this.mode = Mode.DRAG;
                 hideText();
-            }, () => { }, () => {
+            }, () => {}, () => {
                 this.mode = Mode.IDLE;
                 showText();
             });

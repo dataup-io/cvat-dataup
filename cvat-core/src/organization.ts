@@ -356,7 +356,8 @@ Object.defineProperties(Organization.prototype.members, {
                     ...rawMembership,
                     invitation: rawInvitation,
                 });
-            })) as Membership[] & { count: number };
+            }));
+            // })) as Membership[] & { count: number }; #TODO: check this after merge
             memberships.count = result.count;
             return memberships;
         },
@@ -373,6 +374,7 @@ Object.defineProperties(Organization.prototype.remove, {
                 config.organization = {
                     organizationID: null,
                     organizationSlug: null,
+                    organizationUuid: null,
                 };
             }
         },

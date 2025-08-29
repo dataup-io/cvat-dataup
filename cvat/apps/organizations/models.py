@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+import uuid
 from datetime import timedelta
 
 from allauth.account.adapter import get_adapter
@@ -14,7 +15,7 @@ from django.db import models
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
-import uuid
+
 from cvat.apps.engine.models import TimestampedModel
 
 
@@ -33,9 +34,6 @@ class Organization(TimestampedModel):
 
     class Meta:
         default_permissions = ()
-
-
-
 
 
 class Membership(models.Model):
@@ -129,4 +127,3 @@ class Invitation(models.Model):
 
     class Meta:
         default_permissions = ()
-

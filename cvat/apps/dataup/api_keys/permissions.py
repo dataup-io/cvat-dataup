@@ -1,10 +1,21 @@
 # cvat/apps/dataup/api_keys/permissions.py
 from __future__ import annotations
+
 from enum import Enum
-from cvat.apps.iam.permissions import OpenPolicyAgentPermission, get_iam_context, get_organization, get_membership, IamContext, PolicyEnforcer, is_public_obj
-from cvat.apps.organizations.models import Membership
-from cvat.apps.dataup.models import DataUpUser, DataUpOrganization
+
 from django.conf import settings
+
+from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
+from cvat.apps.iam.permissions import (
+    IamContext,
+    OpenPolicyAgentPermission,
+    PolicyEnforcer,
+    get_iam_context,
+    get_membership,
+    get_organization,
+    is_public_obj,
+)
+from cvat.apps.organizations.models import Membership
 
 
 def get_dataup_organization(request, obj) -> DataUpOrganization:
@@ -15,30 +26,33 @@ def get_dataup_organization(request, obj) -> DataUpOrganization:
         return DataUpOrganization.objects.get(organization=organization)
     except DataUpOrganization.DoesNotExist:
         return None
-    
-    
+
+
 def get_dataup_membership(request, dataup_organization: DataUpOrganization) -> Membership:
     if dataup_organization is None:
         return None
     return get_membership(request, dataup_organization.organization)
 
-def build_dataup_iam_context(request, dataup_organization: DataUpOrganization, membership: Membership) -> IamContext:
+
+def build_dataup_iam_context(
+    request, dataup_organization: DataUpOrganization, membership: Membership
+) -> IamContext:
     # Get DataUp user ID
     try:
         dataup_user = DataUpUser.objects.get(user=request.user)
         dataup_user_id = str(dataup_user.id)
     except DataUpUser.DoesNotExist:
         dataup_user_id = request.user.id  # Fallback to CVAT user ID
-    
+
     dataup_org_id = None
     org_slug = None
     org_owner_id = None
-    
+
     if dataup_organization:
         dataup_org_id = str(dataup_organization.id)
         org_slug = dataup_organization.organization.slug
         org_owner_id = dataup_organization.organization.owner_id
-    
+
     context = {
         "user_id": dataup_user_id,
         "group_name": request.iam_context["privilege"],
@@ -49,10 +63,12 @@ def build_dataup_iam_context(request, dataup_organization: DataUpOrganization, m
     }
     return context
 
+
 def get_dataup_iam_context(request, obj):
     dataup_organization = get_dataup_organization(request, obj)
     membership = get_dataup_membership(request, dataup_organization)
     return build_dataup_iam_context(request, dataup_organization, membership)
+
 
 class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
     class Scopes(str, Enum):
@@ -61,11 +77,11 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
         CREATE = "create"
         UPDATE = "update"
         DELETE = "delete"
-        
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.url = settings.IAM_OPA_DATA_URL + "/dataup/api_keys/allow"
-    
+
     @classmethod
     def _get_scopes(cls, request, view, obj) -> list[str]:
         action = view.action
@@ -85,26 +101,28 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
     def create(cls, request, view, obj, iam_context=None):
         # Only apply this permission to DataUp API key views
 
-        if view.basename != 'api-key':
+        if view.basename != "api-key":
             return []
-        
+
         # building dataup iam context here
         dataup_iam_context = get_dataup_iam_context(request, obj)
 
         perms = []
         for scope in cls.get_scopes(request, view, obj):
-            perms.append(cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj))
+            perms.append(
+                cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj)
+            )
         return perms
 
     def get_resource(self):
         # Avoid importing models here; just read attributes if present
         o = self.obj
-        
+
         # If object is None or not yet created, extract from request data parameters
-        if o is None or not hasattr(o, 'id') or getattr(o, 'id', None) is None:
+        if o is None or not hasattr(o, "id") or getattr(o, "id", None) is None:
             # Use request data passed as parameters during creation
-            request_owner_id = getattr(self, 'user_id', None)
-            request_org_id = getattr(self, 'org_id', None)
+            request_owner_id = getattr(self, "user_id", None)
+            request_org_id = getattr(self, "org_id", None)
             resource = {
                 "type": "dataup_api_key",
                 "id": None,  # No ID during creation
@@ -125,14 +143,15 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
                 "organization_dataup_id": str(getattr(o, "organization_id", "") or "") or None,
                 "organization_core_id": getattr(core_org, "id", None),
                 "is_org": bool(getattr(o, "organization_id", None)),
-                "is_personal": not getattr(o, "organization_id", None) and bool(getattr(o, "owner_id", None)),
+                "is_personal": not getattr(o, "organization_id", None)
+                and bool(getattr(o, "owner_id", None)),
             }
         return resource
 
 
 class DataUpPolicyEnforcer(PolicyEnforcer):
     """Custom policy enforcer for DataUp API keys that uses DataUp-specific IAM context"""
-    
+
     def _check_permission(self, request, view, obj):
         def _check_permissions():
             # DRF can send OPTIONS request. Internally it will try to get
@@ -144,11 +163,11 @@ class DataUpPolicyEnforcer(PolicyEnforcer):
                 return True
 
             # Use DataUp-specific IAM context for DataUp API key views
-            if hasattr(view, 'basename') and view.basename == 'api-key':
+            if hasattr(view, "basename") and view.basename == "api-key":
                 iam_context = get_dataup_iam_context(request, obj)
             else:
                 iam_context = get_iam_context(request, obj)
-                
+
             for perm_class in self._collect_permission_types():
                 for perm in perm_class.create(request, view, obj, iam_context=iam_context):
                     checked_permissions.append(perm)

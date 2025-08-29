@@ -109,8 +109,6 @@ services:
       traefik.http.routers.cvat.entrypoints: web
     volumes:
       - cvat_data:/home/django/data
-      # - /mnt/HC_Volume_102201382/cvat_data/cvat_data/_data:/home/django/data
-      # - /mnt/HC_Volume_102201382/cvat_data/cvat_keys/:/home/django/keys
       - cvat_keys:/home/django/keys
       - cvat_logs:/home/django/logs
     networks:

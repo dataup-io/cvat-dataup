@@ -14,11 +14,14 @@ import moment from 'moment';
 import {
     User, getCore, Project, Task,
 } from 'cvat-core-wrapper';
+import AutomaticAnnotationProgress from 'components/tasks-page/automatic-annotation-progress';
 import MdGuideControl from 'components/md-guide/md-guide-control';
+import Preview from 'components/common/preview';
 import { cancelInferenceAsync } from 'actions/models-actions';
 import { CombinedState, ActiveInference } from 'reducers';
 import CVATTag, { TagType } from 'components/common/cvat-tag';
 import UserSelector from './user-selector';
+import BugTrackerEditor from './bug-tracker-editor';
 import LabelsEditorComponent from '../labels-editor/labels-editor';
 import ProjectSubsetField from '../create-task-page/project-subset-field';
 
@@ -197,7 +200,10 @@ class DetailsComponent extends React.PureComponent<Props, State> {
 
     public render(): JSX.Element {
         const {
+            activeInference,
             task: taskInstance,
+            cancelAutoAnnotation,
+            onUpdateTask,
         } = this.props;
 
         return (
@@ -206,9 +212,38 @@ class DetailsComponent extends React.PureComponent<Props, State> {
                     <Col className='cvat-task-details-task-name'>{this.renderTaskName()}</Col>
                 </Row>
                 <Row justify='space-between' align='top'>
+                    <Col md={8} lg={7} xl={7} xxl={6}>
+                        <Row justify='start' align='middle'>
+                            <Col span={24}>
+                                <Preview
+                                    task={taskInstance}
+                                    loadingClassName='cvat-task-item-loading-preview'
+                                    emptyPreviewClassName='cvat-task-item-empty-preview'
+                                    previewClassName='cvat-task-item-preview'
+                                />
+                            </Col>
+                        </Row>
+                    </Col>
                     <Col md={16} lg={17} xl={17} xxl={18}>
                         {this.renderDescription()}
                         { taskInstance.projectId === null && <MdGuideControl instanceType='task' id={taskInstance.id} /> }
+                        <Row justify='space-between' align='middle'>
+                            <Col span={12}>
+                                <BugTrackerEditor
+                                    instance={taskInstance}
+                                    onChange={(bugTracker) => {
+                                        taskInstance.bugTracker = bugTracker;
+                                        onUpdateTask(taskInstance);
+                                    }}
+                                />
+                            </Col>
+                            <Col span={10}>
+                                <AutomaticAnnotationProgress
+                                    activeInference={activeInference}
+                                    cancelAutoAnnotation={cancelAutoAnnotation}
+                                />
+                            </Col>
+                        </Row>
                         {!taskInstance.projectId && this.renderLabelsEditor()}
                         {taskInstance.projectId && this.renderSubsetField()}
                     </Col>

@@ -28,7 +28,7 @@ export interface SerializedAnnotationFormats {
 
 export interface APICommonFilterParams {
     page?: number;
-    page_size?: number;
+    page_size?: number | 'all';
     filter?: string;
     sort?: string;
     org_id?: number;
@@ -596,7 +596,6 @@ export interface SerializedTaskValidationLayout extends SerializedJobValidationL
     validation_frames?: number[];
     disabled_frames?: number[];
 }
-
 
 export interface APIOrganizationMembersFilter extends APICommonFilterParams {}
 export type OrganizationMembersFilter = Camelized<APIOrganizationMembersFilter>;

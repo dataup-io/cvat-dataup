@@ -5,11 +5,11 @@
 from django.apps import AppConfig
 
 
-
 class DataUpConfig(AppConfig):
     name = "cvat.apps.dataup"
 
     def ready(self) -> None:
-        from cvat.apps.iam.permissions import load_app_permissions
         from cvat.apps.dataup import signals
+        from cvat.apps.iam.permissions import load_app_permissions
+
         load_app_permissions(self)

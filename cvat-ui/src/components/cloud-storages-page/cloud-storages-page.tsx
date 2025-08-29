@@ -33,7 +33,7 @@ export default function StoragesPageComponent(): JSX.Element {
     useEffect(() => {
         dispatch(getCloudStoragesAsync({ ...updatedQuery }));
         setIsMounted(true);
-    }, []); // Remove updatedQuery to prevent infinite loop
+    }, []);
 
     useEffect(() => {
         if (isMounted) {

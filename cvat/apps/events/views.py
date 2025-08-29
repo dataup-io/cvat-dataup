@@ -244,7 +244,7 @@ class EventsViewSet(viewsets.ViewSet):
     def get_analytics_json(self, request: ExtendedRequest):
         """Get analytics data in JSON format for dashboard visualization"""
         self.check_permissions(request)
-        
+
         try:
             perm = EventsPermission.create_scope_list(request)
             analytics_data = _get_analytics_data_json(request, perm)
@@ -252,5 +252,5 @@ class EventsViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response(
                 {"error": f"Failed to retrieve analytics data: {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

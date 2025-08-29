@@ -126,7 +126,7 @@ INSTALLED_APPS = [
     "cvat.apps.redis_handler",
     "cvat.apps.consensus",
     "cvat.apps.dataup",
-    "cvat.apps.analytics_report"
+    "cvat.apps.analytics_report",
 ]
 
 SITE_ID = 1
@@ -322,7 +322,6 @@ RQ_QUEUES = {
         # custom fields
         "PARSED_JOB_ID_CLASS": "cvat.apps.engine.rq.ExportRequestId",
     },
-
     CVAT_QUEUES.AUTO_ANNOTATION.value: {
         **REDIS_INMEM_SETTINGS,
         "DEFAULT_TIMEOUT": "24h",
@@ -356,7 +355,6 @@ RQ_QUEUES = {
         "PARSED_JOB_ID_CLASS": "cvat.apps.consensus.rq.ConsensusRequestId",
     },
 }
-
 
 NUCLIO = {
     "SCHEME": os.getenv("CVAT_NUCLIO_SCHEME", "http"),

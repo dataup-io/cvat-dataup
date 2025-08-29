@@ -20,6 +20,7 @@ from .models import Invitation, Membership, Organization
 class OrganizationReadSerializer(serializers.ModelSerializer):
     owner = BasicUserSerializer(allow_null=True)
     uuid = serializers.SerializerMethodField()
+
     class Meta:
         model = Organization
         fields = [
@@ -31,9 +32,10 @@ class OrganizationReadSerializer(serializers.ModelSerializer):
             "updated_date",
             "contact",
             "owner",
-            "uuid"
+            "uuid",
         ]
         read_only_fields = fields
+
     def get_uuid(self, obj):
         return getattr(obj.dataup, "id", None)
 

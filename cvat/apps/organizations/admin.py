@@ -4,7 +4,7 @@
 
 from django.contrib import admin
 
-from .models import Invitation, Membership, Organization
+from .models import Membership, Organization
 
 
 class MembershipInline(admin.TabularInline):

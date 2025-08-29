@@ -3,7 +3,7 @@
 //
 // SPDX-License-Identifier: MIT
 
-// Removed lodash dependency - using native JS instead
+import { omit } from 'lodash';
 import PluginRegistry from './plugins';
 import serverProxy from './server-proxy';
 import { ArgumentError } from './exceptions';
@@ -352,10 +352,7 @@ Object.defineProperties(CloudStorage.prototype.getContent, {
             const result = await serverProxy.cloudStorages.getContent(this.id, path, nextToken, this.manifestPath);
             return {
                 next: result.next,
-                content: result.content.map((item) => {
-                const { mime_type, ...rest } = item;
-                return { ...rest, mimeType: mime_type };
-            }),
+                content: result.content.map((item) => ({ ...omit(item, 'mime_type'), mimeType: item.mime_type })),
             };
         },
     },

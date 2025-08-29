@@ -14,9 +14,8 @@ import { modelsActions, startInferenceAsync } from 'actions/models-actions';
 import CVATLoadingSpinner from 'components/common/loading-spinner';
 import { CombinedState } from 'reducers';
 import MLModel from 'cvat-core/src/ml-model';
-import { getCore, Task, ModelKind } from 'cvat-core-wrapper';
+import { getCore, Task } from 'cvat-core-wrapper';
 import DetectorRunner from './detector-runner';
-import { AgentType } from 'cvat-core/src/agent_apis';
 
 const core = getCore();
 
@@ -25,7 +24,6 @@ interface StateToProps {
     task: any;
     detectors: MLModel[];
     reid: MLModel[];
-    agents: MLModel[];
 }
 
 interface DispatchToProps {
@@ -35,14 +33,13 @@ interface DispatchToProps {
 
 function mapStateToProps(state: CombinedState): StateToProps {
     const { models } = state;
-    const { detectors, reid, agents } = models;
+    const { detectors, reid } = models;
 
     return {
         visible: models.modelRunnerIsVisible,
         task: models.modelRunnerTask,
         reid,
         detectors,
-        agents: agents || [],
     };
 }
 
@@ -59,10 +56,10 @@ function mapDispatchToProps(dispatch: ThunkDispatch): DispatchToProps {
 
 function ModelRunnerDialog(props: StateToProps & DispatchToProps): JSX.Element {
     const {
-        reid, detectors, agents, task, visible, runInference, closeDialog,
+        reid, detectors, task, visible, runInference, closeDialog,
     } = props;
 
-    const models = [...reid, ...detectors, ...agents];
+    const models = [...reid, ...detectors];
     const [taskInstance, setTaskInstance] = useState<Task | null>(null);
 
     useEffect(() => {
