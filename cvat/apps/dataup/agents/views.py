@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: MIT
 
+from cvat.apps.dataup.agents.payload import build_infer_payload
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.decorators import action
@@ -9,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from cvat.apps.dataup.agents.permissions import DataUpPolicyEnforcer
-from cvat.apps.dataup.agents.serializers import AgentInferSerializer, AgentSerializer
+from cvat.apps.dataup.agents.serializers import AgentInferenceRequest, AgentSerializer
 from cvat.apps.dataup.views.base import DataUpBaseViewSet
 
 
@@ -99,6 +100,16 @@ class AgentViewSet(DataUpBaseViewSet):
     @extend_schema(
         summary="Call an agent API for inference",
         description="Calls an agent API for inference on a task",
+        request=AgentInferenceRequest,
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
         responses={
             200: OpenApiResponse(description="Inference results"),
             400: OpenApiResponse(description="Invalid input"),
@@ -107,14 +118,14 @@ class AgentViewSet(DataUpBaseViewSet):
     )
     @action(detail=True, methods=["post"], url_path="infer")
     def infer(self, request, pk=None):
-        serializer = AgentInferSerializer(data=request.data)
-    
+        serializer = AgentInferenceRequest(data=request.data)
+
         if serializer.is_valid():
             infer_data = serializer.validated_data
-            return []
-            # return self.make_dataup_request(
-            #     'POST', f'agents/{pk}/infer',
-            #     data=infer_data
-            # )
+            payload = build_infer_payload(infer_data['task_id'], infer_data['frame_ids'], infer_data['params'])
+            return self.make_dataup_request(
+                'POST', f'agents/{pk}/infer',
+                data=payload
+            )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

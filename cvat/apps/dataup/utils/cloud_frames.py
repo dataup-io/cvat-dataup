@@ -7,8 +7,8 @@ from cvat.apps.dataset_manager.bindings import TaskData
 from cvat.apps.dataset_manager.annotation import AnnotationIR
 from cvat.apps.engine.models import CloudProviderChoice
 from cvat.apps.engine.cloud_provider import Credentials
-
-
+from cvat.apps.engine.frame_provider import FrameOutputType, TaskFrameProvider
+import base64
 
 DEFAULT_URL_TTL = getattr(settings, "CLOUD_PRESIGN_TTL", 600)
 
@@ -124,3 +124,55 @@ def generate_presigned_url_from_task_frame(task, frame_id: int, ttl: int = DEFAU
     if url:
         cache.set(cache_key, url, max(ttl - 30, 60))
     return url
+
+
+
+
+class TaskFrameProviderV2(TaskFrameProvider):
+    def __init__(self, task: Task):
+
+        super().__init__(task)
+
+        self.cloud_storage = _get_db_cloud_storage(task)
+        self.frame_info = TaskData(AnnotationIR("2d"), task).frame_info
+        self.task = task
+        self.provider = self.cloud_storage.provider_type if self.cloud_storage else None
+
+    def get_frame_v2(self, frame_id: int, out_type: FrameOutputType = FrameOutputType.BUFFER, ttl: int = DEFAULT_URL_TTL):
+        if out_type == FrameOutputType.URL and self.cloud_storage:
+            return self.get_frame_url(frame_id, ttl)
+        else:
+            return self._get_image(frame_id)
+
+    def _get_image(self, frame_id) -> str:
+        image = self.get_frame(frame_id)
+        return base64.b64encode(image.data.getvalue()).decode("utf-8")
+
+    def get_frame_url(self, frame_id: int, ttl: int = DEFAULT_URL_TTL) -> Optional[str]:
+        key = self._get_object_key_for_frame(frame_id)
+        if not key:
+            return None
+        cache_key = f"cvat:frame:url:{self.task.id}:{frame_id}"
+        cached = cache.get(cache_key)
+        if cached:
+            return cached
+
+        url = None
+        if self.provider == CloudProviderChoice.AWS_S3:
+            url = _presign_s3(self.cloud_storage, key, ttl)
+        elif self.provider == CloudProviderChoice.AZURE_CONTAINER:
+            url = _presign_azure(self.cloud_storage, key, ttl)
+        elif self.provider == CloudProviderChoice.GOOGLE_CLOUD_STORAGE:
+            url = _presign_gcs(self.cloud_storage, key, ttl)
+
+        if url:
+            cache.set(cache_key, url, max(ttl - 30, 60))
+        return url
+
+    def _get_object_key_for_frame(self, frame_id: int) -> Optional[str]:
+        rel_path = self.frame_info[frame_id]['path']
+        if not rel_path:
+            return None
+        prefix = (getattr(self.cloud_storage, "prefix", "") or "").strip("/") if self.cloud_storage else ""
+        key = f"{prefix}/{rel_path.lstrip('/')}".lstrip("/") if prefix else rel_path.lstrip("/")
+        return key or None

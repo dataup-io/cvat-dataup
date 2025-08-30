@@ -5,6 +5,7 @@
 from rest_framework import serializers
 
 
+
 class AgentInferenceRequest(serializers.Serializer):
     task_id = serializers.IntegerField()
     job_id = serializers.IntegerField(required=False)
@@ -13,10 +14,6 @@ class AgentInferenceRequest(serializers.Serializer):
         required=True
     )
     params = serializers.JSONField(required=False, default=dict)
-
-
-class AgentInferenceResponse
-
 
 class AgentSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
