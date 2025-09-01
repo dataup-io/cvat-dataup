@@ -163,6 +163,7 @@ export enum ModelKind {
 
 export enum ModelProviders {
     CVAT = 'cvat',
+    DATAUP = 'dataup'
 }
 
 export const colors = [

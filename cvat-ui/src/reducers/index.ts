@@ -444,6 +444,14 @@ export interface ModelsQuery {
     sort: string | null;
 }
 
+export interface AgentsQuery {
+    cursor?: string | null;
+    page_size?: number | 'all';
+    search?: string | null;
+    sort?: string | null;
+    filter?: string | null;
+}
+
 export type OpenCVTool = IntelligentScissors | OpenCVTracker;
 
 export interface ToolsBlockerState {
@@ -1058,6 +1066,35 @@ export interface NavigationState {
     prevLocation: string | null;
 }
 
+export interface AgentsState {
+    initialized: boolean;
+    fetching: boolean;
+    count: number;
+    current: MLModel[];
+    gettingQuery: AgentsQuery;
+    next_cursor?: string | null;
+    previous_cursor?: string | null;
+    activities: {
+        creates: {
+            id: null | number;
+            error: string;
+        };
+        deletes: {
+            [agentId: string]: boolean;
+        };
+        updates: {
+            [agentId: string]: boolean;
+        };
+        calls: {
+            [agentId: string]: boolean;
+        };
+    };
+    runAgentDialog: {
+        visible: boolean;
+        agentInstance: MLModel | null;
+    };
+}
+
 export interface CombinedState {
     auth: AuthState;
     projects: ProjectsState;
@@ -1083,6 +1120,7 @@ export interface CombinedState {
     requests: RequestsState;
     serverAPI: ServerAPIState;
     navigation: NavigationState;
+    agents: AgentsState;
 }
 
 export interface Indexable {

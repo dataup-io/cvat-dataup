@@ -9,6 +9,7 @@ import {
 import PluginRegistry from './plugins';
 import serverProxy from './server-proxy';
 import lambdaManager from './lambda-manager';
+import agentManager from './agent-manager';
 import { AnnotationFormats } from './annotation-formats';
 import logger from './logger';
 import * as enums from './enums';
@@ -67,6 +68,15 @@ export default interface CVATCore {
             listen: typeof lambdaManager.listen;
             requests: typeof lambdaManager.requests;
         };
+
+    agents: {
+        list: typeof agentManager.list;
+        get: typeof agentManager.getAgent;
+        call: typeof agentManager.call;
+        create: typeof agentManager.create;
+        update: typeof agentManager.update;
+        delete: typeof agentManager.delete;
+    };
 
     server: {
         about: () => Promise<AboutData>;

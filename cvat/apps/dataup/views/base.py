@@ -90,7 +90,12 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
         """
         try:
             response.raise_for_status()
-            return Response(response.json(), status=success_status)
+            # Check if response has content before trying to parse JSON
+            if response.content and response.content.strip():
+                return Response(response.json(), status=success_status)
+            else:
+                # For responses with no content (like 204 No Content), return empty response
+                return Response(status=success_status)
         except requests.exceptions.RequestException as e:
             return self._handle_request_error(e)
 

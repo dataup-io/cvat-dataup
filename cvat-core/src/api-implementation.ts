@@ -9,6 +9,7 @@ import config from './config';
 import PluginRegistry from './plugins';
 import serverProxy from './server-proxy';
 import lambdaManager from './lambda-manager';
+import agentManager from './agent-manager'
 import requestsManager from './requests-manager';
 import {
     isBoolean,
@@ -68,9 +69,18 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.lambda.listen, lambdaManager.listen.bind(lambdaManager));
     implementationMixin(cvat.lambda.requests, lambdaManager.requests.bind(lambdaManager));
 
+
+
     implementationMixin(cvat.requests.list, requestsManager.list.bind(requestsManager));
     implementationMixin(cvat.requests.listen, requestsManager.listen.bind(requestsManager));
     implementationMixin(cvat.requests.cancel, requestsManager.cancel.bind(requestsManager));
+
+    implementationMixin(cvat.agents.list, agentManager.list.bind(agentManager));
+    implementationMixin(cvat.agents.get, agentManager.getAgent.bind(agentManager));
+    implementationMixin(cvat.agents.create, agentManager.create.bind(agentManager));
+    implementationMixin(cvat.agents.update, agentManager.update.bind(agentManager));
+    implementationMixin(cvat.agents.delete, agentManager.delete.bind(agentManager));
+    implementationMixin(cvat.agents.call, agentManager.call.bind(agentManager));
 
     implementationMixin(cvat.server.about, async () => {
         const result = await serverProxy.server.about();

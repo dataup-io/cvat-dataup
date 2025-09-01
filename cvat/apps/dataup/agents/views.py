@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from cvat.apps.dataup.agents.permissions import DataUpPolicyEnforcer
-from cvat.apps.dataup.agents.serializers import AgentInferenceRequest, AgentSerializer
+from cvat.apps.dataup.agents.serializers import AgentInferenceRequest, AgentReadSerializer, AgentWriteSerializer
 from cvat.apps.dataup.views.base import DataUpBaseViewSet
 
 
@@ -22,7 +22,7 @@ class AgentViewSet(DataUpBaseViewSet):
         summary="List all agent APIs",
         description="Returns a list of agent APIs",
         responses={
-            200: OpenApiResponse(description="List of agent APIs"),
+            200: AgentReadSerializer(many=True),
         },
         parameters=[
             OpenApiParameter(
@@ -36,52 +36,86 @@ class AgentViewSet(DataUpBaseViewSet):
         if agent_type:
             params["agent_type"] = agent_type
         params = self.add_organization_params(params)
-        return self.make_dataup_request("GET", "agents/", params=params)
+        response = self.make_dataup_request("GET", "agents/", params=params)
+
+        if response.status_code == 200 and response.data:
+            try:
+                serializer = AgentReadSerializer(response.data['items'], many=True)
+                response.data['items'] = serializer.data
+            except Exception as e:
+                print(response.data)
+                print(f"Error serializing agent data: {e}")
+                response.data = []
+
+        return response
 
     @extend_schema(
         summary="Get a specific agent API",
         description="Returns details of a specific agent API",
         responses={
-            200: OpenApiResponse(description="Agent API details"),
+            200: AgentReadSerializer,
             404: OpenApiResponse(description="Agent API not found"),
         },
     )
     def retrieve(self, request, pk=None):
-        return self.make_dataup_request("GET", f"agents/{pk}")
+        response = self.make_dataup_request("GET", f"agents/{pk}")
+
+        # Serialize the response data to exclude auth_token
+        if response.status_code == 200 and response.data:
+            serializer = AgentReadSerializer(response.data)
+            response.data = serializer.data
+
+        return response
 
     @extend_schema(
         summary="Create a new agent API",
         description="Creates a new agent API",
+        request=AgentWriteSerializer,
         responses={
-            201: OpenApiResponse(description="Agent API created"),
-            400: OpenApiResponse(description="Invalid input"),
+            201: AgentReadSerializer,
+            400: OpenApiResponse(description="Invalid input data"),
         },
     )
     def create(self, request):
-        serializer = AgentSerializer(data=request.data)
+        serializer = AgentWriteSerializer(data=request.data)
         if serializer.is_valid():
             agent_data = serializer.validated_data
             agent_data = self.add_owner_data(agent_data)
 
             # Make request to DataUP backend
-            return self.make_dataup_request(
+            response = self.make_dataup_request(
                 "POST", "agents/", data=agent_data, success_status=status.HTTP_201_CREATED
             )
+
+            # Serialize the response data to exclude auth_token
+            if response.status_code == 201 and response.data:
+                read_serializer = AgentReadSerializer(response.data)
+                response.data = read_serializer.data
+
+            return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         summary="Update an agent API",
         description="Updates an existing agent API",
+        request=AgentWriteSerializer,
         responses={
-            200: OpenApiResponse(description="Agent API updated"),
-            400: OpenApiResponse(description="Invalid input"),
+            200: AgentReadSerializer,
+            400: OpenApiResponse(description="Invalid input data"),
             404: OpenApiResponse(description="Agent API not found"),
         },
     )
     def update(self, request, pk=None, partial=False):
-        serializer = AgentSerializer(data=request.data, partial=partial)
+        serializer = AgentWriteSerializer(data=request.data, partial=partial)
         if serializer.is_valid():
-            return self.make_dataup_request("PATCH", f"agents/{pk}", data=serializer.validated_data)
+            response = self.make_dataup_request("PATCH", f"agents/{pk}", data=serializer.validated_data)
+
+            # Serialize the response data to exclude auth_token
+            if response.status_code == 200 and response.data:
+                read_serializer = AgentReadSerializer(response.data)
+                response.data = read_serializer.data
+
+            return response
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(

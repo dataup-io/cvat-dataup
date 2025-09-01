@@ -2455,6 +2455,89 @@ async function getQualityReports(
     return response.data.results;
 }
 
+async function getAgents(filter = {}): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agents`, {
+            params: {
+                ...params,
+                ...filter,
+            },
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgent(id: string | number): Promise<any> {
+    const { backendAPI } = config;
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agents/${id}/`);
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function createAgent(agentData: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/agents`, agentData, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function updateAgent(id: string | number, agentData: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.put(`${backendAPI}/dataup/agents/${id}/`, agentData, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function deleteAgent(id: string | number): Promise<void> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        await Axios.delete(`${backendAPI}/dataup/agents/${id}`, {
+            params,
+        });
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function callAgent(id: string | number, body: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/agents/${id}/infer/`, body, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
 export default Object.freeze({
     server: Object.freeze({
         setAuthData,
@@ -2549,6 +2632,15 @@ export default Object.freeze({
         run: runLambdaRequest,
         call: callLambdaFunction,
         cancel: cancelLambdaRequest,
+    }),
+
+    agents: Object.freeze({
+        get: getAgents,
+        getOne: getAgent,
+        create: createAgent,
+        update: updateAgent,
+        delete: deleteAgent,
+        call: callAgent,
     }),
 
     issues: Object.freeze({
