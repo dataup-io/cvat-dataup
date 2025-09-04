@@ -33,6 +33,7 @@ export default function DeployedModelsListComponent(props: Props): JSX.Element {
     const trackers = useSelector((state: CombinedState) => state.models.trackers);
     const reid = useSelector((state: CombinedState) => state.models.reid);
     const totalCount = useSelector((state: CombinedState) => state.models.totalCount);
+    const organizationInitialized = useSelector((state: CombinedState) => state.organizations.initialized);
 
     const dispatch = useDispatch();
     const { query } = props;
@@ -76,11 +77,14 @@ export default function DeployedModelsListComponent(props: Props): JSX.Element {
                 <Pagination
                     className='cvat-models-pagination'
                     onChange={(newPage: number, newPageSize: number) => {
-                        dispatch(getModelsAsync({
-                            ...query,
-                            page: newPage,
-                            pageSize: newPageSize,
-                        }));
+                        // Only fetch models if organization context is ready (either org or personal workspace)
+                        if (organizationInitialized) {
+                            dispatch(getModelsAsync({
+                                ...query,
+                                page: newPage,
+                                pageSize: newPageSize,
+                            }));
+                        }
                     }}
                     total={totalCount}
                     current={page}

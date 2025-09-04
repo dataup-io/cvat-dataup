@@ -8,11 +8,12 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
+from cvat.apps.engine.serializers import LabeledDataSerializer
 from cvat.apps.dataup.agents.permissions import DataUpPolicyEnforcer
 from cvat.apps.dataup.agents.serializers import AgentInferenceRequest, AgentReadSerializer, AgentWriteSerializer
 from cvat.apps.dataup.views.base import DataUpBaseViewSet
-
+from cvat.apps.dataup.utils.converters import DataUpDetectionResultConverter
+from cvat.apps.engine.models import Task
 
 class AgentViewSet(DataUpBaseViewSet):
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
@@ -155,11 +156,18 @@ class AgentViewSet(DataUpBaseViewSet):
         serializer = AgentInferenceRequest(data=request.data)
 
         if serializer.is_valid():
-            infer_data = serializer.validated_data
-            payload = build_infer_payload(infer_data['task_id'], infer_data['frame_ids'], infer_data['params'])
-            return self.make_dataup_request(
+            inference_data = serializer.validated_data
+            label_mapping = inference_data["params"].get("mapping", {})
+            converter = DataUpDetectionResultConverter(task_id=inference_data['task_id'], label_mapping=label_mapping)
+            payload = build_infer_payload(inference_data['task_id'], inference_data['frame_ids'], inference_data['params'])
+            response =  self.make_dataup_request(
                 'POST', f'agents/{pk}/infer',
                 data=payload
-            )
-
+                )
+            outputs = converter.convert(inference_data['frame_ids'], response.data["data"])
+            serialized_output = LabeledDataSerializer(data=outputs)
+            if serialized_output.is_valid():
+                return Response(data=serialized_output.validated_data, status=status.HTTP_200_OK)
+            else:
+                return Response(data=serialized_output.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

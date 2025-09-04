@@ -101,15 +101,47 @@ export type ModelsActions = ActionUnion<typeof modelsActions>;
 
 const core = getCore();
 
+export function getLambdaAsync(query?: ModelsQuery): ThunkAction<Promise<{ models: MLModel[], count: number }>> {
+    return async (dispatch, getState): Promise<{ models: MLModel[], count: number }> => {
+        try {
+            const result = await core.lambda.list();
+            return { models: result.models, count: result.count };
+        } catch (error) {
+            throw error;
+        }
+    };
+}
+
+export function getAgentsAsync(query?: ModelsQuery): ThunkAction<Promise<{ models: MLModel[], count: number }>> {
+    return async (dispatch, getState): Promise<{ models: MLModel[], count: number }> => {
+        try {
+            const result = await core.agents.list();
+            return { models: result.agents || [], count: result.count || 0 };
+        } catch (error) {
+            throw error;
+        }
+    };
+}
+
 export function getModelsAsync(query?: ModelsQuery): ThunkAction {
     return async (dispatch, getState): Promise<void> => {
         dispatch(modelsActions.getModels(query));
-
-        const filteredQuery = filterNull(query || getState().models.query);
         try {
-            const result = await core.lambda.list(filteredQuery);
-            const { models, count } = result;
-            dispatch(modelsActions.getModelsSuccess(models, count));
+            // Get both lambda models and agents in parallel
+            const lambdaThunk = getLambdaAsync(query);
+            const agentsThunk = getAgentsAsync(query);
+
+            const [lambdaResult, agentsResult] = await Promise.all([
+                lambdaThunk(dispatch, getState, {}),
+                agentsThunk(dispatch, getState, {}),
+            ]);
+
+            // Combine results
+            const allModels = [...lambdaResult.models, ...agentsResult.models];
+            const totalCount = lambdaResult.count + agentsResult.count;
+
+
+            dispatch(modelsActions.getModelsSuccess(allModels, totalCount));
         } catch (error) {
             dispatch(modelsActions.getModelsFailed(error));
         }

@@ -2458,7 +2458,7 @@ async function getQualityReports(
 async function getAgents(filter = {}): Promise<any> {
     const { backendAPI } = config;
     const params = enableOrganization();
-
+    console.log("Calling Get agents with organization context", params);
     try {
         const response = await Axios.get(`${backendAPI}/dataup/agents`, {
             params: {
@@ -2529,7 +2529,7 @@ async function callAgent(id: string | number, body: any): Promise<any> {
     const params = enableOrganization();
 
     try {
-        const response = await Axios.post(`${backendAPI}/dataup/agents/${id}/infer/`, body, {
+        const response = await Axios.post(`${backendAPI}/dataup/agents/${id}/infer`, body, {
             params,
         });
         return response.data;

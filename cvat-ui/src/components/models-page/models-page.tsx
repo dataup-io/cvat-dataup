@@ -24,6 +24,7 @@ function ModelsPageComponent(): JSX.Element {
     const fetching = useSelector((state: CombinedState) => state.models.fetching);
     const query = useSelector((state: CombinedState) => state.models.query);
     const totalCount = useSelector((state: CombinedState) => state.models.totalCount);
+    const organizationInitialized = useSelector((state: CombinedState) => state.organizations.initialized);
 
     const updatedQuery = useResourceQuery<ModelsQuery>(query, { pageSize: 12 });
 
@@ -35,14 +36,17 @@ function ModelsPageComponent(): JSX.Element {
 
     const pageOutOfBounds = totalCount && updatedQuery.page > Math.ceil(totalCount / query.pageSize);
     useEffect(() => {
-        dispatch(getModelsAsync(updatedQuery));
-        if (pageOutOfBounds) {
-            notification.error({
-                message: 'Could not fetch models',
-                description: 'Invalid page',
-            });
+        // Only fetch models after organization context is ready (either org or personal workspace)
+        if (organizationInitialized) {
+            dispatch(getModelsAsync(updatedQuery));
+            if (pageOutOfBounds) {
+                notification.error({
+                    message: 'Could not fetch models',
+                    description: 'Invalid page',
+                });
+            }
         }
-    }, []);
+    }, [organizationInitialized]); // Depend on organization initialization
 
     const content = (totalCount && !pageOutOfBounds) ? (
         <DeployedModelsList query={updatedQuery} />
@@ -54,31 +58,40 @@ function ModelsPageComponent(): JSX.Element {
                 disabled
                 query={updatedQuery}
                 onApplySearch={(search: string | null) => {
-                    dispatch(
-                        getModelsAsync({
-                            ...query,
-                            search,
-                            page: 1,
-                        }),
-                    );
+                    // Only fetch models if organization context is ready (either org or personal workspace)
+                    if (organizationInitialized) {
+                        dispatch(
+                            getModelsAsync({
+                                ...query,
+                                search,
+                                page: 1,
+                            }),
+                        );
+                    }
                 }}
                 onApplyFilter={(filter: string | null) => {
-                    dispatch(
-                        getModelsAsync({
-                            ...query,
-                            filter,
-                            page: 1,
-                        }),
-                    );
+                    // Only fetch models if organization context is ready (either org or personal workspace)
+                    if (organizationInitialized) {
+                        dispatch(
+                            getModelsAsync({
+                                ...query,
+                                filter,
+                                page: 1,
+                            }),
+                        );
+                    }
                 }}
                 onApplySorting={(sorting: string | null) => {
-                    dispatch(
-                        getModelsAsync({
-                            ...query,
-                            sort: sorting,
-                            page: 1,
-                        }),
-                    );
+                    // Only fetch models if organization context is ready (either org or personal workspace)
+                    if (organizationInitialized) {
+                        dispatch(
+                            getModelsAsync({
+                                ...query,
+                                sort: sorting,
+                                page: 1,
+                            }),
+                        );
+                    }
                 }}
             />
             { fetching ? (

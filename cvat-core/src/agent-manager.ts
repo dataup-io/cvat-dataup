@@ -1,6 +1,6 @@
 import serverProxy from './server-proxy';
 import MLModel from './ml-model';
-import { ShapeType, ModelProviders } from './enums';
+import { ShapeType, ModelProviders, ModelKind, LabelType } from './enums';
 
 interface InteractorResults {
     shapes: MinimalShape[];
@@ -70,13 +70,39 @@ class AgentManager {
     }
 
     private convertAgentToMLModel(agent: Agent): MLModel {
+        // Map agent_type to ModelKind
+        let kind: ModelKind;
+        switch (agent.agent_type.toLowerCase()) {
+            case 'detector':
+                kind = ModelKind.DETECTOR;
+                break;
+            case 'interactor':
+                kind = ModelKind.INTERACTOR;
+                break;
+            case 'tracker':
+                kind = ModelKind.TRACKER;
+                break;
+            default:
+                kind = ModelKind.DETECTOR; // Default to detector if unknown type
+                break;
+        }
+
+        // Convert string labels to MLModelLabel format
+        const convertedLabels = (agent.labels || []).map((labelName: string) => ({
+            name: labelName,
+            type: LabelType.ANY,
+            attributes: [],
+            sublabels: []
+        }));
+
         const serializedModel = {
             id: agent.id,
             name: agent.name,
-            labels: agent.labels,
+            labels_v2: convertedLabels,
             framework: 'dataup',
             description: `DataUp Agent: ${agent.name}`,
             type: agent.agent_type,
+            kind,
             return_type: 'state',
             owner: { id: agent.owner },
             provider: agent.provider,

@@ -1183,6 +1183,8 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             jobInstance, detectors, curZOrder, frame, labels, createAnnotations,
         } = this.props;
 
+
+
         if (!detectors.length) {
             return (
                 <Row justify='center' align='middle' style={{ marginTop: '5px' }}>
@@ -1214,9 +1216,25 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                         // The function call endpoint doesn't support the cleanup parameter.
                         const { cleanup, ...restOfBody } = body;
 
-                        const result = await core.lambda.call(jobInstance.taskId, model, {
-                            ...restOfBody, type: 'annotate_frame', frame, job: jobInstance.id,
-                        }) as DetectorResults;
+                        let result: DetectorResults;
+                        console.log("Model Provider is", model.provider.toLowerCase());
+                        if (model.provider.toLowerCase() === 'cvat') {
+                            result = await core.lambda.call(jobInstance.taskId, model, {
+                                ...restOfBody, type: 'annotate_frame', frame, job: jobInstance.id,
+                            }) as DetectorResults;
+                        } else if (model.provider.toLowerCase() === 'dataup') {
+                            result = await core.agents.call(model.id, {
+                                task_id: jobInstance.taskId,
+                                frame_ids: [frame],
+                                params: {
+                                    ...restOfBody,
+                                    type: 'annotate_frame',
+                                    job: jobInstance.id,
+                                },
+                            }) as DetectorResults;
+                        } else {
+                            throw new Error(`Unsupported model provider: ${model.provider}`);
+                        }
 
                         const tagStates = result.tags.map((tag) => {
                             const jobLabel = jobInstance.labels

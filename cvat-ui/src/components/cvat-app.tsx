@@ -443,7 +443,7 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
             initRequests();
         }
 
-        if (isModelPluginActive && !modelsInitialized && !modelsFetching) {
+        if (isModelPluginActive && organizationInitialized && !modelsInitialized && !modelsFetching) {
             initModels();
         }
 

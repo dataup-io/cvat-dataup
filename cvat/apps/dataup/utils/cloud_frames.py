@@ -146,7 +146,8 @@ class TaskFrameProviderV2(TaskFrameProvider):
 
     def _get_image(self, frame_id) -> str:
         image = self.get_frame(frame_id)
-        return base64.b64encode(image.data.getvalue()).decode("utf-8")
+        raw = image.data.getvalue()
+        return base64.b64encode(raw).decode("utf-8")
 
     def get_frame_url(self, frame_id: int, ttl: int = DEFAULT_URL_TTL) -> Optional[str]:
         key = self._get_object_key_for_frame(frame_id)

@@ -21,4 +21,5 @@ def build_infer_payload(task_id: int, frame_ids: list[int], params: dict) -> dic
         image_urls = [frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.URL) for frame_id in frame_ids]
     else:
         images = [frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.BUFFER) for frame_id in frame_ids]
+
     return {"image_urls": image_urls, "images": images, "params": params}
