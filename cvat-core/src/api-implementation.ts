@@ -82,6 +82,10 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.agents.delete, agentManager.delete.bind(agentManager));
     implementationMixin(cvat.agents.call, agentManager.call.bind(agentManager));
 
+    implementationMixin(cvat.agents.jobs.list, agentManager.listJobs.bind(agentManager));
+    implementationMixin(cvat.agents.jobs.get, agentManager.getJob.bind(agentManager));
+    implementationMixin(cvat.agents.jobs.create, agentManager.createJob.bind(agentManager));
+
     implementationMixin(cvat.server.about, async () => {
         const result = await serverProxy.server.about();
         return new AboutData(result);

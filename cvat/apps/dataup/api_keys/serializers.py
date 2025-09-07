@@ -134,8 +134,12 @@ class DataUpAPIKeyWriteSerializer(serializers.ModelSerializer):
         Both empty is invalid; both set is allowed.
         """
         owner = attrs.get("owner", getattr(self.instance, "owner", None))
-        organization = attrs.get("organization", getattr(self.instance, "organization", None))
+        organization = attrs.get(
+            "organization", getattr(self.instance, "organization", None)
+        )
 
         if not owner and not organization:
-            raise serializers.ValidationError("Provide at least one of 'owner' or 'organization'.")
+            raise serializers.ValidationError(
+                "Provide at least one of 'owner' or 'organization'."
+            )
         return attrs

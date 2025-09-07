@@ -76,6 +76,11 @@ export default interface CVATCore {
         create: typeof agentManager.create;
         update: typeof agentManager.update;
         delete: typeof agentManager.delete;
+        jobs: {
+            list: typeof agentManager.listJobs;
+            get: typeof agentManager.getJob;
+            create: typeof agentManager.createJob;
+        };
     };
 
     server: {

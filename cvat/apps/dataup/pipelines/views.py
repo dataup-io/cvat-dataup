@@ -14,7 +14,7 @@ from cvat.apps.dataup.pipelines.serializers import (
     PipelineSerializer,
     PipelineUpdateSerializer,
 )
-from cvat.apps.dataup.views.base import DataUpBaseViewSet
+from cvat.apps.dataup.dataup_api.base import DataUpBaseViewSet
 
 
 class PipelineViewSet(DataUpBaseViewSet):
@@ -32,11 +32,12 @@ class PipelineViewSet(DataUpBaseViewSet):
             200: OpenApiResponse(description="List of pipelines"),
         },
         parameters=[
-            OpenApiParameter("name", description="Filter by name", required=False, type=str),
+            OpenApiParameter(
+                "name", description="Filter by name", required=False, type=str
+            ),
         ],
     )
     def list(self, request):
-
         params = {}
         name = request.query_params.get("name", None)
         if name:
@@ -71,7 +72,10 @@ class PipelineViewSet(DataUpBaseViewSet):
             request_data = serializer.validated_data
             request_data = self.add_owner_data(request_data)
             return self.make_dataup_request(
-                "POST", "pipelines/", data=request_data, success_status=status.HTTP_201_CREATED
+                "POST",
+                "pipelines/",
+                data=request_data,
+                success_status=status.HTTP_201_CREATED,
             )
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

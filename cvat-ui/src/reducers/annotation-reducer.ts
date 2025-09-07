@@ -166,6 +166,7 @@ const defaultState: AnnotationState = {
     colors: [],
     sidebarCollapsed: false,
     appearanceCollapsed: false,
+    batchInferenceCollapsed: false,
     filtersPanelVisible: false,
     workspace: Workspace.STANDARD,
 };
@@ -508,6 +509,12 @@ export default (state = defaultState, action: AnyAction): AnnotationState => {
             return {
                 ...state,
                 appearanceCollapsed: !state.appearanceCollapsed,
+            };
+        }
+        case AnnotationActionTypes.COLLAPSE_BATCH_INFERENCE: {
+            return {
+                ...state,
+                batchInferenceCollapsed: !state.batchInferenceCollapsed,
             };
         }
         case AnnotationActionTypes.COLLAPSE_OBJECT_ITEMS: {

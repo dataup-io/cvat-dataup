@@ -165,7 +165,7 @@ services:
     networks:
       - cvat
 
-
+ 
   cvat_worker_annotation:
     container_name: cvat_worker_annotation
     image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
@@ -239,6 +239,22 @@ services:
       <<: *backend-env
       NUMPROCS: 1
     command: run worker consensus
+    volumes:
+      - cvat_data:/home/django/data
+      - cvat_keys:/home/django/keys
+      - cvat_logs:/home/django/logs
+    networks:
+      - cvat
+
+  cvat_worker_agent_jobs:
+    container_name: cvat_worker_agent_jobs
+    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    restart: always
+    depends_on: *backend-deps
+    environment:
+      <<: *backend-env
+      NUMPROCS: 1
+    command: run worker agent_jobs
     volumes:
       - cvat_data:/home/django/data
       - cvat_keys:/home/django/keys

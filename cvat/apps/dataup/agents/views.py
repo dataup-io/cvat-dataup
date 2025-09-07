@@ -8,15 +8,26 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.core.exceptions import ValidationError
 from cvat.apps.engine.serializers import LabeledDataSerializer
-from cvat.apps.dataup.agents.permissions import DataUpPolicyEnforcer
-from cvat.apps.dataup.agents.serializers import AgentInferenceRequest, AgentReadSerializer, AgentWriteSerializer
-from cvat.apps.dataup.views.base import DataUpBaseViewSet
-from cvat.apps.dataup.utils.converters import DataUpDetectionResultConverter
-from cvat.apps.engine.models import Task
+from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
+from cvat.apps.dataup.iam.context import get_dataup_iam_context
+from cvat.apps.dataup.agents.serializers import (
+    AgentInferenceRequest,
+    AgentReadSerializer,
+    AgentWriteSerializer,
+    AgentJobSerializer,
+    AgentJobCreateSerializer,
+)
+from cvat.apps.dataup.utils.converters import DataUpAgentResultConverter
+from cvat.apps.dataup.dataup_api import DataUpAPIClient, DataUpAPIError
+from rest_framework import status, viewsets
+from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
+from cvat.apps.dataup.agents.jobs import AgentQueue, AgentJob
 
-class AgentViewSet(DataUpBaseViewSet):
+class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+    iam_context_factory = staticmethod(get_dataup_iam_context)
     iam_organization_field = "organization"
 
     @extend_schema(
@@ -27,28 +38,19 @@ class AgentViewSet(DataUpBaseViewSet):
         },
         parameters=[
             OpenApiParameter(
-                "agent_type", description="Filter by agent type", required=False, type=str
+                "agent_type",
+                description="Filter by agent type",
+                required=False,
+                type=str,
             ),
         ],
     )
     def list(self, request):
-        params = {}
-        agent_type = request.query_params.get("agent_type", None)
-        if agent_type:
-            params["agent_type"] = agent_type
-        params = self.add_organization_params(params)
-        response = self.make_dataup_request("GET", "agents/", params=params)
-
-        if response.status_code == 200 and response.data:
-            try:
-                serializer = AgentReadSerializer(response.data['items'], many=True)
-                response.data['items'] = serializer.data
-            except Exception as e:
-                print(response.data)
-                print(f"Error serializing agent data: {e}")
-                response.data = []
-
-        return response
+        try:
+            resp = self.dataup_client.make_request("GET", "agents/")
+            return Response(resp.json(), status=resp.status_code)
+        except DataUpAPIError as e:
+            return Response({"message": e.message}, status=e.status_code)
 
     @extend_schema(
         summary="Get a specific agent API",
@@ -59,14 +61,13 @@ class AgentViewSet(DataUpBaseViewSet):
         },
     )
     def retrieve(self, request, pk=None):
-        response = self.make_dataup_request("GET", f"agents/{pk}")
-
-        # Serialize the response data to exclude auth_token
-        if response.status_code == 200 and response.data:
-            serializer = AgentReadSerializer(response.data)
-            response.data = serializer.data
-
-        return response
+        try:
+            resp = self.dataup_client.make_request("GET", f"agents/{pk}")
+            data = resp.json() if resp.content else {}
+            serializer = AgentReadSerializer(instance=data)
+            return Response(serializer.data, status=resp.status_code)
+        except DataUpAPIError as e:
+            return Response({"error": str(e)}, status=e.status_code)
 
     @extend_schema(
         summary="Create a new agent API",
@@ -83,17 +84,18 @@ class AgentViewSet(DataUpBaseViewSet):
             agent_data = serializer.validated_data
             agent_data = self.add_owner_data(agent_data)
 
-            # Make request to DataUP backend
-            response = self.make_dataup_request(
-                "POST", "agents/", data=agent_data, success_status=status.HTTP_201_CREATED
-            )
+            try:
+                response = self.dataup_client.make_request("POST", "agents/", data=agent_data)
 
-            # Serialize the response data to exclude auth_token
-            if response.status_code == 201 and response.data:
-                read_serializer = AgentReadSerializer(response.data)
-                response.data = read_serializer.data
+                response_data = response.json() if response.content else {}
+                # Serialize the response data to exclude auth_token
+                if response.status_code == 201 and response_data:
+                    read_serializer = AgentReadSerializer(response_data)
+                    response_data = read_serializer.data
 
-            return response
+                return Response(response_data, status=response.status_code)
+            except DataUpAPIError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
@@ -109,14 +111,19 @@ class AgentViewSet(DataUpBaseViewSet):
     def update(self, request, pk=None, partial=False):
         serializer = AgentWriteSerializer(data=request.data, partial=partial)
         if serializer.is_valid():
-            response = self.make_dataup_request("PATCH", f"agents/{pk}", data=serializer.validated_data)
+            try:
+                response = self.dataup_client.make_request(
+                    "PATCH", f"agents/{pk}", data=serializer.validated_data
+                )
+                response_data = response.json() if response.content else {}
+                # Serialize the response data to exclude auth_token
+                if response.status_code == 200 and response_data:
+                    read_serializer = AgentReadSerializer(response_data)
+                    response_data = read_serializer.data
 
-            # Serialize the response data to exclude auth_token
-            if response.status_code == 200 and response.data:
-                read_serializer = AgentReadSerializer(response.data)
-                response.data = read_serializer.data
-
-            return response
+                return Response(response_data, status=response.status_code)
+            except DataUpAPIError as e:
+                return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
@@ -128,9 +135,11 @@ class AgentViewSet(DataUpBaseViewSet):
         },
     )
     def destroy(self, request, pk=None):
-        return self.make_dataup_request(
-            "DELETE", f"agents/{pk}", success_status=status.HTTP_204_NO_CONTENT
-        )
+        try:
+            resp = self.dataup_client.make_request("DELETE", f"agents/{pk}")
+            return Response(status=resp.status_code)
+        except DataUpAPIError as e:
+            return Response({"message": e.message}, status=e.status_code)
 
     @extend_schema(
         summary="Call an agent API for inference",
@@ -153,21 +162,191 @@ class AgentViewSet(DataUpBaseViewSet):
     )
     @action(detail=True, methods=["post"], url_path="infer")
     def infer(self, request, pk=None):
-        serializer = AgentInferenceRequest(data=request.data)
+        serialized_input = AgentInferenceRequest(data=request.data)
+        serialized_input.is_valid(raise_exception=True)
+        inference_data = serialized_input.validated_data
 
-        if serializer.is_valid():
-            inference_data = serializer.validated_data
-            label_mapping = inference_data["params"].get("mapping", {})
-            converter = DataUpDetectionResultConverter(task_id=inference_data['task_id'], label_mapping=label_mapping)
-            payload = build_infer_payload(inference_data['task_id'], inference_data['frame_ids'], inference_data['params'])
-            response =  self.make_dataup_request(
-                'POST', f'agents/{pk}/infer',
-                data=payload
-                )
-            outputs = converter.convert(inference_data['frame_ids'], response.data["data"])
-            serialized_output = LabeledDataSerializer(data=outputs)
-            if serialized_output.is_valid():
-                return Response(data=serialized_output.validated_data, status=status.HTTP_200_OK)
-            else:
-                return Response(data=serialized_output.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        label_mapping = inference_data["params"].get("mapping", {})
+
+        payload = build_infer_payload(
+            inference_data["task_id"],
+            inference_data["frame_ids"],
+            inference_data["params"],
+        )
+
+        try:
+            resp = self.dataup_client.make_request(
+                "POST", f"agents/{pk}/infer", data=payload
+            )
+            body = resp.json() if resp.content else {}
+        except DataUpAPIError as e:
+            return Response({"message": e.message}, status=e.status_code)
+
+        frame_ids = inference_data["frame_ids"]
+        data = body.get("data", None)
+        if data is None:
+            return Response(
+                {"message": "No data found in agent response body"},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        converter = DataUpAgentResultConverter(
+            task_id=inference_data["task_id"], label_mapping=label_mapping
+        )
+        converted_outputs = converter.convert(frame_ids, data)
+        serialized_output = LabeledDataSerializer(data=converted_outputs)
+        serialized_output.is_valid(raise_exception=True)
+        return Response(
+            data=serialized_output.validated_data, status=status.HTTP_200_OK
+        )
+
+
+
+
+class AgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
+    permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+    iam_context_factory = staticmethod(get_dataup_iam_context)
+    iam_organization_field = "organization"
+
+    @extend_schema(
+        summary="List all agent jobs",
+        description="Returns a list of all agent jobs",
+        responses={
+            200: AgentJobSerializer(many=True),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+    def list(self, request):
+        """List all agent jobs"""
+        try:
+            agent_queue = AgentQueue(self.dataup_client)
+            jobs = agent_queue.get_jobs()
+
+            job_data = []
+            for job in jobs:
+                job_data.append(job.to_dict())
+
+            serializer = AgentJobSerializer(job_data, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Create a new agent job",
+        description="Creates a new agent job",
+        request=AgentJobCreateSerializer,
+        responses={
+            201: AgentJobSerializer,
+            400: OpenApiResponse(description="Invalid input data"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+    def create(self, request):
+        """Create a new agent job"""
+        serializer = AgentJobCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            agent_queue = AgentQueue(self.dataup_client)
+            # Extract validated data
+            data = serializer.validated_data
+            agent_id = data["agent_id"]
+            task_id = data["task_id"]
+            job_id = data.get("job_id")
+            threshold = data.get("threshold", 0.5)
+            mapping = data.get("mapping", {})
+            cleanup = data.get("cleanup", False)
+            conv_mask_to_poly = data.get("conv_mask_to_poly", False)
+            max_distance = data.get("max_distance", 50)
+            frame_ids = data.get("frame_ids")
+            # Enqueue the job
+            agent_job = agent_queue.enqueue(
+                agent_id=agent_id,
+                threshold=threshold,
+                task_id=task_id,
+                mapping=mapping,
+                cleanup=cleanup,
+                conv_mask_to_poly=conv_mask_to_poly,
+                max_distance=max_distance,
+                request=request,
+                job_id=job_id,
+                frame_ids=frame_ids
+            )
+
+            # Return job details
+            job_data = {
+                "id": agent_job.job.id,
+                "status": agent_job.get_status(),
+                "created_at": agent_job.job.created_at,
+                "started_at": agent_job.job.started_at,
+                "ended_at": agent_job.job.ended_at,
+                "result": agent_job.job.result,
+                "exc_info": agent_job.job.exc_info,
+                "meta": agent_job.job.meta,
+            }
+
+            response_serializer = AgentJobSerializer(job_data)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Retrieve a specific agent job",
+        description="GET: Retrieve a specific agent job by ID",
+        responses={
+            200: AgentJobSerializer,
+            404: OpenApiResponse(description="Job not found"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+    def retrieve(self, request, pk=None):
+        """Retrieve a specific agent job by ID"""
+        try:
+            agent_queue = AgentQueue(self.dataup_client)
+            job = agent_queue._fetch_job(pk)
+
+            serializer = AgentJobSerializer(job.to_dict())
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except ValidationError as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

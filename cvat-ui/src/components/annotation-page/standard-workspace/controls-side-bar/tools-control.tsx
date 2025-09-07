@@ -53,6 +53,8 @@ import { switchToolsBlockerState } from 'actions/settings-actions';
 import withVisibilityHandling from './handle-popover-visibility';
 import ToolsTooltips from './interactor-tooltips';
 
+import { convertComplexToSimpleMapping } from 'utils/model-inference';
+
 interface StateToProps {
     canvasInstance: Canvas;
     labels: Label[];
@@ -1217,20 +1219,29 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                         const { cleanup, ...restOfBody } = body;
 
                         let result: DetectorResults;
-                        console.log("Model Provider is", model.provider.toLowerCase());
+                        
                         if (model.provider.toLowerCase() === 'cvat') {
                             result = await core.lambda.call(jobInstance.taskId, model, {
                                 ...restOfBody, type: 'annotate_frame', frame, job: jobInstance.id,
                             }) as DetectorResults;
                         } else if (model.provider.toLowerCase() === 'dataup') {
+                            // Convert complex mapping to simple format for DataUp agents
+                            const { mapping: complexMapping, ...otherParams } = restOfBody;
+                            const simpleMapping = complexMapping ? convertComplexToSimpleMapping(complexMapping) : undefined;
+
+                            const agentParams: any = {
+                                ...otherParams,
+                                type: 'annotate_frame',
+                                job: jobInstance.id,
+                            };
+                            if (simpleMapping && Object.keys(simpleMapping).length > 0) {
+                                agentParams.mapping = simpleMapping;
+                            }
+
                             result = await core.agents.call(model.id, {
                                 task_id: jobInstance.taskId,
                                 frame_ids: [frame],
-                                params: {
-                                    ...restOfBody,
-                                    type: 'annotate_frame',
-                                    job: jobInstance.id,
-                                },
+                                params: agentParams,
                             }) as DetectorResults;
                         } else {
                             throw new Error(`Unsupported model provider: ${model.provider}`);

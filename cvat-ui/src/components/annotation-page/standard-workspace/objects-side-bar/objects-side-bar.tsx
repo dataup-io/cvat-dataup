@@ -17,6 +17,7 @@ import LabelsList from 'components/annotation-page/standard-workspace/objects-si
 import { collapseSidebar as collapseSidebarAction } from 'actions/annotation-actions';
 import AppearanceBlock from 'components/annotation-page/appearance-block';
 import IssuesListComponent from 'components/annotation-page/standard-workspace/objects-side-bar/issues-list';
+import BatchInferenceControl from 'components/annotation-page/standard-workspace/controls-side-bar/batch-inference-control';
 
 interface OwnProps {
     objectsList: JSX.Element;
@@ -109,7 +110,12 @@ function ObjectsSideBar(props: StateToProps & DispatchToProps & OwnProps): JSX.E
                     children: <LabelsList />,
                 }, ...(is2D ? [{ key: 'issues', label: 'Issues', children: <IssuesListComponent /> }] : [])]}
             />
-            {!sidebarCollapsed && <AppearanceBlock />}
+            {!sidebarCollapsed && (
+                <>
+                    <BatchInferenceControl />
+                    <AppearanceBlock />
+                </>
+            )}
         </Layout.Sider>
     );
 }

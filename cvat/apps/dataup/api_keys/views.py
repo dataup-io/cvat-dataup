@@ -83,16 +83,22 @@ class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
             org = self.get_dataup_org(org_slug)
             return qs.filter(organization_id=org.id)
         else:
-            return qs.filter(owner_id=self.get_dataup_user(self.request.user).id, organization=None)
+            return qs.filter(
+                owner_id=self.get_dataup_user(self.request.user).id, organization=None
+            )
 
     def create(self, request, *args, **kwargs):
         try:
             dataup_user = self.get_dataup_user(request.user)
         except Http404:
-            raise ValidationError({"owner": _("No DataUp user linked to the current account.")})
+            raise ValidationError(
+                {"owner": _("No DataUp user linked to the current account.")}
+            )
 
         org_slug = (
-            kwargs.get("org_slug") or request.query_params.get("org") or request.data.get("org")
+            kwargs.get("org_slug")
+            or request.query_params.get("org")
+            or request.data.get("org")
         )
         dataup_org = None
         if org_slug:

@@ -61,6 +61,9 @@ class RQJobMetaField:
     LAMBDA = "lambda"
     FUNCTION_ID = "function_id"
 
+    AGENT = "agent"
+    AGENT_ID = "agent_id"
+
 
 class WithMeta(Protocol):
     meta: dict[str, Any]

@@ -4,9 +4,8 @@ from cvat.apps.engine.models import Task
 from django.conf import settings
 from rest_framework.exceptions import NotFound
 
+
 def build_infer_payload(task_id: int, frame_ids: list[int], params: dict) -> dict:
-
-
     try:
         task = Task.objects.get(id=task_id)
     except Task.DoesNotExist as ex:
@@ -18,8 +17,14 @@ def build_infer_payload(task_id: int, frame_ids: list[int], params: dict) -> dic
     frame_provider = TaskFrameProviderV2(task)
     use_presigned_urls = getattr(settings, "USE_PRESIGNED_URLS", False)
     if use_presigned_urls and is_cloud_backed(task):
-        image_urls = [frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.URL) for frame_id in frame_ids]
+        image_urls = [
+            frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.URL)
+            for frame_id in frame_ids
+        ]
     else:
-        images = [frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.BUFFER) for frame_id in frame_ids]
+        images = [
+            frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.BUFFER)
+            for frame_id in frame_ids
+        ]
 
     return {"image_urls": image_urls, "images": images, "params": params}

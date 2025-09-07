@@ -20,8 +20,12 @@ class APIKeyRoleNotAllowed(Exception):
 
 class DataUpAPIKey(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    key = models.CharField(max_length=255, unique=True, help_text="API key for DataUp integration")
-    name = models.CharField(max_length=255, help_text="Descriptive name for the API key")
+    key = models.CharField(
+        max_length=255, unique=True, help_text="API key for DataUp integration"
+    )
+    name = models.CharField(
+        max_length=255, help_text="Descriptive name for the API key"
+    )
     preview = models.CharField(max_length=255, help_text="Preview of the API key")
     organization = models.ForeignKey(
         DataUpOrganization,
@@ -40,10 +44,14 @@ class DataUpAPIKey(models.Model):
         help_text="User this key belongs to (optional).",
     )
     allowed_roles = models.JSONField(
-        default=list, help_text="Org roles allowed to use this key (applies to org-owned keys)."
+        default=list,
+        help_text="Org roles allowed to use this key (applies to org-owned keys).",
     )
     label = models.CharField(
-        max_length=255, blank=True, null=True, help_text="Optional label for the API key"
+        max_length=255,
+        blank=True,
+        null=True,
+        help_text="Optional label for the API key",
     )
     default = models.BooleanField(
         default=False, help_text="Mark as the default key within its scope"
@@ -65,19 +73,25 @@ class DataUpAPIKey(models.Model):
             # 1) Personal default: owner set, org is NULL
             models.UniqueConstraint(
                 fields=["owner"],
-                condition=Q(default=True, owner__isnull=False, organization__isnull=True),
+                condition=Q(
+                    default=True, owner__isnull=False, organization__isnull=True
+                ),
                 name="uniq_default_personal_per_owner",
             ),
             # 2) User+Org default: owner set, org set
             models.UniqueConstraint(
                 fields=["owner", "organization"],
-                condition=Q(default=True, owner__isnull=False, organization__isnull=False),
+                condition=Q(
+                    default=True, owner__isnull=False, organization__isnull=False
+                ),
                 name="uniq_default_user_org_pair",
             ),
             # 3) Org-only default: org set, owner is NULL
             models.UniqueConstraint(
                 fields=["organization"],
-                condition=Q(default=True, owner__isnull=True, organization__isnull=False),
+                condition=Q(
+                    default=True, owner__isnull=True, organization__isnull=False
+                ),
                 name="uniq_default_org_only",
             ),
         ]
@@ -103,7 +117,9 @@ class DataUpAPIKey(models.Model):
                 )
             elif self.owner_id and self.organization_id is None:
                 # personal scope (owner, org NULL)
-                qs = DataUpAPIKey.objects.filter(owner_id=self.owner_id, organization__isnull=True)
+                qs = DataUpAPIKey.objects.filter(
+                    owner_id=self.owner_id, organization__isnull=True
+                )
             elif self.organization_id and self.owner_id is None:
                 # org-only scope (org, owner NULL)
                 qs = DataUpAPIKey.objects.filter(
@@ -184,7 +200,9 @@ class DataUpAPIKey(models.Model):
 
         # --- Personal workspace ---
         if org_uuid is None:
-            personal_qs = cls.objects.filter(owner_id=user_uuid, organization__isnull=True)
+            personal_qs = cls.objects.filter(
+                owner_id=user_uuid, organization__isnull=True
+            )
             return cls._pick_default_then_newest(personal_qs)
 
         # --- Inside an organization ---

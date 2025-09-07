@@ -24,6 +24,7 @@ import FitControl, { Props as FitControlProps } from './fit-control';
 import ResizeControl, { Props as ResizeControlProps } from './resize-control';
 import ToolsControl from './tools-control';
 import OpenCVControl from './opencv-control';
+import BatchInferenceControl from './batch-inference-control';
 import DrawRectangleControl, { Props as DrawRectangleControlProps } from './draw-rectangle-control';
 import DrawPolygonControl, { Props as DrawPolygonControlProps } from './draw-polygon-control';
 import DrawPolylineControl, { Props as DrawPolylineControlProps } from './draw-polyline-control';
@@ -126,6 +127,7 @@ const ObservedFitControl = ControlVisibilityObserver<FitControlProps>(FitControl
 const ObservedResizeControl = ControlVisibilityObserver<ResizeControlProps>(ResizeControl);
 const ObservedToolsControl = ControlVisibilityObserver(ToolsControl);
 const ObservedOpenCVControl = ControlVisibilityObserver(OpenCVControl);
+const ObservedBatchInferenceControl = ControlVisibilityObserver(BatchInferenceControl);
 const ObservedDrawRectangleControl = ControlVisibilityObserver<DrawRectangleControlProps>(DrawRectangleControl);
 const ObservedDrawPolygonControl = ControlVisibilityObserver<DrawPolygonControlProps>(DrawPolygonControl);
 const ObservedDrawPolylineControl = ControlVisibilityObserver<DrawPolylineControlProps>(DrawPolylineControl);

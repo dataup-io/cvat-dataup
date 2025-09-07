@@ -306,6 +306,20 @@ function build(): CVATCore {
                 const result = await PluginRegistry.apiWrapper(cvat.agents.call, id, body);
                 return result;
             },
+            jobs: {
+                async list(filter) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.list, filter);
+                    return result;
+                },
+                async get(jobId) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.get, jobId);
+                    return result;
+                },
+                async create(jobData) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.create, jobData);
+                    return result;
+                },
+            }
         },
 
         logger,

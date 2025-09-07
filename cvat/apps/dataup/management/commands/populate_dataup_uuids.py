@@ -20,7 +20,9 @@ class Command(BaseCommand):
                 )
                 org_created += 1
 
-        self.stdout.write(self.style.SUCCESS(f"Created {org_created} DataUpOrganization entries."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Created {org_created} DataUpOrganization entries.")
+        )
         user_created = 0
         for user in User.objects.all():
             if not hasattr(user, "dataup"):
@@ -29,4 +31,6 @@ class Command(BaseCommand):
                     user=user,
                 )
                 user_created += 1
-        self.stdout.write(self.style.SUCCESS(f"Created {user_created} DataUpUser entries."))
+        self.stdout.write(
+            self.style.SUCCESS(f"Created {user_created} DataUpUser entries.")
+        )

@@ -11,7 +11,7 @@ from cvat.apps.dataup.pipelines.serializers import (
     PipelineStepSerializer,
     PipelineStepUpdateSerializer,
 )
-from cvat.apps.dataup.views.base import DataUpBaseViewSet
+from cvat.apps.dataup.dataup_api.base import DataUpBaseViewSet
 
 
 class PipelineStepViewSet(DataUpBaseViewSet):
@@ -30,7 +30,10 @@ class PipelineStepViewSet(DataUpBaseViewSet):
         },
         parameters=[
             OpenApiParameter(
-                "pipeline_id", description="Filter by pipeline ID", required=False, type=int
+                "pipeline_id",
+                description="Filter by pipeline ID",
+                required=False,
+                type=int,
             ),
         ],
     )

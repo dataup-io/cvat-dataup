@@ -3,18 +3,13 @@
 # SPDX-License-Identifier: MIT
 
 from rest_framework import serializers
-
+import rq
 
 
 class AgentInferenceRequest(serializers.Serializer):
     task_id = serializers.IntegerField()
-    frame_ids = serializers.ListField(
-        child=serializers.IntegerField(),
-        required=True
-    )
+    frame_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
     params = serializers.JSONField(required=False, default=dict)
-
-
 
 
 class AgentReadSerializer(serializers.Serializer):
@@ -24,9 +19,15 @@ class AgentReadSerializer(serializers.Serializer):
     timeout = serializers.IntegerField(
         default=30, min_value=1, max_value=300, help_text="Request timeout in seconds"
     )
-    rate_limit = serializers.IntegerField(default=100, min_value=1, help_text="Rate limit per hour")
-    provider = serializers.CharField(max_length=50, help_text="External service provider")
-    agent_type = serializers.CharField(max_length=50, default="DETECTOR", help_text="Agent type")
+    rate_limit = serializers.IntegerField(
+        default=100, min_value=1, help_text="Rate limit per hour"
+    )
+    provider = serializers.CharField(
+        max_length=50, help_text="External service provider"
+    )
+    agent_type = serializers.CharField(
+        max_length=50, default="DETECTOR", help_text="Agent type"
+    )
     is_public = serializers.BooleanField(
         default=False, help_text="If true, the Agent is available to all organizations"
     )
@@ -46,6 +47,29 @@ class AgentReadSerializer(serializers.Serializer):
     updated_date = serializers.DateTimeField(read_only=True)
     owner = serializers.CharField(read_only=True)
 
+
+class AgentJobSerializer(serializers.Serializer):
+    id = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+    started_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    ended_at = serializers.DateTimeField(read_only=True, allow_null=True)
+    result = serializers.JSONField(read_only=True, allow_null=True)
+    exc_info = serializers.CharField(read_only=True, allow_null=True)
+    meta = serializers.JSONField(read_only=True, allow_null=True)
+    progress = serializers.IntegerField(read_only=True, allow_null=True)
+
+
+class AgentJobCreateSerializer(serializers.Serializer):
+    agent_id = serializers.CharField(required=True)
+    task_id = serializers.IntegerField(required=True)
+    job_id = serializers.IntegerField(required=False, allow_null=True)
+    threshold = serializers.FloatField(default=0.5, min_value=0.0, max_value=1.0)
+    mapping = serializers.JSONField(default=dict)
+    cleanup = serializers.BooleanField(default=False)
+    conv_mask_to_poly = serializers.BooleanField(default=False)
+    max_distance = serializers.IntegerField(default=50, min_value=1)
+    frame_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
 
 class AgentWriteSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
@@ -60,9 +84,15 @@ class AgentWriteSerializer(serializers.Serializer):
     timeout = serializers.IntegerField(
         default=30, min_value=1, max_value=300, help_text="Request timeout in seconds"
     )
-    rate_limit = serializers.IntegerField(default=100, min_value=1, help_text="Rate limit per hour")
-    provider = serializers.CharField(max_length=50, help_text="External service provider")
-    agent_type = serializers.CharField(max_length=50, default="DETECTOR", help_text="Agent type")
+    rate_limit = serializers.IntegerField(
+        default=100, min_value=1, help_text="Rate limit per hour"
+    )
+    provider = serializers.CharField(
+        max_length=50, help_text="External service provider"
+    )
+    agent_type = serializers.CharField(
+        max_length=50, default="DETECTOR", help_text="Agent type"
+    )
     is_public = serializers.BooleanField(
         default=False, help_text="If true, the Agent is available to all organizations"
     )
@@ -81,5 +111,3 @@ class AgentWriteSerializer(serializers.Serializer):
     created_date = serializers.DateTimeField(read_only=True)
     updated_date = serializers.DateTimeField(read_only=True)
     owner = serializers.CharField(read_only=True)
-
-

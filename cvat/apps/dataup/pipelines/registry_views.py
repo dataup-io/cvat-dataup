@@ -9,11 +9,10 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from cvat.apps.dataup.views.base import DataUpBaseViewSet
+from cvat.apps.dataup.dataup_api.base import DataUpBaseViewSet
 
 
 class StepRegistryViewSet(DataUpBaseViewSet):
-
     permission_classes = [IsAuthenticated]
     iam_organization_field = "organization"
 
@@ -24,7 +23,9 @@ class StepRegistryViewSet(DataUpBaseViewSet):
             200: OpenApiResponse(description="List of available steps"),
         },
         parameters=[
-            OpenApiParameter("type", description="Filter by step type", required=False, type=str),
+            OpenApiParameter(
+                "type", description="Filter by step type", required=False, type=str
+            ),
         ],
     )
     def list(self, request):

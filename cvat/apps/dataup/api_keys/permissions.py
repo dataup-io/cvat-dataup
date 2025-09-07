@@ -5,69 +5,13 @@ from enum import Enum
 
 from django.conf import settings
 
-from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
+from cvat.apps.dataup.iam.context import get_dataup_iam_context
 from cvat.apps.iam.permissions import (
-    IamContext,
     OpenPolicyAgentPermission,
     PolicyEnforcer,
     get_iam_context,
-    get_membership,
-    get_organization,
     is_public_obj,
 )
-from cvat.apps.organizations.models import Membership
-
-
-def get_dataup_organization(request, obj) -> DataUpOrganization:
-    organization = get_organization(request, obj)
-    if isinstance(organization, DataUpOrganization):
-        return organization
-    try:
-        return DataUpOrganization.objects.get(organization=organization)
-    except DataUpOrganization.DoesNotExist:
-        return None
-
-
-def get_dataup_membership(request, dataup_organization: DataUpOrganization) -> Membership:
-    if dataup_organization is None:
-        return None
-    return get_membership(request, dataup_organization.organization)
-
-
-def build_dataup_iam_context(
-    request, dataup_organization: DataUpOrganization, membership: Membership
-) -> IamContext:
-    # Get DataUp user ID
-    try:
-        dataup_user = DataUpUser.objects.get(user=request.user)
-        dataup_user_id = str(dataup_user.id)
-    except DataUpUser.DoesNotExist:
-        dataup_user_id = request.user.id  # Fallback to CVAT user ID
-
-    dataup_org_id = None
-    org_slug = None
-    org_owner_id = None
-
-    if dataup_organization:
-        dataup_org_id = str(dataup_organization.id)
-        org_slug = dataup_organization.organization.slug
-        org_owner_id = dataup_organization.organization.owner_id
-
-    context = {
-        "user_id": dataup_user_id,
-        "group_name": request.iam_context["privilege"],
-        "org_id": dataup_org_id,
-        "org_slug": org_slug,
-        "org_owner_id": org_owner_id,
-        "org_role": getattr(membership, "role", None),
-    }
-    return context
-
-
-def get_dataup_iam_context(request, obj):
-    dataup_organization = get_dataup_organization(request, obj)
-    membership = get_dataup_membership(request, dataup_organization)
-    return build_dataup_iam_context(request, dataup_organization, membership)
 
 
 class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
@@ -110,7 +54,9 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
         perms = []
         for scope in cls.get_scopes(request, view, obj):
             perms.append(
-                cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj)
+                cls.create_base_perm(
+                    request, view, scope, iam_context=dataup_iam_context, obj=obj
+                )
             )
         return perms
 
@@ -126,8 +72,12 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
             resource = {
                 "type": "dataup_api_key",
                 "id": None,  # No ID during creation
-                "owner_dataup_id": str(request_owner_id) if request_owner_id is not None else None,
-                "organization_dataup_id": str(request_org_id) if request_org_id else None,
+                "owner_dataup_id": str(request_owner_id)
+                if request_owner_id is not None
+                else None,
+                "organization_dataup_id": str(request_org_id)
+                if request_org_id
+                else None,
                 "organization_core_id": None,  # Will be resolved later
                 "is_org": request_org_id is not None,
                 "is_personal": request_org_id is None and request_owner_id is not None,
@@ -140,7 +90,8 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
                 "type": "dataup_api_key",
                 "id": str(getattr(o, "id", "")) or None,
                 "owner_dataup_id": str(getattr(o, "owner_id", "") or "") or None,
-                "organization_dataup_id": str(getattr(o, "organization_id", "") or "") or None,
+                "organization_dataup_id": str(getattr(o, "organization_id", "") or "")
+                or None,
                 "organization_core_id": getattr(core_org, "id", None),
                 "is_org": bool(getattr(o, "organization_id", None)),
                 "is_personal": not getattr(o, "organization_id", None)
@@ -169,7 +120,9 @@ class DataUpPolicyEnforcer(PolicyEnforcer):
                 iam_context = get_iam_context(request, obj)
 
             for perm_class in self._collect_permission_types():
-                for perm in perm_class.create(request, view, obj, iam_context=iam_context):
+                for perm in perm_class.create(
+                    request, view, obj, iam_context=iam_context
+                ):
                     checked_permissions.append(perm)
                     result = perm.check_access()
                     if not result.allow:

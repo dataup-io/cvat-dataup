@@ -69,6 +69,19 @@ class AgentManager {
         return await serverProxy.agents.call(id, body);
     }
 
+    // Agent Jobs methods
+    public async listJobs(filter = {}): Promise<any> {
+        return await serverProxy.agentJobs.get(filter);
+    }
+
+    public async getJob(jobId: string | number): Promise<any> {
+        return await serverProxy.agentJobs.getOne(jobId);
+    }
+
+    public async createJob(jobData: any): Promise<any> {
+        return await serverProxy.agentJobs.create(jobData);
+    }
+
     private convertAgentToMLModel(agent: Agent): MLModel {
         // Map agent_type to ModelKind
         let kind: ModelKind;

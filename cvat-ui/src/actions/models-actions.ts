@@ -9,6 +9,7 @@ import {
 } from 'reducers';
 import { getCore, MLModel, RQStatus } from 'cvat-core-wrapper';
 import { filterNull } from 'utils/filter-null';
+import { startAutomaticAnnotation } from 'utils/model-inference';
 
 export enum ModelsActionTypes {
     GET_MODELS = 'GET_MODELS',
@@ -127,7 +128,7 @@ export function getModelsAsync(query?: ModelsQuery): ThunkAction {
     return async (dispatch, getState): Promise<void> => {
         dispatch(modelsActions.getModels(query));
         try {
-            // Get both lambda models and agents in parallel
+            // Fetch lambda models
             const lambdaThunk = getLambdaAsync(query);
             const agentsThunk = getAgentsAsync(query);
 
@@ -136,10 +137,12 @@ export function getModelsAsync(query?: ModelsQuery): ThunkAction {
                 agentsThunk(dispatch, getState, {}),
             ]);
 
-            // Combine results
-            const allModels = [...lambdaResult.models, ...agentsResult.models];
-            const totalCount = lambdaResult.count + agentsResult.count;
-
+            // Combine lambda functions and agents into a single list
+            const allModels = [
+                ...(lambdaResult.models || []),
+                ...(agentsResult.models || []),
+            ];
+            const totalCount = (lambdaResult.count || 0) + (agentsResult.count || 0);
 
             dispatch(modelsActions.getModelsSuccess(allModels, totalCount));
         } catch (error) {
@@ -233,20 +236,25 @@ export function getInferenceStatusAsync(): ThunkAction {
 export function startInferenceAsync(taskId: number, model: MLModel, body: object): ThunkAction {
     return async (dispatch): Promise<void> => {
         try {
-            const requestID: string = await core.lambda.run(taskId, model, body);
-            const dispatchCallback = (action: ModelsActions): void => {
-                dispatch(action);
-            };
+            const result = await startAutomaticAnnotation({ taskId, model, params: body as any });
+            if (result.type === 'lambda') {
+                const { requestId } = result;
+                const dispatchCallback = (action: ModelsActions): void => {
+                    dispatch(action);
+                };
 
-            listen(
-                {
-                    taskID: taskId,
-                    functionID: model.id,
-                    requestID,
-                },
-                dispatchCallback,
-            );
-            dispatch(modelsActions.getInferencesSuccess({ [requestID]: true }));
+                listen(
+                    {
+                        taskID: taskId,
+                        functionID: model.id,
+                        requestID: requestId,
+                    },
+                    dispatchCallback,
+                );
+                dispatch(modelsActions.getInferencesSuccess({ [requestId]: true }));
+            } else {
+                // Agent job created successfully. Lambda request tracking is not applicable.
+            }
         } catch (error) {
             dispatch(modelsActions.startInferenceFailed(taskId, error));
         }

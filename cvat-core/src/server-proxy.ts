@@ -2538,6 +2538,48 @@ async function callAgent(id: string | number, body: any): Promise<any> {
     }
 }
 
+async function getAgentJobs(filter = {}): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs`, {
+            params: { ...params, ...filter },
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgentJob(id: string | number): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs/${id}`, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function createAgentJob(jobData: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/agent-jobs`, jobData, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
 export default Object.freeze({
     server: Object.freeze({
         setAuthData,
@@ -2641,6 +2683,12 @@ export default Object.freeze({
         update: updateAgent,
         delete: deleteAgent,
         call: callAgent,
+    }),
+
+    agentJobs: Object.freeze({
+        get: getAgentJobs,
+        getOne: getAgentJob,
+        create: createAgentJob,
     }),
 
     issues: Object.freeze({

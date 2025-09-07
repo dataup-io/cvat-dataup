@@ -874,6 +874,7 @@ export interface AnnotationState {
     filtersPanelVisible: boolean;
     sidebarCollapsed: boolean;
     appearanceCollapsed: boolean;
+    batchInferenceCollapsed: boolean;
     workspace: Workspace;
 }
 
