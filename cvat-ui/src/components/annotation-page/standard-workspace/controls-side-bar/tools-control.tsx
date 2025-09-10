@@ -1219,7 +1219,7 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                         const { cleanup, ...restOfBody } = body;
 
                         let result: DetectorResults;
-                        
+
                         if (model.provider.toLowerCase() === 'cvat') {
                             result = await core.lambda.call(jobInstance.taskId, model, {
                                 ...restOfBody, type: 'annotate_frame', frame, job: jobInstance.id,

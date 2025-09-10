@@ -19,6 +19,7 @@ interface MLModel {
     name: string;
     url: string;
     provider: string;
+    publisher: string;
     type: string;
     createdDate: string;
     updatedDate: string;
@@ -77,6 +78,18 @@ function ApisTableComponent(props: ApisTableProps): JSX.Element {
         return usage?.toLocaleString() || '0';
     }, []);
 
+    const formatPublisher = useCallback((publisher: string): string => {
+        // Map publisher values to display names
+        const publisherMap: Record<string, string> = {
+            'dataup': 'DataUp',
+            'huggingface': 'HuggingFace',
+            'roboflow': 'Roboflow',
+            'ultralytics': 'Ultralytics',
+            'custom': 'Custom',
+        };
+        return publisherMap[publisher?.toLowerCase()] || publisher || 'Unknown';
+    }, []);
+
     const handleEditClick = useCallback((record: MLModel) => {
         onEditApi(record);
     }, [onEditApi]);
@@ -94,10 +107,11 @@ function ApisTableComponent(props: ApisTableProps): JSX.Element {
             render: (name: string) => <Text strong>{name}</Text>,
         },
         {
-            title: 'Provider',
-            dataIndex: 'provider',
-            key: 'provider',
-            sorter: (a: MLModel, b: MLModel) => a.provider.localeCompare(b.provider),
+            title: 'Publisher',
+            dataIndex: 'publisher',
+            key: 'publisher',
+            sorter: (a: MLModel, b: MLModel) => a.publisher.localeCompare(b.publisher),
+            render: (publisher: string) => formatPublisher(publisher),
         },
         {
             title: 'Visibility',

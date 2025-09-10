@@ -32,6 +32,14 @@ enum APIProvider {
     ZINKIAI = 'zinkiai'
 }
 
+enum APIPublisher {
+    DATAUP = 'dataup',
+    HUGGINGFACE = 'huggingface',
+    ROBOFLOW = 'roboflow',
+    ULTRALYTICS = 'ultralytics',
+    CUSTOM = 'custom',
+}
+
 enum LabelSource {
     COCO = 'coco',
     CUSTOM = 'custom'
@@ -76,7 +84,7 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     name: apiData.name,
                     endpoint: apiData.endpoint || apiData.url,
                     auth_token: '', // Don't show the actual token when editing
-                    provider: apiData.provider,
+                    publisher: apiData.provider, // Map backend provider to frontend publisher
                     timeout: apiData.timeout,
                     rate_limit: apiData.rate_limit,
                     agent_type: apiData.agent_type,
@@ -104,6 +112,11 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                         return;
                     }
                 }
+
+                // Always set provider to dataup for agent APIs
+                formData.provider = 'dataup';
+                // Keep publisher field for backend to return in responses
+                // Backend will store and return the publisher field
 
                 // When editing, only include auth_token if a new value was provided
                 if (api && !values.auth_token) {
@@ -157,14 +170,16 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     />
                 </Form.Item>
                 <Form.Item
-                    name='provider'
-                    label='Provider'
-                    rules={[{ required: !api, message: 'Please select a provider' }]}
+                    name='publisher'
+                    label='Publisher'
+                    rules={[{ required: !api, message: 'Please select a publisher' }]}
                 >
-                    <Select placeholder="Select a provider" disabled={isFormDisabled}>
-                        <Select.Option value={APIProvider.HUGGINGFACE}>HuggingFace</Select.Option>
-                        <Select.Option value={APIProvider.ROBOFLOW}>Roboflow</Select.Option>
-                        <Select.Option value={APIProvider.ZINKIAI}>Zinki AI</Select.Option>
+                    <Select placeholder="Select a publisher" disabled={isFormDisabled}>
+                        <Select.Option value={APIPublisher.DATAUP}>DataUp</Select.Option>
+                        <Select.Option value={APIPublisher.HUGGINGFACE}>HuggingFace</Select.Option>
+                        <Select.Option value={APIPublisher.ROBOFLOW}>Roboflow</Select.Option>
+                        <Select.Option value={APIPublisher.ULTRALYTICS}>Ultralytics</Select.Option>
+                        <Select.Option value={APIPublisher.CUSTOM}>Custom</Select.Option>
                     </Select>
                 </Form.Item>
                 <Form.Item

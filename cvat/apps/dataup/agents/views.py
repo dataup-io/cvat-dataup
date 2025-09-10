@@ -48,7 +48,10 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
     def list(self, request):
         try:
             resp = self.dataup_client.make_request("GET", "agents/")
-            return Response(resp.json(), status=resp.status_code)
+            agents_data = resp.json().get("items", [])
+            serializer = AgentReadSerializer(data=agents_data, many=True)
+            serializer.is_valid(raise_exception=True)
+            return Response(serializer.validated_data, status=resp.status_code)
         except DataUpAPIError as e:
             return Response({"message": e.message}, status=e.status_code)
 
@@ -337,7 +340,7 @@ class AgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
         """Retrieve a specific agent job by ID"""
         try:
             agent_queue = AgentQueue(self.dataup_client)
-            job = agent_queue._fetch_job(pk)
+            job = agent_queue.fetch_job(pk)
 
             serializer = AgentJobSerializer(job.to_dict())
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -349,4 +352,34 @@ class AgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @extend_schema(
+        summary="Cancel a specific agent job",
+        description="DELETE: Cancel a specific agent job by ID",
+        responses={
+            204: OpenApiResponse(description="Job cancelled successfully"),
+            404: OpenApiResponse(description="Job not found"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+    def destroy(self, request, pk):
+        # self.check_object_permissions(request, pk)
+        try:
+            queue = AgentQueue(self.dataup_client)
+            rq_job = queue.fetch_job(pk)
+            rq_job.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_404_NOT_FOUND
             )

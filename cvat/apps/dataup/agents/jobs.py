@@ -1,7 +1,8 @@
 import django_rq
 from datetime import timedelta
 from cvat.apps.dataup.agents.rq import AgentRQMeta
-from cvat.apps.dataup.dataup_api.client import DataUpAPIClient, DataUpAPIError
+from cvat.apps.dataup.dataup_api.client import DataUpAPIClient
+from cvat.apps.dataup.dataup_api.exceptions import ErrorKind, DataUpAPIError
 from cvat.apps.dataup.utils.converters import DataUpAgentResultConverter
 import rq
 from cvat.apps.engine.utils import get_rq_lock_by_user, get_rq_lock_for_job, take_by
@@ -178,7 +179,7 @@ class AgentQueue:
 
         return AgentJob(job=rq_job)
 
-    def _fetch_job(self, pk):
+    def fetch_job(self, pk):
         queue = self._get_queue()
         rq_job = queue.fetch_job(pk)
         if rq_job is None or not AgentRQMeta.for_job(rq_job).agent_:
@@ -233,6 +234,7 @@ class AgentJob:
 
     def delete(self):
         self.job.delete()
+
 
     @property
     def is_finished(self):
@@ -290,9 +292,9 @@ class AgentJob:
                 )
                 body = resp.json() if getattr(resp, "content", None) else {}
                 data = body.get("data", [])
-                # print("Response Data", data)
+
                 if not data:
-                    slogger.warning(
+                    slogger.glob.warning(
                         f"No data returned for frames {frame_ids_batch}. "
                         "Skipping save for this batch."
                     )
@@ -303,7 +305,7 @@ class AgentJob:
 
                 # increment after a successful batch
                 processed_frames += len(frame_ids_batch)
-                cls._update_progress(processed_frames)
+                cls._update_progress(processed_frames, len(frame_ids))
 
                 # save every SAVE_EVERY_FRAMES processed frames
                 if SAVE_EVERY_FRAMES and processed_frames % SAVE_EVERY_FRAMES == 0:
@@ -314,19 +316,32 @@ class AgentJob:
                     successful_frames.clear()
 
             except DataUpAPIError as e:
-                slogger.warning(
-                    f"Couldn't collect results for frames {frame_ids_batch} - Why {e.message}"
+                if e.kind == ErrorKind.INFERENCE:
+                    slogger.glob.warning(
+                        f"Inference error for frames {frame_ids_batch}; skipping batch. "
+                        f"Details: {e.message} (status={e.status_code}{f', code={e.error_code}' if e.error_code else ''})"
+                    )
+                    continue
+                slogger.glob.error(
+                    f"{e.kind.value.capitalize()} error; aborting. "
+                    f"Details: {e.message} (status={e.status_code}{f', code={e.error_code}' if e.error_code else ''})"
                 )
-                continue
+                if batched_output: # save remaining data if available
+                    _batch_save_agent_results(converter, db_task, db_job, successful_frames, batched_output)
+                    batched_output.clear()
+                    successful_frames.clear()
+                raise
 
         if batched_output:
             _batch_save_agent_results(converter, db_task, db_job, successful_frames, batched_output)
 
 
     @staticmethod
-    def _update_progress(progress):
+    def _update_progress(processed_frames, total_frames):
         job = rq.get_current_job()
         rq_job_meta = AgentRQMeta.for_job(job)
-        rq_job_meta.progress = progress
+        # Calculate percentage (0-100) based on processed vs total frames
+        progress_percent = int((processed_frames / total_frames) * 100) if total_frames > 0 else 0
+        rq_job_meta.progress = progress_percent
         rq_job_meta.save()
         return job.get_status()

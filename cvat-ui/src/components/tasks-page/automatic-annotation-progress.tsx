@@ -29,55 +29,40 @@ export default function AutomaticAnnotationProgress(props: Props): JSX.Element |
     }
 
     return (
-        <Row justify='space-between' align='bottom'>
-            <Col span={22} className='cvat-task-item-progress-wrapper'>
-                <div>
-                    <Text
-                        type={activeInference.status === RQStatus.QUEUED ? undefined : textType}
-                        strong
-                    >
-                        {((): JSX.Element => {
-                            if (activeInference.status === RQStatus.QUEUED) {
-                                return (
-                                    <>
-                                        Automatic annotation request queued
-                                        <LoadingOutlined />
-                                    </>
-                                );
-                            }
+        <Row justify='space-between' align='middle'>
+            <Col>
+                <Text
+                    type={activeInference.status === RQStatus.QUEUED ? undefined : textType}
+                >
+                    {((): string => {
+                        if (activeInference.status === RQStatus.QUEUED) {
+                            return 'Automatic annotation request queued';
+                        }
 
-                            if (activeInference.status === RQStatus.STARTED) {
-                                return (
-                                    <>
-                                        Automatic annotation is in progress
-                                        <LoadingOutlined />
-                                    </>
-                                );
-                            }
+                        if (activeInference.status === RQStatus.STARTED) {
+                            return 'Automatic annotation is in progress';
+                        }
 
-                            if (activeInference.status === RQStatus.FAILED) {
-                                return (<>Automatic annotation failed</>);
-                            }
+                        if (activeInference.status === RQStatus.FAILED) {
+                            return 'Automatic annotation failed';
+                        }
 
-                            if (activeInference.status === RQStatus.UNKNOWN) {
-                                return (<>Unknown status received</>);
-                            }
+                        if (activeInference.status === RQStatus.UNKNOWN) {
+                            return 'Unknown status received';
+                        }
 
-                            return <>Automatic annotation accomplished</>;
-                        })()}
-                    </Text>
-                </div>
-                <Progress
-                    percent={Math.floor(activeInference.progress)}
-                    strokeColor={{
-                        from: '#108ee9',
-                        to: '#87d068',
-                    }}
-                    showInfo={false}
-                    size='small'
-                />
+                        return 'Automatic annotation accomplished';
+                    })()}
+                </Text>
+                {activeInference.status === RQStatus.STARTED && (
+                    <Progress
+                        percent={Math.floor(activeInference.progress)}
+                        size='small'
+                        style={{ width: 200, marginLeft: 12 }}
+                    />
+                )}
             </Col>
-            <Col span={1} className='close-auto-annotation-icon'>
+            <Col>
                 { activeInference.status !== RQStatus.FAILED && (
                     <CVATTooltip title='Cancel automatic annotation'>
                         <CloseOutlined

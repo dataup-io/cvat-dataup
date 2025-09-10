@@ -128,23 +128,15 @@ export function getModelsAsync(query?: ModelsQuery): ThunkAction {
     return async (dispatch, getState): Promise<void> => {
         dispatch(modelsActions.getModels(query));
         try {
-            // Fetch lambda models
+            // Fetch only lambda models
             const lambdaThunk = getLambdaAsync(query);
-            const agentsThunk = getAgentsAsync(query);
+            const lambdaResult = await lambdaThunk(dispatch, getState, {});
 
-            const [lambdaResult, agentsResult] = await Promise.all([
-                lambdaThunk(dispatch, getState, {}),
-                agentsThunk(dispatch, getState, {}),
-            ]);
+            // Use only lambda models
+            const models = lambdaResult.models || [];
+            const totalCount = lambdaResult.count || 0;
 
-            // Combine lambda functions and agents into a single list
-            const allModels = [
-                ...(lambdaResult.models || []),
-                ...(agentsResult.models || []),
-            ];
-            const totalCount = (lambdaResult.count || 0) + (agentsResult.count || 0);
-
-            dispatch(modelsActions.getModelsSuccess(allModels, totalCount));
+            dispatch(modelsActions.getModelsSuccess(models, totalCount));
         } catch (error) {
             dispatch(modelsActions.getModelsFailed(error));
         }
@@ -203,6 +195,72 @@ function listen(inferenceMeta: InferenceMeta, dispatch: (action: ModelsActions) 
         });
 }
 
+function listenToAgentJob(taskID: number, jobId: string, functionID: string | number, dispatch: (action: ModelsActions) => void): void {
+    const pollInterval = setInterval(async () => {
+        try {
+            const jobInfo = await core.agents.jobs.get(jobId);
+            const progress = (jobInfo as any).progress ?? (jobInfo?.meta && (jobInfo.meta.processed || jobInfo.meta.progress)) ?? 0;
+            const progressPercent = typeof progress === 'number' ? Math.max(0, Math.min(100, progress)) : 0;
+
+            if (jobInfo.status === 'finished') {
+                clearInterval(pollInterval);
+                dispatch(
+                    modelsActions.getInferenceStatusSuccess(taskID, {
+                        status: RQStatus.FINISHED,
+                        progress: 100,
+                        functionID,
+                        error: '',
+                        id: jobId,
+                    }),
+                );
+            } else if (jobInfo.status === 'failed') {
+                clearInterval(pollInterval);
+                dispatch(
+                    modelsActions.getInferenceStatusFailed(
+                        taskID,
+                        {
+                            status: RQStatus.FAILED,
+                            progress: progressPercent,
+                            functionID,
+                            error: jobInfo.exc_info || 'Agent job failed',
+                            id: jobId,
+                        },
+                        new Error(`Agent job failed: ${jobInfo.exc_info || 'Unknown error'}`),
+                    ),
+                );
+            } else {
+                // Job is still running (queued, started, etc.)
+                const status = jobInfo.status === 'started' ? RQStatus.STARTED : RQStatus.QUEUED;
+                dispatch(
+                    modelsActions.getInferenceStatusSuccess(taskID, {
+                        status,
+                        progress: progressPercent,
+                        functionID,
+                        error: '',
+                        id: jobId,
+                    }),
+                );
+            }
+        } catch (error) {
+             clearInterval(pollInterval);
+             dispatch(
+                 modelsActions.getInferenceStatusFailed(taskID, {
+                     status: RQStatus.UNKNOWN,
+                     progress: 0,
+                     error: error instanceof Error ? error.message : String(error),
+                     id: jobId,
+                     functionID,
+                 }, error instanceof Error ? error : new Error(String(error))),
+             );
+        }
+    }, 2000); // Poll every 2 seconds
+
+    // Set timeout to stop polling after 10 minutes
+    setTimeout(() => {
+        clearInterval(pollInterval);
+    }, 600000);
+}
+
 export function getInferenceStatusAsync(): ThunkAction {
     return async (dispatch, getState): Promise<void> => {
         const dispatchCallback = (action: ModelsActions): void => {
@@ -215,12 +273,12 @@ export function getInferenceStatusAsync(): ThunkAction {
             const requests = await core.lambda.requests();
             const newListenedIDs: Record<string, boolean> = {};
             requests
-                .map((request: any): object => ({
+                .map((request: any): InferenceMeta => ({
                     taskID: +request.function.task,
                     requestID: request.id,
                     functionID: request.function.id,
                 }))
-                .forEach((inferenceMeta: InferenceMeta): void => {
+                .forEach((inferenceMeta: InferenceMeta) => {
                     if (!(inferenceMeta.requestID in requestedInferenceIDs)) {
                         listen(inferenceMeta, dispatchCallback);
                         newListenedIDs[inferenceMeta.requestID] = true;
@@ -252,8 +310,14 @@ export function startInferenceAsync(taskId: number, model: MLModel, body: object
                     dispatchCallback,
                 );
                 dispatch(modelsActions.getInferencesSuccess({ [requestId]: true }));
-            } else {
-                // Agent job created successfully. Lambda request tracking is not applicable.
+            } else if (result.type === 'agent_job') {
+                const { job } = result;
+                const dispatchCallback = (action: ModelsActions): void => {
+                    dispatch(action);
+                };
+
+                listenToAgentJob(taskId, job.id, model.id, dispatchCallback);
+                dispatch(modelsActions.getInferencesSuccess({ [job.id]: true }));
             }
         } catch (error) {
             dispatch(modelsActions.startInferenceFailed(taskId, error));
@@ -265,7 +329,17 @@ export function cancelInferenceAsync(taskID: number): ThunkAction {
     return async (dispatch, getState): Promise<void> => {
         try {
             const inference = getState().models.inferences[taskID];
-            await core.lambda.cancel(inference.id, inference.functionID);
+
+            // Check if this is an agent job or lambda function
+            // Agent jobs have string IDs, lambda functions have different structure
+            if (typeof inference.functionID === 'string' && inference.functionID.startsWith('agent_')) {
+                // This is an agent job - use agent cancellation
+                await core.agents.jobs.cancel(inference.id);
+            } else {
+                // This is a lambda function - use lambda cancellation
+                await core.lambda.cancel(inference.id, inference.functionID);
+            }
+
             dispatch(modelsActions.cancelInferenceSuccess(taskID, inference));
         } catch (error) {
             dispatch(modelsActions.cancelInferenceFailed(taskID, error));

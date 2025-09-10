@@ -16,7 +16,7 @@ from cvat.apps.dataup.pipelines.views import PipelineViewSet
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register("agents", AgentViewSet, basename="agent")
-router.register("agent-jobs", AgentJobsViewSet, basename="agent-job")
+router.register("agent-jobs", AgentJobsViewSet, basename="agent-jobs")
 router.register("pipelines", PipelineViewSet, basename="pipeline")
 router.register("pipeline-steps", PipelineStepViewSet, basename="pipeline-step")
 router.register("step-registry", StepRegistryViewSet, basename="step-registry")

@@ -9,7 +9,7 @@ import config from './config';
 import PluginRegistry from './plugins';
 import serverProxy from './server-proxy';
 import lambdaManager from './lambda-manager';
-import agentManager from './agent-manager'
+import agentManager from './agent-manager';
 import requestsManager from './requests-manager';
 import {
     isBoolean,
@@ -85,6 +85,7 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.agents.jobs.list, agentManager.listJobs.bind(agentManager));
     implementationMixin(cvat.agents.jobs.get, agentManager.getJob.bind(agentManager));
     implementationMixin(cvat.agents.jobs.create, agentManager.createJob.bind(agentManager));
+    implementationMixin(cvat.agents.jobs.cancel, agentManager.cancelJob.bind(agentManager));
 
     implementationMixin(cvat.server.about, async () => {
         const result = await serverProxy.server.about();

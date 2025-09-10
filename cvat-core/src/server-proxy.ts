@@ -2580,6 +2580,19 @@ async function createAgentJob(jobData: any): Promise<any> {
     }
 }
 
+async function cancelAgentJob(id: string | number): Promise<void> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        await Axios.delete(`${backendAPI}/dataup/agent-jobs/${id}`, {
+            params,
+        });
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
 export default Object.freeze({
     server: Object.freeze({
         setAuthData,
@@ -2689,6 +2702,7 @@ export default Object.freeze({
         get: getAgentJobs,
         getOne: getAgentJob,
         create: createAgentJob,
+        cancel: cancelAgentJob,
     }),
 
     issues: Object.freeze({

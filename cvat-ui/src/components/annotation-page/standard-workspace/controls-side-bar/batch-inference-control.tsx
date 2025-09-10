@@ -18,8 +18,6 @@ import { startBatchFrames } from 'utils/model-inference';
 
 const core = getCore();
 
-// Mapping in the REST API is name-to-name
-// Mapping sent to CVAT lambda DETECTORs: complex structure with attributes and sublabels
 type ServerMapping = Record<string, {
     name: string;
     attributes: Record<string, string>;
@@ -285,10 +283,11 @@ function BatchInferenceControlComponent(props: Props): JSX.Element | null {
                      try {
                          const jobInfo = await core.agents.jobs.get(agentJob.id);
                          setJobStatus(`Status: ${jobInfo.status}`);
-                         const processedFrames: number | undefined = (jobInfo as any).progress
+                         const progress: number | undefined = (jobInfo as any).progress
                              ?? (jobInfo?.meta && (jobInfo.meta.processed || jobInfo.meta.progress));
-                         if (typeof processedFrames === 'number' && frameIds.length > 0) {
-                             const pct = Math.max(0, Math.min(99, Math.floor((processedFrames / frameIds.length) * 100)));
+                         if (typeof progress === 'number') {
+                             // Backend now sends percentage directly (0-100)
+                             const pct = Math.max(0, Math.min(99, progress));
                              setProgressPercent(pct);
                          } else {
                              setProgressPercent((prev) => (prev === null ? 0 : prev));
@@ -366,6 +365,8 @@ function BatchInferenceControlComponent(props: Props): JSX.Element | null {
              setProgressPercent(null);
          }
      }, [selectedModel, jobInstance, model, startFrame, endFrame, mapping, createAnnotations, isRunning, processFrameResults, changeFrame, frame]);
+
+
 
      const header = (
          <Row justify='space-between' align='middle' style={{ width: '100%' }}>

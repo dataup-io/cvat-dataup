@@ -80,6 +80,7 @@ export default interface CVATCore {
             list: typeof agentManager.listJobs;
             get: typeof agentManager.getJob;
             create: typeof agentManager.createJob;
+            cancel: typeof agentManager.cancelJob;
         };
     };
 

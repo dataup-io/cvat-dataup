@@ -45,6 +45,7 @@ export interface SerializedModel {
     type?: string;
     owner?: any;
     provider?: string;
+    publisher?: string;
     url?: string;
     help_message?: string;
     animated_gif?: string;

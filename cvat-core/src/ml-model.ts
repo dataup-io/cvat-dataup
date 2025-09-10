@@ -85,6 +85,10 @@ export default class MLModel {
         return this.serialized?.provider || ModelProviders.CVAT;
     }
 
+    public get publisher(): string | undefined {
+        return this.serialized?.publisher || ModelProviders.CVAT;
+    }
+
     public get type(): string {
         return this.serialized?.type || '';
     }

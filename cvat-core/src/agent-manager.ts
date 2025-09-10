@@ -25,6 +25,7 @@ interface Agent {
     timeout: number;
     rate_limit: number;
     provider: string;
+    publisher?: string;
     agent_type: string;
     is_public: boolean;
     labels: any[];
@@ -37,12 +38,13 @@ interface Agent {
 class AgentManager {
     public async list(): Promise<any> {
         const response = await serverProxy.agents.get();
-        const agents = response.items || [];
+        // Handle new response format where agents are returned as direct list
+        const agents = Array.isArray(response) ? response : (response.items || []);
         return {
             agents: agents.map((agent: Agent) => this.convertAgentToMLModel(agent)),
-            count: response.total || 0,
-            next_cursor: response.next_page || null,
-            previous_cursor: response.previous_page || null
+            count: Array.isArray(response) ? response.length : (response.total || 0),
+            next_cursor: Array.isArray(response) ? null : (response.next_page || null),
+            previous_cursor: Array.isArray(response) ? null : (response.previous_page || null)
         };
     }
 
@@ -76,6 +78,10 @@ class AgentManager {
 
     public async getJob(jobId: string | number): Promise<any> {
         return await serverProxy.agentJobs.getOne(jobId);
+    }
+
+    public async cancelJob(jobId: string | number): Promise<void> {
+        return await serverProxy.agentJobs.cancel(jobId);
     }
 
     public async createJob(jobData: any): Promise<any> {
@@ -118,7 +124,8 @@ class AgentManager {
             kind,
             return_type: 'state',
             owner: { id: agent.owner },
-            provider: agent.provider,
+            provider: ModelProviders.DATAUP,
+            publisher: agent.publisher || agent.provider,
             url: agent.endpoint,
             help_message: '',
             animated_gif: '',
