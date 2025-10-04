@@ -161,10 +161,22 @@ export enum ModelKind {
     REID = 'reid',
 }
 
-export enum ModelProviders {
+export enum AgentProvider {
     CVAT = 'cvat',
     DATAUP = 'dataup'
 }
+
+export enum AgentPublisher {
+    CVAT = 'cvat',
+    DATAUP = 'dataup',
+    HUGGINGFACE = 'huggingface',
+    ROBOFLOW = 'roboflow',
+    LANDINGAI = 'landingai',
+    CUSTOM = 'custom'
+}
+
+// Backward compatibility alias - will be deprecated
+export const ModelProviders = AgentProvider;
 
 export const colors = [
     '#33ddff',

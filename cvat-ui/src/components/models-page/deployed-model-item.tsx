@@ -21,7 +21,7 @@ import { MenuProps } from 'antd/lib/menu';
 import Preview from 'components/common/preview';
 import { useCardHeightHOC, usePlugins } from 'utils/hooks';
 import { CombinedState } from 'reducers';
-import { MLModel, ModelProviders } from 'cvat-core-wrapper';
+import { MLModel, AgentProvider } from 'cvat-core-wrapper';
 
 interface Props {
     model: MLModel;
@@ -49,7 +49,7 @@ export default function DeployedModelItem(props: Props): JSX.Element {
     };
 
     const created = moment(model.createdDate).fromNow();
-    const modelDescription = model.provider !== ModelProviders.CVAT ?
+    const modelDescription = model.provider !== AgentProvider.CVAT ?
         <Text type='secondary'>{`Added ${created}`}</Text> :
         <Text type='secondary'>System model</Text>;
     console.log(modelDescription);
@@ -99,7 +99,7 @@ export default function DeployedModelItem(props: Props): JSX.Element {
                 { modelTopBar }
                 <div className='cvat-model-info-container'>
                     <Title level={3}>
-                        {model.provider !== ModelProviders.CVAT && `#${model.id}: `}
+                        {model.provider !== AgentProvider.CVAT && `#${model.id}: `}
                         {model.name}
                     </Title>
                     {modelDescription}
@@ -172,7 +172,7 @@ export default function DeployedModelItem(props: Props): JSX.Element {
                 <Meta
                     title={(
                         <Text ellipsis={{ tooltip: model.name }} onClick={onOpenModel} className='cvat-models-item-title' aria-hidden>
-                            {model.provider !== ModelProviders.CVAT && `#${model.id}: `}
+                            {model.provider !== AgentProvider.CVAT && `#${model.id}: `}
                             {model.name}
                         </Text>
                     )}

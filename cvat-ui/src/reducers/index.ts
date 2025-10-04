@@ -1075,6 +1075,8 @@ export interface AgentsState {
     gettingQuery: AgentsQuery;
     next_cursor?: string | null;
     previous_cursor?: string | null;
+    error: string | null;
+    missingApiKey: boolean;
     activities: {
         creates: {
             id: null | number;

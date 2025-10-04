@@ -5,7 +5,7 @@
 
 import PluginRegistry from './plugins';
 import {
-    LabelType, ModelProviders, ModelKind, ShapeType,
+    LabelType, AgentProvider, AgentPublisher, ModelKind, ShapeType,
 } from './enums';
 import {
     SerializedModel, ModelParams, MLModelTip, MLModelLabel,
@@ -82,11 +82,11 @@ export default class MLModel {
     }
 
     public get provider(): string {
-        return this.serialized?.provider || ModelProviders.CVAT;
+        return this.serialized?.provider || AgentProvider.CVAT;
     }
 
     public get publisher(): string | undefined {
-        return this.serialized?.publisher || ModelProviders.CVAT;
+        return this.serialized?.publisher || AgentPublisher.CVAT;
     }
 
     public get type(): string {
@@ -94,7 +94,7 @@ export default class MLModel {
     }
 
     public get isDeletable(): boolean {
-        return this.provider !== ModelProviders.CVAT;
+        return this.provider !== AgentProvider.CVAT;
     }
 
     public get createdDate(): string | undefined {

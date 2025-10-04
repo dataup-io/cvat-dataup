@@ -9,9 +9,8 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.core.exceptions import ValidationError
-from cvat.apps.engine.serializers import LabeledDataSerializer
 from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
-from cvat.apps.dataup.iam.context import get_dataup_iam_context
+from cvat.apps.dataup.iam.context import get_dataup_iam_context, get_dataup_organization
 from cvat.apps.dataup.agents.serializers import (
     AgentInferenceRequest,
     AgentReadSerializer,
@@ -85,7 +84,8 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         serializer = AgentWriteSerializer(data=request.data)
         if serializer.is_valid():
             agent_data = serializer.validated_data
-            agent_data = self.add_owner_data(agent_data)
+            print("Create Agent with Agent Data:", agent_data)
+            # agent_data = self.add_owner_data(agent_data)
 
             try:
                 response = self.dataup_client.make_request("POST", "agents/", data=agent_data)
@@ -170,11 +170,15 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         inference_data = serialized_input.validated_data
 
         label_mapping = inference_data["params"].get("mapping", {})
-
+        task_type = inference_data["params"].get("type", "annotate_frame")
+        organization_uuid = get_dataup_organization(request).id
+        print(f"Running inference with task_type {task_type} for organization uuid  = {organization_uuid}")
         payload = build_infer_payload(
+            organization_uuid,
             inference_data["task_id"],
             inference_data["frame_ids"],
             inference_data["params"],
+            task_type=task_type
         )
 
         try:
@@ -194,13 +198,11 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             )
 
         converter = DataUpAgentResultConverter(
-            task_id=inference_data["task_id"], label_mapping=label_mapping
+            task_id=inference_data["task_id"], label_mapping=label_mapping, task_type=task_type
         )
         converted_outputs = converter.convert(frame_ids, data)
-        serialized_output = LabeledDataSerializer(data=converted_outputs)
-        serialized_output.is_valid(raise_exception=True)
         return Response(
-            data=serialized_output.validated_data, status=status.HTTP_200_OK
+            data=converted_outputs, status=status.HTTP_200_OK
         )
 
 

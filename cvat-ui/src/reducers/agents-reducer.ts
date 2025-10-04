@@ -25,6 +25,8 @@ const defaultState: AgentsState = {
     },
     next_cursor: null,
     previous_cursor: null,
+    error: null,
+    missingApiKey: false,
     activities: {
         creates: {
             id: null,
@@ -52,6 +54,8 @@ export default (state: AgentsState = defaultState, action: AnyAction): AgentsSta
                 initialized: false,
                 fetching: true,
                 count: 0,
+                error: null,
+                missingApiKey: false,
                 gettingQuery: action.payload.query ? {
                     ...defaultState.gettingQuery,
                     ...action.payload.query,
@@ -66,6 +70,8 @@ export default (state: AgentsState = defaultState, action: AnyAction): AgentsSta
                 current: action.payload.agents,
                 next_cursor: action.payload.next_cursor,
                 previous_cursor: action.payload.previous_cursor,
+                error: null,
+                missingApiKey: false,
             };
         }
         case AgentActionTypes.GET_AGENTS_FAILED:
@@ -73,6 +79,10 @@ export default (state: AgentsState = defaultState, action: AnyAction): AgentsSta
                 ...state,
                 initialized: true,
                 fetching: false,
+                error: action.payload?.error ? action.payload.error.toString() : 'Failed to load APIs',
+                missingApiKey: !!(action.payload?.error && (action.payload.error.code === 404 || action.payload.error?.response?.status === 404)),
+                current: [],
+                count: 0,
             };
         case AgentActionTypes.GET_AGENT:
             return {

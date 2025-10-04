@@ -8,8 +8,7 @@ import moment from 'moment';
 import Button from 'antd/lib/button';
 import Table from 'antd/lib/table';
 import Tag from 'antd/lib/tag';
-import Tooltip from 'antd/lib/tooltip';
-import Progress from 'antd/lib/progress';
+
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import Text from 'antd/lib/typography/Text';
 import type { ColumnsType, TableProps } from 'antd/es/table';
@@ -26,8 +25,6 @@ interface MLModel {
     owner: string;
     description: string;
     rate_limit?: number;
-    usage_count?: number;
-    total_usage?: number;
     is_public?: boolean;
 }
 
@@ -39,8 +36,7 @@ const AGENT_TYPE_COLORS: Record<AgentType, string> = {
     tracker: 'purple',
 } as const;
 
-const DEFAULT_RATE_LIMIT = 100;
-const USAGE_WARNING_THRESHOLD = 80;
+
 
 interface ApisTableProps {
     apis: MLModel[];
@@ -74,17 +70,18 @@ function ApisTableComponent(props: ApisTableProps): JSX.Element {
         return moment(date).format('MMMM Do YYYY');
     }, []);
 
-    const formatUsage = useCallback((usage: number): string => {
-        return usage?.toLocaleString() || '0';
-    }, []);
+
 
     const formatPublisher = useCallback((publisher: string): string => {
         // Map publisher values to display names
+        // Include removed publishers (dataup, zinkiai) for existing agents
         const publisherMap: Record<string, string> = {
             'dataup': 'DataUp',
+            'zinkiai': 'ZinkiAI',
             'huggingface': 'HuggingFace',
             'roboflow': 'Roboflow',
             'ultralytics': 'Ultralytics',
+            'landingai': 'LandingAI',
             'custom': 'Custom',
         };
         return publisherMap[publisher?.toLowerCase()] || publisher || 'Unknown';
@@ -156,33 +153,7 @@ function ApisTableComponent(props: ApisTableProps): JSX.Element {
             sorter: (a: MLModel, b: MLModel) => moment(a.createdDate).unix() - moment(b.createdDate).unix(),
             render: formatDate,
         },
-        {
-            title: 'Usage',
-            dataIndex: 'usage_count',
-            key: 'usage_count',
-            sorter: (a: MLModel, b: MLModel) => (a.usage_count || 0) - (b.usage_count || 0),
-            render: (usage: number, record: MLModel) => {
-                const limit = record.rate_limit || DEFAULT_RATE_LIMIT;
-                const percent = Math.min((usage / limit) * 100, 100);
-                return (
-                    <Tooltip title={`${usage} / ${limit} requests`}>
-                        <Progress
-                            percent={percent}
-                            size='small'
-                            status={percent > USAGE_WARNING_THRESHOLD ? 'exception' : 'normal'}
-                            showInfo={false}
-                        />
-                    </Tooltip>
-                );
-            },
-        },
-        {
-            title: 'Total Usage',
-            dataIndex: 'total_usage',
-            key: 'total_usage',
-            sorter: (a: MLModel, b: MLModel) => (a.total_usage || 0) - (b.total_usage || 0),
-            render: formatUsage,
-        },
+
         {
             title: 'Actions',
             key: 'actions',
@@ -207,7 +178,7 @@ function ApisTableComponent(props: ApisTableProps): JSX.Element {
                 </div>
             ),
         },
-    ], [fetching, getTypeColor, formatDate, formatUsage, handleEditClick, handleDeleteClick]);
+    ], [fetching, getTypeColor, formatDate, handleEditClick, handleDeleteClick]);
 
     const handlePreviousPage = useCallback(() => {
         onPageChange('previous');

@@ -128,15 +128,23 @@ export function getModelsAsync(query?: ModelsQuery): ThunkAction {
     return async (dispatch, getState): Promise<void> => {
         dispatch(modelsActions.getModels(query));
         try {
-            // Fetch only lambda models
+            // Fetch lambda models
             const lambdaThunk = getLambdaAsync(query);
-            const lambdaResult = await lambdaThunk(dispatch, getState, {});
+            const agentsThunk = getAgentsAsync(query);
 
-            // Use only lambda models
-            const models = lambdaResult.models || [];
-            const totalCount = lambdaResult.count || 0;
+            const [lambdaResult, agentsResult] = await Promise.all([
+                lambdaThunk(dispatch, getState, {}),
+                agentsThunk(dispatch, getState, {}),
+            ]);
 
-            dispatch(modelsActions.getModelsSuccess(models, totalCount));
+            // Combine lambda functions and agents into a single list
+            const allModels = [
+                ...(lambdaResult.models || []),
+                ...(agentsResult.models || []),
+            ];
+            const totalCount = (lambdaResult.count || 0) + (agentsResult.count || 0);
+
+            dispatch(modelsActions.getModelsSuccess(allModels, totalCount));
         } catch (error) {
             dispatch(modelsActions.getModelsFailed(error));
         }

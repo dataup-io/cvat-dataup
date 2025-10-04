@@ -1,6 +1,6 @@
 import serverProxy from './server-proxy';
 import MLModel from './ml-model';
-import { ShapeType, ModelProviders, ModelKind, LabelType } from './enums';
+import { ShapeType, AgentProvider, ModelKind, LabelType, AgentPublisher } from './enums';
 
 interface InteractorResults {
     shapes: MinimalShape[];
@@ -38,8 +38,7 @@ interface Agent {
 class AgentManager {
     public async list(): Promise<any> {
         const response = await serverProxy.agents.get();
-        // Handle new response format where agents are returned as direct list
-        const agents = Array.isArray(response) ? response : (response.items || []);
+        const agents = Array.isArray(response) ? response : [];
         return {
             agents: agents.map((agent: Agent) => this.convertAgentToMLModel(agent)),
             count: Array.isArray(response) ? response.length : (response.total || 0),
@@ -124,8 +123,8 @@ class AgentManager {
             kind,
             return_type: 'state',
             owner: { id: agent.owner },
-            provider: ModelProviders.DATAUP,
-            publisher: agent.publisher || agent.provider,
+            provider: AgentProvider.DATAUP,
+            publisher: agent.publisher || AgentPublisher.CUSTOM,
             url: agent.endpoint,
             help_message: '',
             animated_gif: '',
@@ -136,8 +135,6 @@ class AgentManager {
             updated_date: agent.updated_date,
             // Additional agent-specific properties
             rate_limit: agent.rate_limit,
-            usage_count: 0, // Default value, should be fetched from usage API
-            total_usage: 0, // Default value, should be fetched from usage API
             is_public: agent.is_public
         };
 

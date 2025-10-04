@@ -14,7 +14,7 @@ from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
 class DataUpAPIKeyInline(admin.TabularInline):
     model = DataUpAPIKey
     extra = 0
-    fields = ("name", "label", "preview", "allowed_roles", "created_at", "last_used_at")
+    fields = ("name", "label", "preview", "created_at", "last_used_at")
     readonly_fields = ("preview", "created_at", "last_used_at")
 
     def has_add_permission(self, request, obj=None):
@@ -99,7 +99,6 @@ class DataUpAPIKeyAdmin(admin.ModelAdmin):
         "label",
         "organization_display",
         "preview_display",
-        "roles_display",
         "created_at",
         "last_used_at",
     )
@@ -109,7 +108,7 @@ class DataUpAPIKeyAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("Basic Information", {"fields": ("name", "label", "key")}),
-        ("Organization & Permissions", {"fields": ("organization", "allowed_roles")}),
+        ("Organization", {"fields": ("organization",)}),
         (
             "Metadata",
             {
@@ -131,13 +130,7 @@ class DataUpAPIKeyAdmin(admin.ModelAdmin):
 
     preview_display.short_description = "Key Preview"
 
-    def roles_display(self, obj):
-        if obj.allowed_roles:
-            roles = ", ".join(obj.allowed_roles)
-            return format_html('<span style="color: #0066cc;">{}</span>', roles)
-        return format_html('<span style="color: #999;">No roles specified</span>')
 
-    roles_display.short_description = "Allowed Roles"
 
     def get_queryset(self, request):
         return (

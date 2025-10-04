@@ -41,7 +41,6 @@ export interface AgentAPIData {
     created_date?: string;
     updated_date?: string;
     last_used?: string;
-    total_usage_count?: number;
     error_count?: number;
     last_error?: string;
     resolved_labels?: string[];

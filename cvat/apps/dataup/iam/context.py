@@ -17,7 +17,7 @@ def get_dataup_user(request) -> DataUpUser:
     return user
 
 
-def get_dataup_organization(request, obj) -> DataUpOrganization:
+def get_dataup_organization(request, obj=None) -> DataUpOrganization:
     organization = get_organization(request, obj)
     if isinstance(organization, DataUpOrganization):
         return organization

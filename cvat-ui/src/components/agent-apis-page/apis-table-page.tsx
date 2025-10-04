@@ -8,6 +8,9 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 import Modal from 'antd/lib/modal';
+import Button from 'antd/lib/button';
+import { Link } from 'react-router-dom';
+import NothingToSee from 'components/common/NothingToSee';
 
 import { CombinedState } from 'reducers';
 import { getAgentsAsync, deleteAgentAsync, agentActions } from 'actions/agent-actions';
@@ -28,6 +31,7 @@ function ApisTablePage(): JSX.Element {
         previous_cursor,
         gettingQuery,
         fetching,
+        missingApiKey,
     } = useSelector((state: CombinedState) => state.agents);
 
     console.log('ApisTablePage - Redux state:', {
@@ -37,7 +41,7 @@ function ApisTablePage(): JSX.Element {
         next_cursor,
         previous_cursor,
         fetching,
-        gettingQuery
+        gettingQuery,
     });
 
     const searchValue = gettingQuery.search || '';
@@ -49,7 +53,7 @@ function ApisTablePage(): JSX.Element {
             search: search || undefined,
             cursor: undefined,
             sort: gettingQuery.sort || undefined,
-            filter: gettingQuery.filter || undefined
+            filter: gettingQuery.filter || undefined,
         };
         dispatch(agentActions.updateAgentsGettingQuery(query));
     }, [dispatch, gettingQuery]);
@@ -62,7 +66,7 @@ function ApisTablePage(): JSX.Element {
                 cursor,
                 search: gettingQuery.search || undefined,
                 sort: gettingQuery.sort || undefined,
-                filter: gettingQuery.filter || undefined
+                filter: gettingQuery.filter || undefined,
             };
             dispatch(agentActions.updateAgentsGettingQuery(query));
         }
@@ -95,7 +99,7 @@ function ApisTablePage(): JSX.Element {
                         ...gettingQuery,
                         search: gettingQuery.search || undefined,
                         sort: gettingQuery.sort || undefined,
-                        filter: gettingQuery.filter || undefined
+                        filter: gettingQuery.filter || undefined,
                     };
                     dispatch(getAgentsAsync(query));
                 } catch (error) {
@@ -123,6 +127,19 @@ function ApisTablePage(): JSX.Element {
             console.log(`Agent ${index}:`, agent, 'ID:', agent.id, 'Type:', typeof agent.id);
         });
     }, [agents]);
+
+    if (missingApiKey) {
+        return (
+            <div className='cvat-apis-page'>
+                <NothingToSee message={'No API key found. Create an API key to manage APIs.'} />
+                <div style={{ marginTop: 16 }}>
+                    <Link to='/api-keys'>
+                        <Button type='primary'>Go to API Keys</Button>
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className='cvat-apis-page'>

@@ -25,6 +25,9 @@ class AgentReadSerializer(serializers.Serializer):
     provider = serializers.CharField(
         max_length=50, help_text="External service provider"
     )
+    publisher = serializers.CharField(
+        max_length=50, help_text="External service publisher", required=False
+    )
     agent_type = serializers.CharField(
         max_length=50, default="DETECTOR", help_text="Agent type"
     )
@@ -46,6 +49,20 @@ class AgentReadSerializer(serializers.Serializer):
     created_date = serializers.DateTimeField(read_only=True)
     updated_date = serializers.DateTimeField(read_only=True)
     owner = serializers.CharField(read_only=True)
+
+    def to_internal_value(self, data):
+        """
+        Map provider field from external service to publisher field internally.
+        External service sends 'provider', we store it as 'publisher' internally.
+        """
+        # Create a copy to avoid modifying the original data
+        internal_data = data.copy() if hasattr(data, 'copy') else dict(data)
+
+        # Map incoming provider from external service to publisher internally
+        if 'provider' in internal_data:
+            internal_data['publisher'] = internal_data['provider']
+
+        return super().to_internal_value(internal_data)
 
 
 class AgentJobSerializer(serializers.Serializer):
@@ -90,6 +107,9 @@ class AgentWriteSerializer(serializers.Serializer):
     provider = serializers.CharField(
         max_length=50, help_text="External service provider"
     )
+    publisher = serializers.CharField(
+        max_length=50, help_text="External service publisher", required=False
+    )
     agent_type = serializers.CharField(
         max_length=50, default="DETECTOR", help_text="Agent type"
     )
@@ -111,3 +131,18 @@ class AgentWriteSerializer(serializers.Serializer):
     created_date = serializers.DateTimeField(read_only=True)
     updated_date = serializers.DateTimeField(read_only=True)
     owner = serializers.CharField(read_only=True)
+
+    def to_internal_value(self, data):
+        """
+        Handle input data processing. Map publisher to provider for external service.
+        """
+        # Make a copy to avoid modifying the original data
+        internal_data = data.copy() if hasattr(data, 'copy') else dict(data)
+
+        # If publisher is provided, map it to provider and remove publisher
+        if 'publisher' in internal_data:
+            internal_data['provider'] = internal_data['publisher']
+            internal_data.pop('publisher', None)
+
+        return super().to_internal_value(internal_data)
+

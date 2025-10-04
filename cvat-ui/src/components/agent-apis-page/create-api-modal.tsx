@@ -15,7 +15,7 @@ import { App } from 'antd';
 import TextArea from 'antd/lib/input/TextArea';
 import { CombinedState } from 'reducers';
 import { createAgentAsync, updateAgentAsync } from 'actions/agent-actions';
-import { MLModel } from 'cvat-core-wrapper';
+import { MLModel, AgentPublisher } from 'cvat-core-wrapper';
 
 // Define enums locally to avoid import issues
 enum AgentType {
@@ -25,20 +25,9 @@ enum AgentType {
     REID = 'reid'
 }
 
-enum APIProvider {
-    DATAUP = 'dataup',
-    HUGGINGFACE = 'huggingface',
-    ROBOFLOW = 'roboflow',
-    ZINKIAI = 'zinkiai'
-}
 
-enum APIPublisher {
-    DATAUP = 'dataup',
-    HUGGINGFACE = 'huggingface',
-    ROBOFLOW = 'roboflow',
-    ULTRALYTICS = 'ultralytics',
-    CUSTOM = 'custom',
-}
+
+
 
 enum LabelSource {
     COCO = 'coco',
@@ -175,11 +164,10 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     rules={[{ required: !api, message: 'Please select a publisher' }]}
                 >
                     <Select placeholder="Select a publisher" disabled={isFormDisabled}>
-                        <Select.Option value={APIPublisher.DATAUP}>DataUp</Select.Option>
-                        <Select.Option value={APIPublisher.HUGGINGFACE}>HuggingFace</Select.Option>
-                        <Select.Option value={APIPublisher.ROBOFLOW}>Roboflow</Select.Option>
-                        <Select.Option value={APIPublisher.ULTRALYTICS}>Ultralytics</Select.Option>
-                        <Select.Option value={APIPublisher.CUSTOM}>Custom</Select.Option>
+                        <Select.Option value={AgentPublisher.HUGGINGFACE}>HuggingFace</Select.Option>
+                        <Select.Option value={AgentPublisher.ROBOFLOW}>Roboflow</Select.Option>
+                        <Select.Option value={AgentPublisher.LANDINGAI}>LandingAI</Select.Option>
+                        <Select.Option value={AgentPublisher.CUSTOM}>Custom</Select.Option>
                     </Select>
                 </Form.Item>
                 <Form.Item

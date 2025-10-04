@@ -404,11 +404,29 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 // run server request
                 this.setState({ fetching: true });
 
-                const response = await core.lambda.call(
-                    jobInstance.taskId,
-                    interactor,
-                    { ...data, job: jobInstance.id },
-                ) as InteractorResults;
+                let response: InteractorResults;
+
+                if (interactor.provider.toLowerCase() === 'cvat') {
+                    response = await core.lambda.call(
+                        jobInstance.taskId,
+                        interactor,
+                        { ...data, job: jobInstance.id },
+                    ) as InteractorResults;
+                } else if (interactor.provider.toLowerCase() === 'dataup') {
+                    // Call external agent for DataUp interactors
+                    response = await core.agents.call(interactor.id, {
+                        task_id: jobInstance.taskId,
+                        frame_ids: [data.frame],
+                        params: {
+                            ...data,
+                            job: jobInstance.id,
+                            type: 'interact',
+                            model_id: interactor.name,
+                        },
+                    }) as InteractorResults;
+                } else {
+                    throw new Error(`Unsupported interactor provider: ${interactor.provider}`);
+                }
 
                 // if only mask presented, let's receive points
                 if (response.mask && !response.points) {

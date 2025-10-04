@@ -371,10 +371,10 @@ function BatchInferenceControlComponent(props: Props): JSX.Element | null {
      const header = (
          <Row justify='space-between' align='middle' style={{ width: '100%' }}>
              <Col>
-                 <Text strong>Batch inference</Text>
+                 <Text strong style={{ fontSize: '14px' }}>Batch inference</Text>
              </Col>
              <Col>
-                 {isRunning ? <Tag color='blue'>Running</Tag> : <Tag>Idle</Tag>}
+                 {isRunning && <Tag color='blue' style={{ padding: '0 4px', fontSize: '12px' }}>Running</Tag>}
              </Col>
          </Row>
      );

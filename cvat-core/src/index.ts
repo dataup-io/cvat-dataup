@@ -84,6 +84,13 @@ export default interface CVATCore {
         };
     };
 
+    dataupApiKeys: {
+        get: (filter?: any) => Promise<any>;
+        create: (keyData: any) => Promise<any>;
+        update: (id: string, keyData: any) => Promise<any>;
+        delete: (id: string, organizationUuid?: string) => Promise<any>;
+    };
+
     server: {
         about: () => Promise<AboutData>;
         share: (dir: string) => Promise<{

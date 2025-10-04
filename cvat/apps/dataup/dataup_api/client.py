@@ -41,6 +41,7 @@ class DataUpAPIClient:
         if not request_method:
             raise DataUpAPIError(f"Invalid request method: {method}")
         try:
+            print(f"Sending request with header {headers}")
             resp = request_method(url, json=data, params=params, headers=headers)
             if resp.status_code >= 400:
                 raise DataUpAPIError.from_response(resp)

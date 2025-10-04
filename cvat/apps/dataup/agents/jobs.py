@@ -27,7 +27,7 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from rest_framework import status
 
 
-MAX_BATCH_SIZE = 5
+MAX_BATCH_SIZE = 2
 SAVE_EVERY_FRAMES = 50
 slogger = ServerLogManager(__name__)
 

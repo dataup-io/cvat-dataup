@@ -2593,6 +2593,70 @@ async function cancelAgentJob(id: string | number): Promise<void> {
     }
 }
 
+
+
+async function getApiKeys(filter: { [key: string]: any } = {}): Promise<any> {
+            const { backendAPI } = config;
+            const authToken = getStoredAuthToken();
+            const url = `${backendAPI}/dataup/api-keys`;
+
+            const response = await Axios.get(url, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    ...filter,
+                    ...enableOrganization(),
+                },
+            });
+            return response.data;
+};
+
+async function createApiKey(keyData: any): Promise<any> {
+            const { backendAPI } = config;
+            const authToken = getStoredAuthToken();
+            const url = `${backendAPI}/dataup/api-keys`;
+            const response = await Axios.post(url, keyData, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    ...enableOrganization(),
+                },
+            });
+            return response.data;
+};
+
+async function updateApiKey(id: string, keyData: any): Promise<any> {
+            const { backendAPI } = config;
+            const authToken = getStoredAuthToken();
+            const url = `${backendAPI}/dataup/api-keys/${id}`;
+            const response = await Axios.patch(url, keyData, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    ...enableOrganization(),
+                },
+            });
+            return response.data;
+};
+
+async function deleteApiKey(id: string): Promise<void> {
+            const { backendAPI } = config;
+            const authToken = getStoredAuthToken();
+            const url = `${backendAPI}/dataup/api-keys/${id}`;
+            const response = await Axios.delete(url, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    ...enableOrganization(),
+                },
+            });
+            return response.data;
+};
+
 export default Object.freeze({
     server: Object.freeze({
         setAuthData,
@@ -2703,6 +2767,13 @@ export default Object.freeze({
         getOne: getAgentJob,
         create: createAgentJob,
         cancel: cancelAgentJob,
+    }),
+
+    dataupApiKeys: Object.freeze({
+        get: getApiKeys,
+        create: createApiKey,
+        delete: deleteApiKey,
+        update: updateApiKey,
     }),
 
     issues: Object.freeze({

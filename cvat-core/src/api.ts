@@ -325,7 +325,30 @@ function build(): CVATCore {
                 },
             }
         },
+        dataupApiKeys: {
+                    async get(filter?: any) {
+                        const result = await PluginRegistry.apiWrapper(cvat.dataupApiKeys.get, filter);
+                        return result;
+                    },
 
+                    async create(keyData: any) {
+                        const result = await PluginRegistry.apiWrapper(cvat.dataupApiKeys.create, keyData);
+                        return result;
+                    },
+
+                    async update(id: string, keyData: any) {
+                        const result = await PluginRegistry.apiWrapper(cvat.dataupApiKeys.update, id, keyData);
+                        return result;
+                    },
+
+                    async delete(id: string) {
+                        const result = await PluginRegistry.apiWrapper(
+                            cvat.dataupApiKeys.delete,
+                            id,
+                        );
+                        return result;
+                    },
+                },
         logger,
         config: {
             get backendAPI() {
@@ -553,6 +576,7 @@ function build(): CVATCore {
     cvat.consensus = Object.freeze(cvat.consensus);
     cvat.analytics = Object.freeze(cvat.analytics);
     cvat.agents = Object.freeze(cvat.agents);
+    cvat.dataupApiKeys = Object.freeze(cvat.dataupApiKeys);
     cvat.classes = Object.freeze(cvat.classes);
     cvat.utils = Object.freeze(cvat.utils);
     const implemented = Object.freeze(implementAPI(cvat));
