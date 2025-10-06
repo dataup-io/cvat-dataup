@@ -1,3 +1,4 @@
+from cvat.apps.dataup.iam.context import get_dataup_organization
 import django_rq
 from datetime import timedelta
 from cvat.apps.dataup.agents.rq import AgentRQMeta
@@ -267,6 +268,7 @@ class AgentJob:
         dataup_client = DataUpAPIClient.from_cfg(dataup_client_cfg)
 
         job_id = kwargs.get("job_id")
+        organization_uuid = kwargs.get("organization_uuid", "dataup_org") # TODO: We need to pass this when we need it
         db_task, db_job = _get_task_job_from_ids(task_id, job_id, cleanup)
 
 
@@ -284,7 +286,7 @@ class AgentJob:
         threshold = kwargs.get("threshold", 0.5)
         params = {"threshold": threshold}
         for frame_ids_batch in take_by(frame_ids, MAX_BATCH_SIZE):
-            payload = build_infer_payload(task_id, frame_ids_batch, params)
+            payload = build_infer_payload(organization_uuid, task_id, frame_ids_batch, params)
 
             try:
                 resp = dataup_client.make_request(
