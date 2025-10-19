@@ -1699,10 +1699,10 @@ export class CanvasViewImpl implements CanvasView, Listener {
         );
 
         // Setup event handlers
-        this.canvas.addEventListener('dblclick', (e: MouseEvent): void => {
-            this.controller.fit();
-            e.preventDefault();
-        });
+        // this.canvas.addEventListener('dblclick', (e: MouseEvent): void => {
+        //     this.controller.fit();
+        //     e.preventDefault();
+        // });
 
         this.canvas.addEventListener('mousedown', (event): void => {
             if ([0, 1].includes(event.button)) {
