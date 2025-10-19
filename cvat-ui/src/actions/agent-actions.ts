@@ -159,6 +159,7 @@ export function deleteAgentAsync(id: string | number): ThunkAction {
             dispatch(agentActions.deleteAgentSuccess(id));
         } catch (error) {
             dispatch(agentActions.deleteAgentFailed(id, error));
+            throw error; // Re-throw the error so it can be caught by the component
         }
     };
 }

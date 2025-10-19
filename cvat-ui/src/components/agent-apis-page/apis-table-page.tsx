@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router';
 import Modal from 'antd/lib/modal';
 import Button from 'antd/lib/button';
+import notification from 'antd/lib/notification';
 import { Link } from 'react-router-dom';
 import NothingToSee from 'components/common/NothingToSee';
 
@@ -102,8 +103,35 @@ function ApisTablePage(): JSX.Element {
                         filter: gettingQuery.filter || undefined,
                     };
                     dispatch(getAgentsAsync(query));
-                } catch (error) {
+                } catch (error: any) {
                     console.error('Failed to delete agent:', error);
+                    
+                    // Show user-friendly error notification
+                    if (error?.response?.status === 403) {
+                        notification.error({
+                            message: 'Permission Denied',
+                            description: 'You do not have permission to delete this agent. Please contact your administrator.',
+                            duration: 5,
+                        });
+                    } else if (error?.response?.status === 404) {
+                        notification.error({
+                            message: 'Agent Not Found',
+                            description: 'The agent you are trying to delete no longer exists.',
+                            duration: 5,
+                        });
+                    } else if (error?.response?.status >= 500) {
+                        notification.error({
+                            message: 'Server Error',
+                            description: 'A server error occurred while deleting the agent. Please try again later.',
+                            duration: 5,
+                        });
+                    } else {
+                        notification.error({
+                            message: 'Failed to Delete Agent',
+                            description: error?.message || 'An unexpected error occurred while deleting the agent.',
+                            duration: 5,
+                        });
+                    }
                 }
             },
             okButtonProps: {

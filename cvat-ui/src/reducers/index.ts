@@ -653,6 +653,13 @@ export interface NotificationsState {
             fetching: null | ErrorState;
             canceling: null | ErrorState;
             deleting: null | ErrorState;
+        };
+        agents: {
+            fetching: null | ErrorState;
+            creating: null | ErrorState;
+            updating: null | ErrorState;
+            deleting: null | ErrorState;
+            calling: null | ErrorState;
         }
     };
     messages: {

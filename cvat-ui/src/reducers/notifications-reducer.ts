@@ -27,6 +27,7 @@ import { RequestsActionsTypes } from 'actions/requests-actions';
 import { ImportActionTypes } from 'actions/import-actions';
 import { ExportActionTypes } from 'actions/export-actions';
 import { ConsensusActionTypes } from 'actions/consensus-actions';
+import { AgentActionTypes } from 'actions/agent-actions';
 import { getInstanceType } from 'actions/common';
 
 import config from 'config';
@@ -191,6 +192,13 @@ const defaultState: NotificationsState = {
             fetching: null,
             canceling: null,
             deleting: null,
+        },
+        agents: {
+            fetching: null,
+            creating: null,
+            updating: null,
+            deleting: null,
+            calling: null,
         },
     },
     messages: {
@@ -2046,6 +2054,99 @@ export default function (state = defaultState, action: AnyAction): Notifications
                             reason: action.payload.error,
                             shouldLog: shouldLog(action.payload.error),
                             className: 'cvat-notification-notice-delete-webhook-failed',
+                        },
+                    },
+                },
+            };
+        }
+        case AgentActionTypes.GET_AGENTS_FAILED: {
+            return {
+                ...state,
+                errors: {
+                    ...state.errors,
+                    agents: {
+                        ...state.errors.agents,
+                        fetching: {
+                            message: 'Could not fetch agents',
+                            reason: action.payload.error,
+                            shouldLog: shouldLog(action.payload.error),
+                            className: 'cvat-notification-notice-get-agents-failed',
+                        },
+                    },
+                },
+            };
+        }
+        case AgentActionTypes.CREATE_AGENT_FAILED: {
+            return {
+                ...state,
+                errors: {
+                    ...state.errors,
+                    agents: {
+                        ...state.errors.agents,
+                        creating: {
+                            message: 'Could not create agent',
+                            reason: action.payload.error,
+                            shouldLog: shouldLog(action.payload.error),
+                            className: 'cvat-notification-notice-create-agent-failed',
+                        },
+                    },
+                },
+            };
+        }
+        case AgentActionTypes.UPDATE_AGENT_FAILED: {
+            return {
+                ...state,
+                errors: {
+                    ...state.errors,
+                    agents: {
+                        ...state.errors.agents,
+                        updating: {
+                            message: 'Could not update agent',
+                            reason: action.payload.error,
+                            shouldLog: shouldLog(action.payload.error),
+                            className: 'cvat-notification-notice-update-agent-failed',
+                        },
+                    },
+                },
+            };
+        }
+        case AgentActionTypes.DELETE_AGENT_FAILED: {
+            const { error } = action.payload;
+            let message = 'Could not delete agent';
+            
+            // Provide specific message for permission errors
+            if (error?.response?.status === 403) {
+                message = 'You do not have permission to delete this agent. Please contact your organization administrator.';
+            }
+            
+            return {
+                ...state,
+                errors: {
+                    ...state.errors,
+                    agents: {
+                        ...state.errors.agents,
+                        deleting: {
+                            message,
+                            reason: error,
+                            shouldLog: shouldLog(error),
+                            className: 'cvat-notification-notice-delete-agent-failed',
+                        },
+                    },
+                },
+            };
+        }
+        case AgentActionTypes.CALL_AGENT_FAILED: {
+            return {
+                ...state,
+                errors: {
+                    ...state.errors,
+                    agents: {
+                        ...state.errors.agents,
+                        calling: {
+                            message: 'Could not call agent',
+                            reason: action.payload.error,
+                            shouldLog: shouldLog(action.payload.error),
+                            className: 'cvat-notification-notice-call-agent-failed',
                         },
                     },
                 },
