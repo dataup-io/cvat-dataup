@@ -81,7 +81,7 @@ services:
 
   cvat_server:
     container_name: cvat_server
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on:
       <<: *backend-deps
@@ -97,7 +97,7 @@ services:
       CVAT_ANALYTICS: 1
       CVAT_BASE_URL:
       ONE_RUNNING_JOB_IN_QUEUE_PER_USER:
-      DATAUP_BASE_URL: '${DATAUP_BASE_URL:-}'
+      DATAUP_BASE_URL: '${DATAUP_BASE_URL:-https://api.data-up.io}'
     command: init run server
     labels:
       traefik.enable: "true"
@@ -118,7 +118,7 @@ services:
 
   cvat_worker_utils:
     container_name: cvat_worker_utils
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -135,7 +135,7 @@ services:
 
   cvat_worker_import:
     container_name: cvat_worker_import
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -151,7 +151,7 @@ services:
 
   cvat_worker_export:
     container_name: cvat_worker_export
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -165,10 +165,10 @@ services:
     networks:
       - cvat
 
- 
+
   cvat_worker_annotation:
     container_name: cvat_worker_annotation
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -184,7 +184,7 @@ services:
 
   cvat_worker_webhooks:
     container_name: cvat_worker_webhooks
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -200,7 +200,7 @@ services:
 
   cvat_worker_quality_reports:
     container_name: cvat_worker_quality_reports
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -216,7 +216,7 @@ services:
 
   cvat_worker_chunks:
     container_name: cvat_worker_chunks
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -232,7 +232,7 @@ services:
 
   cvat_worker_consensus:
     container_name: cvat_worker_consensus
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -248,7 +248,7 @@ services:
 
   cvat_worker_agent_jobs:
     container_name: cvat_worker_agent_jobs
-    image: fghallabi/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -264,7 +264,7 @@ services:
 
   cvat_ui:
     container_name: cvat_ui
-    image: fghallabi/cvat-dataup-ui:${CVAT_DATAUP_VERSION:-v1.0}
+    image: dataupltd/cvat-dataup-ui:${CVAT_DATAUP_VERSION:-v1.0}
     restart: always
     depends_on:
       - cvat_server
