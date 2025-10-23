@@ -114,6 +114,7 @@ class FrameOutputType(Enum):
     BUFFER = auto()
     PIL = auto()
     NUMPY_ARRAY = auto()
+    URL = auto()
 
 
 Frame2d = Union[BytesIO, np.ndarray, Image.Image]

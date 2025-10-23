@@ -2455,6 +2455,208 @@ async function getQualityReports(
     return response.data.results;
 }
 
+async function getAgents(filter = {}): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+    console.log("Calling Get agents with organization context", params);
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agents`, {
+            params: {
+                ...params,
+                ...filter,
+            },
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgent(id: string | number): Promise<any> {
+    const { backendAPI } = config;
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agents/${id}/`);
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function createAgent(agentData: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/agents`, agentData, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function updateAgent(id: string | number, agentData: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.put(`${backendAPI}/dataup/agents/${id}/`, agentData, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function deleteAgent(id: string | number): Promise<void> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        await Axios.delete(`${backendAPI}/dataup/agents/${id}`, {
+            params,
+        });
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function callAgent(id: string | number, body: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/agents/${id}/infer`, body, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgentJobs(filter = {}): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs`, {
+            params: { ...params, ...filter },
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgentJob(id: string | number): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs/${id}`, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function createAgentJob(jobData: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/agent-jobs`, jobData, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function cancelAgentJob(id: string | number): Promise<void> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        await Axios.delete(`${backendAPI}/dataup/agent-jobs/${id}`, {
+            params,
+        });
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+
+
+async function getApiKeys(filter: { [key: string]: any } = {}): Promise<any> {
+            const { backendAPI } = config;
+            const authToken = getStoredAuthToken();
+            const url = `${backendAPI}/dataup/api-keys`;
+
+            const response = await Axios.get(url, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    ...filter,
+                    ...enableOrganization(),
+                },
+            });
+            return response.data;
+};
+
+async function createApiKey(keyData: any): Promise<any> {
+            const { backendAPI } = config;
+            const authToken = getStoredAuthToken();
+            const url = `${backendAPI}/dataup/api-keys`;
+            const response = await Axios.post(url, keyData, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    ...enableOrganization(),
+                },
+            });
+            return response.data;
+};
+
+async function updateApiKey(id: string, keyData: any): Promise<any> {
+            const { backendAPI } = config;
+            const authToken = getStoredAuthToken();
+            const url = `${backendAPI}/dataup/api-keys/${id}`;
+            const response = await Axios.patch(url, keyData, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    ...enableOrganization(),
+                },
+            });
+            return response.data;
+};
+
+async function deleteApiKey(id: string): Promise<void> {
+            const { backendAPI } = config;
+            const authToken = getStoredAuthToken();
+            const url = `${backendAPI}/dataup/api-keys/${id}`;
+            const response = await Axios.delete(url, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                },
+                params: {
+                    ...enableOrganization(),
+                },
+            });
+            return response.data;
+};
+
 export default Object.freeze({
     server: Object.freeze({
         setAuthData,
@@ -2549,6 +2751,29 @@ export default Object.freeze({
         run: runLambdaRequest,
         call: callLambdaFunction,
         cancel: cancelLambdaRequest,
+    }),
+
+    agents: Object.freeze({
+        get: getAgents,
+        getOne: getAgent,
+        create: createAgent,
+        update: updateAgent,
+        delete: deleteAgent,
+        call: callAgent,
+    }),
+
+    agentJobs: Object.freeze({
+        get: getAgentJobs,
+        getOne: getAgentJob,
+        create: createAgentJob,
+        cancel: cancelAgentJob,
+    }),
+
+    dataupApiKeys: Object.freeze({
+        get: getApiKeys,
+        create: createApiKey,
+        delete: deleteApiKey,
+        update: updateApiKey,
     }),
 
     issues: Object.freeze({

@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = [
@@ -21,17 +20,24 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.UUIDField(
-                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 ("key", models.CharField(max_length=128)),
                 (
                     "name",
-                    models.CharField(help_text="Descriptive name for the API key", max_length=255),
+                    models.CharField(
+                        help_text="Descriptive name for the API key", max_length=255
+                    ),
                 ),
                 (
                     "preview",
-                    models.CharField(help_text="Descriptive name for the API key", max_length=255),
+                    models.CharField(
+                        help_text="Descriptive name for the API key", max_length=255
+                    ),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("last_used_at", models.DateTimeField(blank=True, null=True)),
@@ -48,7 +54,10 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.UUIDField(
-                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 (
@@ -67,20 +76,32 @@ class Migration(migrations.Migration):
                 (
                     "id",
                     models.UUIDField(
-                        default=uuid.uuid4, editable=False, primary_key=True, serialize=False
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
                     ),
                 ),
                 (
                     "key",
                     models.CharField(
-                        help_text="API key for DataUp integration", max_length=255, unique=True
+                        help_text="API key for DataUp integration",
+                        max_length=255,
+                        unique=True,
                     ),
                 ),
                 (
                     "name",
-                    models.CharField(help_text="Descriptive name for the API key", max_length=255),
+                    models.CharField(
+                        help_text="Descriptive name for the API key", max_length=255
+                    ),
                 ),
-                ("preview", models.CharField(help_text="Preview of the API key", max_length=255)),
+                (
+                    "preview",
+                    models.CharField(
+                        help_text="Preview of the API key", max_length=255
+                    ),
+                ),
                 (
                     "allowed_roles",
                     models.JSONField(

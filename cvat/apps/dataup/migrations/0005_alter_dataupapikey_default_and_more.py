@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("dataup", "0004_dataupapikey_default"),
     ]
@@ -44,27 +43,36 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="dataupapikey",
-            index=models.Index(fields=["owner", "default"], name="dataup_data_owner_i_c28cb1_idx"),
-        ),
-        migrations.AddIndex(
-            model_name="dataupapikey",
             index=models.Index(
-                fields=["organization", "default"], name="dataup_data_organiz_4dc162_idx"
+                fields=["owner", "default"], name="dataup_data_owner_i_c28cb1_idx"
             ),
         ),
         migrations.AddIndex(
             model_name="dataupapikey",
-            index=models.Index(fields=["created_at"], name="dataup_data_created_e60fee_idx"),
+            index=models.Index(
+                fields=["organization", "default"],
+                name="dataup_data_organiz_4dc162_idx",
+            ),
         ),
         migrations.AddIndex(
             model_name="dataupapikey",
-            index=models.Index(fields=["last_used_at"], name="dataup_data_last_us_bae394_idx"),
+            index=models.Index(
+                fields=["created_at"], name="dataup_data_created_e60fee_idx"
+            ),
+        ),
+        migrations.AddIndex(
+            model_name="dataupapikey",
+            index=models.Index(
+                fields=["last_used_at"], name="dataup_data_last_us_bae394_idx"
+            ),
         ),
         migrations.AddConstraint(
             model_name="dataupapikey",
             constraint=models.CheckConstraint(
                 check=models.Q(
-                    ("owner__isnull", False), ("organization__isnull", False), _connector="OR"
+                    ("owner__isnull", False),
+                    ("organization__isnull", False),
+                    _connector="OR",
                 ),
                 name="api_key_owner_or_org_required",
             ),
@@ -81,7 +89,9 @@ class Migration(migrations.Migration):
             model_name="dataupapikey",
             constraint=models.UniqueConstraint(
                 condition=models.Q(
-                    ("default", True), ("organization__isnull", False), ("owner__isnull", True)
+                    ("default", True),
+                    ("organization__isnull", False),
+                    ("owner__isnull", True),
                 ),
                 fields=("organization",),
                 name="uniq_default_per_org",

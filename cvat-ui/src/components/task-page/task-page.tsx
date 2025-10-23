@@ -11,12 +11,12 @@ import { Row, Col } from 'antd/lib/grid';
 import Spin from 'antd/lib/spin';
 import notification from 'antd/lib/notification';
 
-// import { getInferenceStatusAsync } from 'actions/models-actions';
+import { getInferenceStatusAsync } from 'actions/models-actions';
 import { updateJobAsync } from 'actions/jobs-actions';
 import { getCore, Task, Job } from 'cvat-core-wrapper';
 import { TaskNotFoundComponent } from 'components/common/not-found';
 import JobListComponent from 'components/task-page/job-list';
-// import ModelRunnerModal from 'components/model-runner-modal/model-runner-dialog';
+import ModelRunnerModal from 'components/model-runner-modal/model-runner-dialog';
 import CVATLoadingSpinner from 'components/common/loading-spinner';
 import MoveTaskModal from 'components/move-task-modal/move-task-modal';
 import { CombinedState } from 'reducers';
@@ -74,7 +74,7 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' }):
         receiveTask().finally(() => {
             setFetchingTask(false);
         });
-        // dispatch(getInferenceStatusAsync()); // Removed automatic annotation
+        dispatch(getInferenceStatusAsync());
     }, []);
 
     useEffect(() => {
@@ -121,7 +121,7 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' }):
                     </div>
                 </Col>
             </Row>
-            {/* <ModelRunnerModal /> */}
+            <ModelRunnerModal />
             <MoveTaskModal onUpdateTask={onUpdateTask} />
         </>
     );

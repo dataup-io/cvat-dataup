@@ -43,7 +43,7 @@ class PermissionResult:
     reasons: list[str] = field(factory=list)
 
 
-def get_organization(request, obj):
+def get_organization(request, obj=None):
     # Try to get organization from an object otherwise, return the organization that is specified in query parameters
     if isinstance(obj, Organization):
         return obj

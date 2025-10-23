@@ -42,6 +42,10 @@ ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(","
 INTERNAL_IPS = ["127.0.0.1"]
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "")
 
+USE_PRESIGNED_URLS = os.environ.get("USE_PRESIGNED_URLS", True)
+CLOUD_PRESIGN_TTL = 600
+
+
 
 def generate_secret_key():
     """
@@ -286,6 +290,7 @@ class CVAT_QUEUES(Enum):
     CLEANING = "cleaning"
     CHUNKS = "chunks"
     CONSENSUS = "consensus"
+    AGENT_JOBS = "agent_jobs"
 
 
 redis_inmem_host = os.getenv("CVAT_REDIS_INMEM_HOST", "localhost")
@@ -317,6 +322,10 @@ RQ_QUEUES = {
         "DEFAULT_TIMEOUT": "4h",
         # custom fields
         "PARSED_JOB_ID_CLASS": "cvat.apps.engine.rq.ExportRequestId",
+    },
+    CVAT_QUEUES.AGENT_JOBS.value: {
+        **REDIS_INMEM_SETTINGS,
+        "DEFAULT_TIMEOUT": "24h",
     },
     CVAT_QUEUES.AUTO_ANNOTATION.value: {
         **REDIS_INMEM_SETTINGS,

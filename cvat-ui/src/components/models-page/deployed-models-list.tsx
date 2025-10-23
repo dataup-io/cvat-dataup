@@ -10,7 +10,7 @@ import { Row, Col } from 'antd/lib/grid';
 import Pagination from 'antd/lib/pagination';
 import { CombinedState, ModelsQuery } from 'reducers';
 import { MLModel } from 'cvat-core-wrapper';
-import { ModelProviders } from 'cvat-core/src/enums';
+import { AgentProvider } from 'cvat-core/src/enums';
 import { getModelsAsync } from 'actions/models-actions';
 import dimensions from 'utils/dimensions';
 import DeployedModelItem from './deployed-model-item';
@@ -20,9 +20,14 @@ interface Props {
 }
 
 function setUpModelsList(models: MLModel[], newPage: number, pageSize: number): MLModel[] {
-    const builtInModels = models.filter((model: MLModel) => model.provider === ModelProviders.CVAT);
-    const externalModels = models.filter((model: MLModel) => model.provider !== ModelProviders.CVAT);
+    // Filter to only include lambda models (CVAT provider) and exclude agent models (DATAUP provider)
+    const lambdaModels = models.filter((model: MLModel) => model.provider !== AgentProvider.DATAUP);
+
+    // Separate built-in and external models
+    const builtInModels = lambdaModels.filter((model: MLModel) => model.provider === AgentProvider.CVAT);
+    const externalModels = lambdaModels.filter((model: MLModel) => model.provider !== AgentProvider.CVAT);
     externalModels.sort((a, b) => moment(a.createdDate).valueOf() - moment(b.createdDate).valueOf());
+
     const renderModels = [...builtInModels, ...externalModels];
     return renderModels.slice((newPage - 1) * pageSize, newPage * pageSize);
 }
@@ -33,6 +38,7 @@ export default function DeployedModelsListComponent(props: Props): JSX.Element {
     const trackers = useSelector((state: CombinedState) => state.models.trackers);
     const reid = useSelector((state: CombinedState) => state.models.reid);
     const totalCount = useSelector((state: CombinedState) => state.models.totalCount);
+    const organizationInitialized = useSelector((state: CombinedState) => state.organizations.initialized);
 
     const dispatch = useDispatch();
     const { query } = props;
@@ -76,11 +82,14 @@ export default function DeployedModelsListComponent(props: Props): JSX.Element {
                 <Pagination
                     className='cvat-models-pagination'
                     onChange={(newPage: number, newPageSize: number) => {
-                        dispatch(getModelsAsync({
-                            ...query,
-                            page: newPage,
-                            pageSize: newPageSize,
-                        }));
+                        // Only fetch models if organization context is ready (either org or personal workspace)
+                        if (organizationInitialized) {
+                            dispatch(getModelsAsync({
+                                ...query,
+                                page: newPage,
+                                pageSize: newPageSize,
+                            }));
+                        }
                     }}
                     total={totalCount}
                     current={page}

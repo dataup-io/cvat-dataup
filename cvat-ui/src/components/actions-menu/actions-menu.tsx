@@ -31,6 +31,7 @@ export enum Actions {
     DELETE_TASK = 'delete_task',
     MOVE_TASK_TO_PROJECT = 'move_task_to_project',
     OPEN_BUG_TRACKER = 'open_bug_tracker',
+    RUN_AUTO_ANNOTATION = 'run_auto_annotation',
     BACKUP_TASK = 'backup_task',
     VIEW_ANALYTICS = 'view_analytics',
     QUALITY_CONTROL = 'quality_control',
@@ -89,7 +90,14 @@ function ActionsMenuComponent(props: Props): JSX.Element {
         ), 20]);
     }
 
-    // Automatic annotation removed
+    menuItems.push([(
+        <Menu.Item
+            key={Actions.RUN_AUTO_ANNOTATION}
+            disabled={inferenceIsActive}
+        >
+            Automatic annotation
+        </Menu.Item>
+    ), 30]);
 
     menuItems.push([(
         <Menu.Item

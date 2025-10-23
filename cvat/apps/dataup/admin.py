@@ -14,7 +14,7 @@ from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
 class DataUpAPIKeyInline(admin.TabularInline):
     model = DataUpAPIKey
     extra = 0
-    fields = ("name", "label", "preview", "allowed_roles", "created_at", "last_used_at")
+    fields = ("name", "label", "preview", "created_at", "last_used_at")
     readonly_fields = ("preview", "created_at", "last_used_at")
 
     def has_add_permission(self, request, obj=None):
@@ -23,9 +23,20 @@ class DataUpAPIKeyInline(admin.TabularInline):
 
 @admin.register(DataUpUser)
 class DataUpUserAdmin(admin.ModelAdmin):
-    list_display = ("id", "user_username", "user_email", "user_first_name", "user_last_name")
+    list_display = (
+        "id",
+        "user_username",
+        "user_email",
+        "user_first_name",
+        "user_last_name",
+    )
     list_filter = ("user__date_joined", "user__is_active")
-    search_fields = ("user__username", "user__email", "user__first_name", "user__last_name")
+    search_fields = (
+        "user__username",
+        "user__email",
+        "user__first_name",
+        "user__last_name",
+    )
     readonly_fields = ("id",)
 
     def user_username(self, obj):
@@ -88,7 +99,6 @@ class DataUpAPIKeyAdmin(admin.ModelAdmin):
         "label",
         "organization_display",
         "preview_display",
-        "roles_display",
         "created_at",
         "last_used_at",
     )
@@ -98,10 +108,13 @@ class DataUpAPIKeyAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("Basic Information", {"fields": ("name", "label", "key")}),
-        ("Organization & Permissions", {"fields": ("organization", "allowed_roles")}),
+        ("Organization", {"fields": ("organization",)}),
         (
             "Metadata",
-            {"fields": ("id", "preview", "created_at", "last_used_at"), "classes": ("collapse",)},
+            {
+                "fields": ("id", "preview", "created_at", "last_used_at"),
+                "classes": ("collapse",),
+            },
         ),
     )
 
@@ -117,16 +130,12 @@ class DataUpAPIKeyAdmin(admin.ModelAdmin):
 
     preview_display.short_description = "Key Preview"
 
-    def roles_display(self, obj):
-        if obj.allowed_roles:
-            roles = ", ".join(obj.allowed_roles)
-            return format_html('<span style="color: #0066cc;">{}</span>', roles)
-        return format_html('<span style="color: #999;">No roles specified</span>')
 
-    roles_display.short_description = "Allowed Roles"
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related("organization__organization")
+        return (
+            super().get_queryset(request).select_related("organization__organization")
+        )
 
     def save_model(self, request, obj, form, change):
         # Ensure preview is generated when saving

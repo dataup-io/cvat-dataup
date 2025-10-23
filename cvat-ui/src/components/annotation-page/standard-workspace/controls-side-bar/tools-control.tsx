@@ -53,6 +53,8 @@ import { switchToolsBlockerState } from 'actions/settings-actions';
 import withVisibilityHandling from './handle-popover-visibility';
 import ToolsTooltips from './interactor-tooltips';
 
+import { convertComplexToSimpleMapping } from 'utils/model-inference';
+
 interface StateToProps {
     canvasInstance: Canvas;
     labels: Label[];
@@ -402,11 +404,29 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                 // run server request
                 this.setState({ fetching: true });
 
-                const response = await core.lambda.call(
-                    jobInstance.taskId,
-                    interactor,
-                    { ...data, job: jobInstance.id },
-                ) as InteractorResults;
+                let response: InteractorResults;
+
+                if (interactor.provider.toLowerCase() === 'cvat') {
+                    response = await core.lambda.call(
+                        jobInstance.taskId,
+                        interactor,
+                        { ...data, job: jobInstance.id },
+                    ) as InteractorResults;
+                } else if (interactor.provider.toLowerCase() === 'dataup') {
+                    // Call external agent for DataUp interactors
+                    response = await core.agents.call(interactor.id, {
+                        task_id: jobInstance.taskId,
+                        frame_ids: [data.frame],
+                        params: {
+                            ...data,
+                            job: jobInstance.id,
+                            type: 'interact',
+                            model_id: interactor.name,
+                        },
+                    }) as InteractorResults;
+                } else {
+                    throw new Error(`Unsupported interactor provider: ${interactor.provider}`);
+                }
 
                 // if only mask presented, let's receive points
                 if (response.mask && !response.points) {
@@ -1183,6 +1203,8 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
             jobInstance, detectors, curZOrder, frame, labels, createAnnotations,
         } = this.props;
 
+
+
         if (!detectors.length) {
             return (
                 <Row justify='center' align='middle' style={{ marginTop: '5px' }}>
@@ -1214,9 +1236,34 @@ export class ToolsControlComponent extends React.PureComponent<Props, State> {
                         // The function call endpoint doesn't support the cleanup parameter.
                         const { cleanup, ...restOfBody } = body;
 
-                        const result = await core.lambda.call(jobInstance.taskId, model, {
-                            ...restOfBody, type: 'annotate_frame', frame, job: jobInstance.id,
-                        }) as DetectorResults;
+                        let result: DetectorResults;
+
+                        if (model.provider.toLowerCase() === 'cvat') {
+                            result = await core.lambda.call(jobInstance.taskId, model, {
+                                ...restOfBody, type: 'annotate_frame', frame, job: jobInstance.id,
+                            }) as DetectorResults;
+                        } else if (model.provider.toLowerCase() === 'dataup') {
+                            // Convert complex mapping to simple format for DataUp agents
+                            const { mapping: complexMapping, ...otherParams } = restOfBody;
+                            const simpleMapping = complexMapping ? convertComplexToSimpleMapping(complexMapping) : undefined;
+
+                            const agentParams: any = {
+                                ...otherParams,
+                                type: 'annotate_frame',
+                                job: jobInstance.id,
+                            };
+                            if (simpleMapping && Object.keys(simpleMapping).length > 0) {
+                                agentParams.mapping = simpleMapping;
+                            }
+
+                            result = await core.agents.call(model.id, {
+                                task_id: jobInstance.taskId,
+                                frame_ids: [frame],
+                                params: agentParams,
+                            }) as DetectorResults;
+                        } else {
+                            throw new Error(`Unsupported model provider: ${model.provider}`);
+                        }
 
                         const tagStates = result.tags.map((tag) => {
                             const jobLabel = jobInstance.labels

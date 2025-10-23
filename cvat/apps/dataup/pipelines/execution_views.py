@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from cvat.apps.dataup.pipelines.serializers import PipelineExecutionSerializer
-from cvat.apps.dataup.views.base import DataUpBaseViewSet
+from cvat.apps.dataup.dataup_api.base import DataUpBaseViewSet
 
 
 class PipelineExecutionViewSet(DataUpBaseViewSet):
@@ -27,9 +27,14 @@ class PipelineExecutionViewSet(DataUpBaseViewSet):
         },
         parameters=[
             OpenApiParameter(
-                "pipeline", description="Filter by pipeline ID", required=False, type=int
+                "pipeline",
+                description="Filter by pipeline ID",
+                required=False,
+                type=int,
             ),
-            OpenApiParameter("status", description="Filter by status", required=False, type=str),
+            OpenApiParameter(
+                "status", description="Filter by status", required=False, type=str
+            ),
         ],
     )
     def list(self, request):

@@ -33,7 +33,7 @@ interface StateToProps {
 interface DispatchToProps {
     showExportModal: (taskInstance: any, resource: 'dataset' | 'backup') => void;
     showImportModal: (taskInstance: any) => void;
-    // openRunModelWindow: (taskInstance: any) => void;
+    showRunModelDialog: (taskInstance: any) => void;
     deleteTask: (taskInstance: any) => void;
     openMoveTaskToProjectWindow: (taskInstance: any) => void;
 }
@@ -68,12 +68,12 @@ function mapDispatchToProps(dispatch: any): DispatchToProps {
         showImportModal: (taskInstance: any): void => {
             dispatch(importActions.openImportDatasetModal(taskInstance));
         },
+        showRunModelDialog: (taskInstance: any): void => {
+            dispatch(modelsActions.showRunModelDialog(taskInstance));
+        },
         deleteTask: (taskInstance: any): void => {
             dispatch(deleteTaskAsync(taskInstance));
         },
-        // openRunModelWindow: (taskInstance: any): void => {
-    //     dispatch(modelsActions.showRunModelDialog(taskInstance));
-    // },
         openMoveTaskToProjectWindow: (taskId: number): void => {
             dispatch(switchMoveTaskModalVisible(true, taskId));
         },
@@ -87,6 +87,7 @@ function ActionsMenuContainer(props: OwnProps & StateToProps & DispatchToProps):
         inferenceIsActive,
         showExportModal,
         showImportModal,
+        showRunModelDialog,
         deleteTask,
         // openRunModelWindow,
         openMoveTaskToProjectWindow,
@@ -101,7 +102,8 @@ function ActionsMenuContainer(props: OwnProps & StateToProps & DispatchToProps):
             deleteTask(taskInstance);
         } else if (action === Actions.OPEN_BUG_TRACKER) {
             window.open(`${taskInstance.bugTracker}`, '_blank');
-        // RUN_AUTO_ANNOTATION handler removed
+        } else if (action === Actions.RUN_AUTO_ANNOTATION) {
+            showRunModelDialog(taskInstance);
         } else if (action === Actions.BACKUP_TASK) {
             showExportModal(taskInstance, 'backup');
         } else if (action === Actions.MOVE_TASK_TO_PROJECT) {

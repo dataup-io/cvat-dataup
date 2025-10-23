@@ -280,6 +280,75 @@ function build(): CVATCore {
                 return result;
             },
         },
+
+        agents: {
+            async list() {
+                const result = await PluginRegistry.apiWrapper(cvat.agents.list);
+                return result;
+            },
+            async get(id) {
+                const result = await PluginRegistry.apiWrapper(cvat.agents.get, id);
+                return result;
+            },
+            async create(agentData) {
+                const result = await PluginRegistry.apiWrapper(cvat.agents.create, agentData);
+                return result;
+            },
+            async update(id, agentData) {
+                const result = await PluginRegistry.apiWrapper(cvat.agents.update, id, agentData);
+                return result;
+            },
+            async delete(id) {
+                const result = await PluginRegistry.apiWrapper(cvat.agents.delete, id);
+                return result;
+            },
+            async call(id, body) {
+                const result = await PluginRegistry.apiWrapper(cvat.agents.call, id, body);
+                return result;
+            },
+            jobs: {
+                async list(filter) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.list, filter);
+                    return result;
+                },
+                async get(jobId) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.get, jobId);
+                    return result;
+                },
+                async create(jobData) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.create, jobData);
+                    return result;
+                },
+                async cancel(jobId) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.cancel, jobId);
+                    return result;
+                },
+            }
+        },
+        dataupApiKeys: {
+                    async get(filter?: any) {
+                        const result = await PluginRegistry.apiWrapper(cvat.dataupApiKeys.get, filter);
+                        return result;
+                    },
+
+                    async create(keyData: any) {
+                        const result = await PluginRegistry.apiWrapper(cvat.dataupApiKeys.create, keyData);
+                        return result;
+                    },
+
+                    async update(id: string, keyData: any) {
+                        const result = await PluginRegistry.apiWrapper(cvat.dataupApiKeys.update, id, keyData);
+                        return result;
+                    },
+
+                    async delete(id: string) {
+                        const result = await PluginRegistry.apiWrapper(
+                            cvat.dataupApiKeys.delete,
+                            id,
+                        );
+                        return result;
+                    },
+                },
         logger,
         config: {
             get backendAPI() {
@@ -451,6 +520,7 @@ function build(): CVATCore {
                 return result;
             },
         },
+
         classes: {
             User,
             Project: implementProject(Project),
@@ -505,6 +575,8 @@ function build(): CVATCore {
     cvat.webhooks = Object.freeze(cvat.webhooks);
     cvat.consensus = Object.freeze(cvat.consensus);
     cvat.analytics = Object.freeze(cvat.analytics);
+    cvat.agents = Object.freeze(cvat.agents);
+    cvat.dataupApiKeys = Object.freeze(cvat.dataupApiKeys);
     cvat.classes = Object.freeze(cvat.classes);
     cvat.utils = Object.freeze(cvat.utils);
     const implemented = Object.freeze(implementAPI(cvat));

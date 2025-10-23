@@ -45,6 +45,7 @@ export interface SerializedModel {
     type?: string;
     owner?: any;
     provider?: string;
+    publisher?: string;
     url?: string;
     help_message?: string;
     animated_gif?: string;
@@ -54,6 +55,7 @@ export interface SerializedModel {
     startswith_box_optional?: boolean;
     created_date?: string;
     updated_date?: string;
+    is_public?: boolean;
 }
 
 export interface UpdateStatusData {

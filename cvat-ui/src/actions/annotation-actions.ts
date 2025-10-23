@@ -122,6 +122,7 @@ export enum AnnotationActionTypes {
     SPLIT_ANNOTATIONS_FAILED = 'SPLIT_ANNOTATIONS_FAILED',
     COLLAPSE_SIDEBAR = 'COLLAPSE_SIDEBAR',
     COLLAPSE_APPEARANCE = 'COLLAPSE_APPEARANCE',
+    COLLAPSE_BATCH_INFERENCE = 'COLLAPSE_BATCH_INFERENCE',
     COLLAPSE_OBJECT_ITEMS = 'COLLAPSE_OBJECT_ITEMS',
     ACTIVATE_OBJECT = 'ACTIVATE_OBJECT',
     UPDATE_EDITED_STATE = 'UPDATE_EDITED_STATE',
@@ -595,6 +596,13 @@ export function collapseSidebar(): AnyAction {
 export function collapseAppearance(): AnyAction {
     return {
         type: AnnotationActionTypes.COLLAPSE_APPEARANCE,
+        payload: {},
+    };
+}
+
+export function collapseBatchInference(): AnyAction {
+    return {
+        type: AnnotationActionTypes.COLLAPSE_BATCH_INFERENCE,
         payload: {},
     };
 }

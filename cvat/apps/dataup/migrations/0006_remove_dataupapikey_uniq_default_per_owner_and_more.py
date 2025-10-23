@@ -5,7 +5,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         ("dataup", "0005_alter_dataupapikey_default_and_more"),
     ]
@@ -61,7 +60,8 @@ class Migration(migrations.Migration):
         migrations.AddIndex(
             model_name="dataupapikey",
             index=models.Index(
-                fields=["owner", "organization", "default"], name="dataup_data_owner_i_6ac137_idx"
+                fields=["owner", "organization", "default"],
+                name="dataup_data_owner_i_6ac137_idx",
             ),
         ),
         migrations.AddIndex(
@@ -74,7 +74,9 @@ class Migration(migrations.Migration):
             model_name="dataupapikey",
             constraint=models.UniqueConstraint(
                 condition=models.Q(
-                    ("default", True), ("organization__isnull", True), ("owner__isnull", False)
+                    ("default", True),
+                    ("organization__isnull", True),
+                    ("owner__isnull", False),
                 ),
                 fields=("owner",),
                 name="uniq_default_personal_per_owner",
@@ -84,7 +86,9 @@ class Migration(migrations.Migration):
             model_name="dataupapikey",
             constraint=models.UniqueConstraint(
                 condition=models.Q(
-                    ("default", True), ("organization__isnull", False), ("owner__isnull", False)
+                    ("default", True),
+                    ("organization__isnull", False),
+                    ("owner__isnull", False),
                 ),
                 fields=("owner", "organization"),
                 name="uniq_default_user_org_pair",
@@ -94,7 +98,9 @@ class Migration(migrations.Migration):
             model_name="dataupapikey",
             constraint=models.UniqueConstraint(
                 condition=models.Q(
-                    ("default", True), ("organization__isnull", False), ("owner__isnull", True)
+                    ("default", True),
+                    ("organization__isnull", False),
+                    ("owner__isnull", True),
                 ),
                 fields=("organization",),
                 name="uniq_default_org_only",

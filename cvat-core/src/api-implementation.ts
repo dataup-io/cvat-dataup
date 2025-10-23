@@ -9,6 +9,8 @@ import config from './config';
 import PluginRegistry from './plugins';
 import serverProxy from './server-proxy';
 import lambdaManager from './lambda-manager';
+import agentManager from './agent-manager';
+import apiKeysManager from './apikeys-manager';
 import requestsManager from './requests-manager';
 import {
     isBoolean,
@@ -68,9 +70,29 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.lambda.listen, lambdaManager.listen.bind(lambdaManager));
     implementationMixin(cvat.lambda.requests, lambdaManager.requests.bind(lambdaManager));
 
+
+
     implementationMixin(cvat.requests.list, requestsManager.list.bind(requestsManager));
     implementationMixin(cvat.requests.listen, requestsManager.listen.bind(requestsManager));
     implementationMixin(cvat.requests.cancel, requestsManager.cancel.bind(requestsManager));
+
+    implementationMixin(cvat.agents.list, agentManager.list.bind(agentManager));
+    implementationMixin(cvat.agents.get, agentManager.getAgent.bind(agentManager));
+    implementationMixin(cvat.agents.create, agentManager.create.bind(agentManager));
+    implementationMixin(cvat.agents.update, agentManager.update.bind(agentManager));
+    implementationMixin(cvat.agents.delete, agentManager.delete.bind(agentManager));
+    implementationMixin(cvat.agents.call, agentManager.call.bind(agentManager));
+
+    implementationMixin(cvat.agents.jobs.list, agentManager.listJobs.bind(agentManager));
+    implementationMixin(cvat.agents.jobs.get, agentManager.getJob.bind(agentManager));
+    implementationMixin(cvat.agents.jobs.create, agentManager.createJob.bind(agentManager));
+    implementationMixin(cvat.agents.jobs.cancel, agentManager.cancelJob.bind(agentManager));
+
+    implementationMixin(cvat.dataupApiKeys.get, apiKeysManager.listApiKeys.bind(apiKeysManager));
+    implementationMixin(cvat.dataupApiKeys.create, apiKeysManager.createApiKey.bind(apiKeysManager));
+    implementationMixin(cvat.dataupApiKeys.update, apiKeysManager.updateApiKey.bind(apiKeysManager));
+    implementationMixin(cvat.dataupApiKeys.delete, apiKeysManager.deleteApiKey.bind(apiKeysManager));
+
 
     implementationMixin(cvat.server.about, async () => {
         const result = await serverProxy.server.about();

@@ -213,7 +213,7 @@ function mapStateToProps(state: CombinedState): StateToProps {
         canvasInstance,
         jobInstance,
         frameData,
-        frameAngle: frameAngles[frame - jobInstance.startFrame],
+        frameAngle: frameAngles[frame - (jobInstance as any).startFrame],
         canvasIsReady,
         frame,
         activatedStateID,
@@ -231,7 +231,7 @@ function mapStateToProps(state: CombinedState): StateToProps {
         gridSize,
         gridColor,
         gridOpacity: gridOpacity / 100,
-        activeLabelID,
+        activeLabelID: (activeLabelID as number),
         activeObjectType,
         brightnessLevel: brightnessLevel / 100,
         contrastLevel: contrastLevel / 100,
@@ -371,6 +371,7 @@ type Props = StateToProps & DispatchToProps;
 class CanvasWrapperComponent extends React.PureComponent<Props> {
     private debouncedUpdate = debounce(this.updateCanvas.bind(this), 250, { leading: true });
     private canvasTipsRef = React.createRef<CanvasTipsComponent>();
+    private lastClick: { id: number; time: number } | null = null;
 
     public componentDidMount(): void {
         const {
@@ -817,6 +818,16 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         if (sidebarItem) {
             sidebarItem.scrollIntoView();
         }
+
+        // Detect double-click using two subsequent canvas.clicked events on the same object
+        const now = Date.now();
+        if (this.lastClick && this.lastClick.id === clientID && now - this.lastClick.time < 350) {
+            // Consider as double-click
+            this.onCanvasShapeDbClicked(e);
+            this.lastClick = null;
+        } else {
+            this.lastClick = { id: clientID, time: now };
+        }
     };
 
     private onCanvasShapeDbClicked = (e: any): void => {
@@ -826,12 +837,17 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         if (state && state.clientID) {
             onActivateObject(state.clientID, null);
 
-            if (state.attributes && Object.keys(state.attributes).length > 0) {
-                const firstAttrID = parseInt(Object.keys(state.attributes)[0], 10);
-                const attrValue = state.attributes[firstAttrID];
-                const attrName = state.label.attributes.find((attr: any) => attr.id === firstAttrID)?.name || '';
-                const attrInputType = state.label.attributes.find((attr: any) => attr.id === firstAttrID)?.inputType || 'text';
-                const attrValues = state.label.attributes.find((attr: any) => attr.id === firstAttrID)?.values || [];
+            // Determine a suitable text attribute from the label metadata
+            const labelAttributes = (state.label && Array.isArray(state.label.attributes)) ? state.label.attributes : [];
+            const textAttr = labelAttributes.find((attr: any) => ['text', 'textarea'].includes(String(attr.inputType)));
+
+            if (textAttr) {
+                const firstAttrID: number = Number(textAttr.id);
+                const currentAttrs = state.attributes || {};
+                const attrValue = currentAttrs[firstAttrID] ?? '';
+                const attrName = String(textAttr.name || '');
+                const attrInputType = String(textAttr.inputType || 'text');
+                const attrValues = Array.isArray(textAttr.values) ? textAttr.values : [];
 
                 const { showTextEditor } = this.props;
                 if (showTextEditor && firstAttrID) {

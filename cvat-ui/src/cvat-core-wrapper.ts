@@ -27,7 +27,7 @@ import ConsensusSettings from 'cvat-core/src/consensus-settings';
 import { FramesMetaData, FrameData } from 'cvat-core/src/frames';
 import { ServerError, RequestError } from 'cvat-core/src/exceptions';
 import {
-    ShapeType, ObjectType, LabelType, ModelKind, ModelProviders,
+    ShapeType, ObjectType, LabelType, ModelKind, AgentProvider, AgentPublisher, ModelProviders,
     DimensionType, JobType, Source, MembershipRole,
     JobStage, JobState, RQStatus, StorageLocation,
 } from 'cvat-core/src/enums';
@@ -87,6 +87,8 @@ export {
     Comment,
     MLModel,
     ModelKind,
+    AgentProvider,
+    AgentPublisher,
     ModelProviders,
     DimensionType,
     Dumper,

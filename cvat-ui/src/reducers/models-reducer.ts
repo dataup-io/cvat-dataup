@@ -54,9 +54,9 @@ export default function (state = defaultState, action: ModelsActions | AuthActio
                 interactors: models.filter((model: MLModel) => (
                     model.kind === ModelKind.INTERACTOR
                 )),
-                detectors: models.filter((model: MLModel) => (
-                    model.kind === ModelKind.DETECTOR
-                )),
+                detectors:  models.filter((model: MLModel) => (
+                model.kind === ModelKind.DETECTOR
+            )),
                 trackers: models.filter((model: MLModel) => (
                     model.kind === ModelKind.TRACKER
                 )),

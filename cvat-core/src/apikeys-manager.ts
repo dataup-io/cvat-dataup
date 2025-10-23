@@ -39,20 +39,20 @@ class ApiKeysManager {
     //#region Active API Key Methods
 
     async listApiKeys(filter: Record<string, unknown> = {}) {
-        const result = await serverProxy.dataUpApiKeys.get(filter);
+        const result = await serverProxy.dataupApiKeys.get(filter);
         return ApiKeysManager.formatListResponse(result);
     }
 
     async createApiKey(data: Partial<DataUPApiKeys>) {
-        return await serverProxy.dataUpApiKeys.create(data);
+        return await serverProxy.dataupApiKeys.create(data);
     }
 
     async updateApiKey(id: string, data: Partial<DataUPApiKeys>) {
-        return await serverProxy.dataUpApiKeys.update(id, data);
+        return await serverProxy.dataupApiKeys.update(id, data);
     }
 
     async deleteApiKey(id: string) {
-        return await serverProxy.dataUpApiKeys.delete(id);
+        return await serverProxy.dataupApiKeys.delete(id);
     }
 
     //#endregion

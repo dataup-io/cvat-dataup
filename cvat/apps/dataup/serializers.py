@@ -6,10 +6,8 @@ from rest_framework import serializers
 
 # Import serializers from refactored modules
 from cvat.apps.dataup.agents.serializers import (
-    AgentInferSerializer,
-    AgentRequestRunSerializer,
-    AgentRequestSerializer,
-    AgentSerializer,
+    AgentReadSerializer,
+    AgentWriteSerializer,
 )
 from cvat.apps.dataup.api_keys.serializers import (
     DataUpAPIKeyReadSerializer,
