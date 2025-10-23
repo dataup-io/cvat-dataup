@@ -84,9 +84,6 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         serializer = AgentWriteSerializer(data=request.data)
         if serializer.is_valid():
             agent_data = serializer.validated_data
-            print("Create Agent with Agent Data:", agent_data)
-            # agent_data = self.add_owner_data(agent_data)
-
             try:
                 response = self.dataup_client.make_request("POST", "agents/", data=agent_data)
 
@@ -172,7 +169,6 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         label_mapping = inference_data["params"].get("mapping", {})
         task_type = inference_data["params"].get("type", "annotate_frame")
         organization_uuid = get_dataup_organization(request).id
-        print(f"Running inference with task_type {task_type} for organization uuid  = {organization_uuid}")
         payload = build_infer_payload(
             organization_uuid,
             inference_data["task_id"],

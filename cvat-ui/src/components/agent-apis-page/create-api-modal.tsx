@@ -73,7 +73,7 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     name: apiData.name,
                     endpoint: apiData.endpoint || apiData.url,
                     auth_token: '', // Don't show the actual token when editing
-                    publisher: apiData.provider, // Map backend provider to frontend publisher
+                    publisher: apiData.publisher, // Use the actual publisher field from backend
                     timeout: apiData.timeout,
                     rate_limit: apiData.rate_limit,
                     agent_type: apiData.agent_type,

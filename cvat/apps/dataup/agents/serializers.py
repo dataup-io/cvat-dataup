@@ -64,6 +64,19 @@ class AgentReadSerializer(serializers.Serializer):
 
         return super().to_internal_value(internal_data)
 
+    def to_representation(self, instance):
+        """
+        Ensure publisher field is properly set in the response.
+        If publisher is missing but provider exists, use provider as publisher.
+        """
+        data = super().to_representation(instance)
+        
+        # If publisher is missing or empty but provider exists, use provider as publisher
+        if not data.get('publisher') and data.get('provider'):
+            data['publisher'] = data['provider']
+        
+        return data
+
 
 class AgentJobSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
