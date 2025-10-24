@@ -274,6 +274,7 @@ allow if {
     is_task_staff
 }
 
+
 # Allow job assignees to update stage (for job submission)
 allow if {
     input.scope == utils.UPDATE_STAGE
