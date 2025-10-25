@@ -2,17 +2,21 @@ from cvat.apps.engine.models import Task
 import itertools
 from cvat.apps.engine.serializers import LabeledDataSerializer
 
-
+def _bbox_to_polygon(xl: float, yl: float, xr: float, yr: float) -> list[list[float]]:
+    return [[xl, yl], [xr, yl], [xr, yr], [xl, yr]]
 
 def get_shape_points_from_anno(anno: dict, db_label: dict) -> list[float]:
     bbox = anno["bbox"]
     xl, yl = bbox["x"], bbox["y"]
     xr, yr = xl + bbox["width"], yl + bbox["height"]
-    if anno["polygon"] and db_label["type"] == "polygon":
-        points = anno["polygon"].get("points", [[xl, yl], [xr, yr]])
-        return list(itertools.chain(*points))
-    return [xl, yl, xr, yr]
 
+    if db_label["type"] == "bbox":
+        return [xl, yl, xr, yr]
+    elif db_label["type"] == "polygon":
+        points = anno["polygon"].get("points", _bbox_to_polygon(xl, yl, xr, yr)) if anno["polygon"] else _bbox_to_polygon(xl, yl, xr, yr)
+        return list(itertools.chain(*points))
+    else:
+        raise ValueError(f"Unsupported conversion for label type {db_label['type']}")
 
 class DataUpAgentResultConverter:
     def __init__(self, task_id: int, label_mapping: dict = {}, task_type: str = "annotate_frame") -> None:

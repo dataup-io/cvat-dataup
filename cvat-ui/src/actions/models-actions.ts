@@ -172,6 +172,7 @@ function listen(inferenceMeta: InferenceMeta, dispatch: (action: ModelsActions) 
                             functionID,
                             error: message as string,
                             id: requestID,
+                            type: 'lambda',
                         },
                         new Error(`Inference status for the task ${taskID} is ${status}. ${message}`),
                     ),
@@ -187,6 +188,7 @@ function listen(inferenceMeta: InferenceMeta, dispatch: (action: ModelsActions) 
                     functionID,
                     error: message as string,
                     id: requestID,
+                    type: 'lambda',
                 }),
             );
         })
@@ -198,6 +200,7 @@ function listen(inferenceMeta: InferenceMeta, dispatch: (action: ModelsActions) 
                     error: error.toString(),
                     id: requestID,
                     functionID,
+                    type: 'lambda',
                 }, error),
             );
         });
@@ -219,6 +222,7 @@ function listenToAgentJob(taskID: number, jobId: string, functionID: string | nu
                         functionID,
                         error: '',
                         id: jobId,
+                        type: 'agent_job',
                     }),
                 );
             } else if (jobInfo.status === 'failed') {
@@ -232,6 +236,7 @@ function listenToAgentJob(taskID: number, jobId: string, functionID: string | nu
                             functionID,
                             error: jobInfo.exc_info || 'Agent job failed',
                             id: jobId,
+                            type: 'agent_job',
                         },
                         new Error(`Agent job failed: ${jobInfo.exc_info || 'Unknown error'}`),
                     ),
@@ -246,6 +251,7 @@ function listenToAgentJob(taskID: number, jobId: string, functionID: string | nu
                         functionID,
                         error: '',
                         id: jobId,
+                        type: 'agent_job',
                     }),
                 );
             }
@@ -258,6 +264,7 @@ function listenToAgentJob(taskID: number, jobId: string, functionID: string | nu
                      error: error instanceof Error ? error.message : String(error),
                      id: jobId,
                      functionID,
+                     type: 'agent_job',
                  }, error instanceof Error ? error : new Error(String(error))),
              );
         }
@@ -338,9 +345,8 @@ export function cancelInferenceAsync(taskID: number): ThunkAction {
         try {
             const inference = getState().models.inferences[taskID];
 
-            // Check if this is an agent job or lambda function
-            // Agent jobs have string IDs, lambda functions have different structure
-            if (typeof inference.functionID === 'string' && inference.functionID.startsWith('agent_')) {
+            // Check if this is an agent job or lambda function using the type field
+            if (inference.type === 'agent_job') {
                 // This is an agent job - use agent cancellation
                 await core.agents.jobs.cancel(inference.id);
             } else {
