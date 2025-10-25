@@ -371,7 +371,6 @@ class AgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
         ],
     )
     def destroy(self, request, pk):
-        # self.check_object_permissions(request, pk)
         try:
             queue = AgentQueue(self.dataup_client)
             rq_job = queue.fetch_job(pk)

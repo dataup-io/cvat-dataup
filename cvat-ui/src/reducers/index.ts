@@ -465,6 +465,7 @@ export interface ActiveInference {
     error: string;
     id: string;
     functionID: string | number;
+    type: 'lambda' | 'agent_job';
 }
 
 export interface ModelsState {

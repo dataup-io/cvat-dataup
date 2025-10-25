@@ -71,7 +71,7 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                 console.log('Setting form values with apiData:', apiData);
                 form.setFieldsValue({
                     name: apiData.name,
-                    endpoint: apiData.endpoint || apiData.url,
+                    endpoint: '', // Don't show the actual endpoint when editing
                     auth_token: '', // Don't show the actual token when editing
                     publisher: apiData.publisher, // Use the actual publisher field from backend
                     timeout: apiData.timeout,
@@ -112,6 +112,11 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     delete formData.auth_token;
                 }
 
+                // When editing, only include endpoint if a new value was provided
+                if (api && !values.endpoint) {
+                    delete formData.endpoint;
+                }
+
                 if (api) {
                     dispatch(updateAgentAsync(Number(api.id), formData));
                 } else {
@@ -145,7 +150,11 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     label='Endpoint URL'
                     rules={[{ required: !api, message: 'Please enter an endpoint URL' }]}
                 >
-                    <Input autoComplete="off" disabled={isFormDisabled} />
+                    <Input 
+                        placeholder={api ? 'Enter new endpoint to change (current endpoint is hidden)' : 'Enter endpoint URL'}
+                        autoComplete="off" 
+                        disabled={isFormDisabled} 
+                    />
                 </Form.Item>
                 <Form.Item
                     name='auth_token'

@@ -49,7 +49,7 @@ is_job_owner if {
 # Check if user has supervisor role or higher in organization
 is_supervisor_or_higher if {
     input.auth.organization != null
-    input.auth.organization.user.role in {"owner", "supervisor"}
+    input.auth.organization.user.role in {"owner", "supervisor", "maintainer"}
 }
 
 # ---- LIST / VIEW ----

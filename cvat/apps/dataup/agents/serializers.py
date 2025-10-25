@@ -15,7 +15,7 @@ class AgentInferenceRequest(serializers.Serializer):
 class AgentReadSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=256)
     name = serializers.CharField(max_length=256, help_text="Agent name")
-    endpoint = serializers.URLField(help_text="Model endpoint URL")
+    # endpoint = serializers.URLField(help_text="Model endpoint URL")
     timeout = serializers.IntegerField(
         default=30, min_value=1, max_value=300, help_text="Request timeout in seconds"
     )
@@ -70,11 +70,11 @@ class AgentReadSerializer(serializers.Serializer):
         If publisher is missing but provider exists, use provider as publisher.
         """
         data = super().to_representation(instance)
-        
+
         # If publisher is missing or empty but provider exists, use provider as publisher
         if not data.get('publisher') and data.get('provider'):
             data['publisher'] = data['provider']
-        
+
         return data
 
 
