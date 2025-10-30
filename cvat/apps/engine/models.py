@@ -1524,6 +1524,9 @@ class RequestAction(TextChoices):
     CREATE = "create"
     IMPORT = "import"
     EXPORT = "export"
+    EVALUATE = "evaluate"
+
+
 
 class RequestTarget(TextChoices):
     PROJECT = "project"

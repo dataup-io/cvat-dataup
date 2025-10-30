@@ -253,8 +253,8 @@ services:
     depends_on: *backend-deps
     environment:
       <<: *backend-env
-      NUMPROCS: 1
-    command: run worker agent_jobs
+      NUMPROCS: 2
+    command: run worker agent_auto_annotate agent_evaluate
     volumes:
       - cvat_data:/home/django/data
       - cvat_keys:/home/django/keys

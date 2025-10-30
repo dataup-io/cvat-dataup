@@ -1,0 +1,94 @@
+.benchmark-dashboard {
+    padding: 24px;
+    background: #f5f5f5;
+    min-height: 100vh;
+
+    &-header {
+        margin-bottom: 24px;
+
+        .ant-typography {
+            margin-bottom: 0;
+            color: #24BF7B;
+        }
+    }
+
+    .benchmark-overview {
+        margin-bottom: 24px;
+
+        .ant-card {
+            .ant-statistic {
+                .ant-statistic-title {
+                    color: #666;
+                    font-weight: 500;
+                }
+
+                .ant-statistic-content {
+                    font-weight: 600;
+                }
+            }
+        }
+    }
+
+    .benchmark-filters {
+        margin-bottom: 24px;
+
+        .ant-card-body {
+            padding: 16px 24px;
+        }
+    }
+
+    .benchmark-results {
+        .ant-table-thead > tr > th {
+            background: #fafafa;
+            font-weight: 600;
+        }
+
+        .ant-table-tbody > tr:hover > td {
+            background: #f5f5f5;
+        }
+
+        .ant-pagination {
+            margin-top: 16px;
+            text-align: right;
+        }
+    }
+
+    .cvat-benchmark-table-action-icons {
+        .ant-btn {
+            padding: 0;
+            font-size: 15px;
+
+            &:hover {
+                background: transparent;
+            }
+        }
+
+        .anticon-delete {
+            color: #ff4d4f;
+
+            &:hover {
+                color: #ff7875;
+            }
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .benchmark-dashboard {
+        padding: 16px;
+
+        .benchmark-overview {
+            .ant-col {
+                margin-bottom: 16px;
+            }
+        }
+
+        .benchmark-filters {
+            .ant-row {
+                .ant-col {
+                    margin-bottom: 8px;
+                }
+            }
+        }
+    }
+}

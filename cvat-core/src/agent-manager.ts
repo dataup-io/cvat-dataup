@@ -70,21 +70,42 @@ class AgentManager {
         return await serverProxy.agents.call(id, body);
     }
 
-    // Agent Jobs methods
-    public async listJobs(filter = {}): Promise<any> {
-        return await serverProxy.agentJobs.get(filter);
+    // Agent Evaluate Jobs methods
+    public async listEvaluateJobs(filter = {}): Promise<any> {
+        return await serverProxy.agentEvaluateJobs.get(filter);
     }
 
-    public async getJob(jobId: string | number): Promise<any> {
-        return await serverProxy.agentJobs.getOne(jobId);
+    public async getEvaluateJob(jobId: string | number): Promise<any> {
+        return await serverProxy.agentEvaluateJobs.getOne(jobId);
     }
 
-    public async cancelJob(jobId: string | number): Promise<void> {
-        return await serverProxy.agentJobs.cancel(jobId);
+    public async cancelEvaluateJob(jobId: string | number): Promise<void> {
+        return await serverProxy.agentEvaluateJobs.cancel(jobId);
     }
 
-    public async createJob(jobData: any): Promise<any> {
-        return await serverProxy.agentJobs.create(jobData);
+    public async createEvaluateJob(jobData: any): Promise<any> {
+        return await serverProxy.agentEvaluateJobs.create(jobData);
+    }
+
+    public async getEvaluateJobResults(filter = {}): Promise<any> {
+        return await serverProxy.agentEvaluateJobs.results(filter);
+    }
+
+    // Agent Annotate Jobs methods
+    public async listAnnotateJobs(filter = {}): Promise<any> {
+        return await serverProxy.agentAnnotateJobs.get(filter);
+    }
+
+    public async getAnnotateJob(jobId: string | number): Promise<any> {
+        return await serverProxy.agentAnnotateJobs.getOne(jobId);
+    }
+
+    public async cancelAnnotateJob(jobId: string | number): Promise<void> {
+        return await serverProxy.agentAnnotateJobs.cancel(jobId);
+    }
+
+    public async createAnnotateJob(jobData: any): Promise<any> {
+        return await serverProxy.agentAnnotateJobs.create(jobData);
     }
 
     private convertAgentToMLModel(agent: Agent): MLModel {

@@ -1,0 +1,99 @@
+.agent-benchmark-results {
+    padding: 24px;
+    background: #f5f5f5;
+    min-height: 100vh;
+
+    .agent-benchmark-header {
+        margin-bottom: 24px;
+
+        .ant-breadcrumb {
+            margin-bottom: 16px;
+
+            .ant-btn {
+                padding: 0;
+                height: auto;
+                border: none;
+                box-shadow: none;
+            }
+        }
+
+        .header-content {
+            .ant-typography {
+                margin-bottom: 8px;
+            }
+        }
+    }
+
+    .ant-card {
+        margin-bottom: 16px;
+
+        .ant-statistic {
+            .ant-statistic-title {
+                color: #666;
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+
+            .ant-statistic-content {
+                font-size: 20px;
+                font-weight: 600;
+            }
+        }
+
+        .ant-progress {
+            margin-top: 8px;
+
+            .ant-progress-bg {
+                height: 6px !important;
+            }
+        }
+    }
+
+    .charts-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px 20px;
+        text-align: center;
+
+        .ant-typography {
+            margin-top: 16px;
+            font-size: 14px;
+        }
+    }
+
+    .ant-table-small {
+        .ant-table-thead > tr > th {
+            background: #fafafa;
+            font-weight: 600;
+            padding: 8px;
+        }
+
+        .ant-table-tbody > tr > td {
+            padding: 8px;
+        }
+    }
+
+    .ant-tabs {
+        .ant-tabs-content-holder {
+            padding-top: 16px;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .agent-benchmark-results {
+        padding: 16px;
+
+        .ant-col {
+            margin-bottom: 16px;
+        }
+
+        .ant-statistic {
+            .ant-statistic-content {
+                font-size: 18px;
+            }
+        }
+    }
+}

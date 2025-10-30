@@ -209,7 +209,7 @@ function listen(inferenceMeta: InferenceMeta, dispatch: (action: ModelsActions) 
 function listenToAgentJob(taskID: number, jobId: string, functionID: string | number, dispatch: (action: ModelsActions) => void): void {
     const pollInterval = setInterval(async () => {
         try {
-            const jobInfo = await core.agents.jobs.get(jobId);
+            const jobInfo = await core.agents.annotateJobs.get(jobId);
             const progress = (jobInfo as any).progress ?? (jobInfo?.meta && (jobInfo.meta.processed || jobInfo.meta.progress)) ?? 0;
             const progressPercent = typeof progress === 'number' ? Math.max(0, Math.min(100, progress)) : 0;
 
@@ -348,7 +348,7 @@ export function cancelInferenceAsync(taskID: number): ThunkAction {
             // Check if this is an agent job or lambda function using the type field
             if (inference.type === 'agent_job') {
                 // This is an agent job - use agent cancellation
-                await core.agents.jobs.cancel(inference.id);
+                await core.agents.annotateJobs.cancel(inference.id);
             } else {
                 // This is a lambda function - use lambda cancellation
                 await core.lambda.cancel(inference.id, inference.functionID);

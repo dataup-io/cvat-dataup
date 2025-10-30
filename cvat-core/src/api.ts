@@ -306,21 +306,43 @@ function build(): CVATCore {
                 const result = await PluginRegistry.apiWrapper(cvat.agents.call, id, body);
                 return result;
             },
-            jobs: {
+            annotateJobs: {
                 async list(filter) {
-                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.list, filter);
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.annotateJobs.list, filter);
                     return result;
                 },
                 async get(jobId) {
-                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.get, jobId);
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.annotateJobs.get, jobId);
                     return result;
                 },
                 async create(jobData) {
-                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.create, jobData);
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.annotateJobs.create, jobData);
                     return result;
                 },
                 async cancel(jobId) {
-                    const result = await PluginRegistry.apiWrapper(cvat.agents.jobs.cancel, jobId);
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.annotateJobs.cancel, jobId);
+                    return result;
+                },
+            },
+            evaluateJobs: {
+                async list(filter) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.evaluateJobs.list, filter);
+                    return result;
+                },
+                async get(jobId) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.evaluateJobs.get, jobId);
+                    return result;
+                },
+                async create(jobData) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.evaluateJobs.create, jobData);
+                    return result;
+                },
+                async cancel(jobId) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.evaluateJobs.cancel, jobId);
+                    return result;
+                },
+                async results(jobId) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.evaluateJobs.results, jobId);
                     return result;
                 },
             }

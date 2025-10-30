@@ -22,7 +22,7 @@ from cvat.apps.dataup.utils.converters import DataUpAgentResultConverter
 from cvat.apps.dataup.dataup_api import DataUpAPIClient, DataUpAPIError
 from rest_framework import status, viewsets
 from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
-from cvat.apps.dataup.agents.jobs import AgentQueue, AgentJob
+# from cvat.apps.dataup.agents.jobs import AgentQueue, AgentJob
 
 class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
@@ -204,179 +204,179 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
 
 
 
-class AgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
-    permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
-    iam_context_factory = staticmethod(get_dataup_iam_context)
-    iam_organization_field = "organization"
+# class AgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
+#     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+#     iam_context_factory = staticmethod(get_dataup_iam_context)
+#     iam_organization_field = "organization"
 
-    @extend_schema(
-        summary="List all agent jobs",
-        description="Returns a list of all agent jobs",
-        responses={
-            200: AgentJobSerializer(many=True),
-            500: OpenApiResponse(description="Internal server error"),
-        },
-        parameters=[
-            OpenApiParameter(
-                "X-Organization",
-                description="Organization slug for multi-tenant context",
-                required=False,
-                type=str,
-                location=OpenApiParameter.HEADER,
-            ),
-        ],
-    )
-    def list(self, request):
-        """List all agent jobs"""
-        try:
-            agent_queue = AgentQueue(self.dataup_client)
-            jobs = agent_queue.get_jobs()
+#     @extend_schema(
+#         summary="List all agent jobs",
+#         description="Returns a list of all agent jobs",
+#         responses={
+#             200: AgentJobSerializer(many=True),
+#             500: OpenApiResponse(description="Internal server error"),
+#         },
+#         parameters=[
+#             OpenApiParameter(
+#                 "X-Organization",
+#                 description="Organization slug for multi-tenant context",
+#                 required=False,
+#                 type=str,
+#                 location=OpenApiParameter.HEADER,
+#             ),
+#         ],
+#     )
+#     def list(self, request):
+#         """List all agent jobs"""
+#         try:
+#             agent_queue = AgentQueue(self.dataup_client)
+#             jobs = agent_queue.get_jobs()
 
-            job_data = []
-            for job in jobs:
-                job_data.append(job.to_dict())
+#             job_data = []
+#             for job in jobs:
+#                 job_data.append(job.to_dict())
 
-            serializer = AgentJobSerializer(job_data, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+#             serializer = AgentJobSerializer(job_data, many=True)
+#             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+#         except Exception as e:
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
 
-    @extend_schema(
-        summary="Create a new agent job",
-        description="Creates a new agent job",
-        request=AgentJobCreateSerializer,
-        responses={
-            201: AgentJobSerializer,
-            400: OpenApiResponse(description="Invalid input data"),
-            500: OpenApiResponse(description="Internal server error"),
-        },
-        parameters=[
-            OpenApiParameter(
-                "X-Organization",
-                description="Organization slug for multi-tenant context",
-                required=False,
-                type=str,
-                location=OpenApiParameter.HEADER,
-            ),
-        ],
-    )
-    def create(self, request):
-        """Create a new agent job"""
-        serializer = AgentJobCreateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#     @extend_schema(
+#         summary="Create a new agent job",
+#         description="Creates a new agent job",
+#         request=AgentJobCreateSerializer,
+#         responses={
+#             201: AgentJobSerializer,
+#             400: OpenApiResponse(description="Invalid input data"),
+#             500: OpenApiResponse(description="Internal server error"),
+#         },
+#         parameters=[
+#             OpenApiParameter(
+#                 "X-Organization",
+#                 description="Organization slug for multi-tenant context",
+#                 required=False,
+#                 type=str,
+#                 location=OpenApiParameter.HEADER,
+#             ),
+#         ],
+#     )
+#     def create(self, request):
+#         """Create a new agent job"""
+#         serializer = AgentJobCreateSerializer(data=request.data)
+#         if not serializer.is_valid():
+#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        try:
-            agent_queue = AgentQueue(self.dataup_client)
-            # Extract validated data
-            data = serializer.validated_data
-            agent_id = data["agent_id"]
-            task_id = data["task_id"]
-            job_id = data.get("job_id")
-            threshold = data.get("threshold", 0.5)
-            mapping = data.get("mapping", {})
-            cleanup = data.get("cleanup", False)
-            conv_mask_to_poly = data.get("conv_mask_to_poly", False)
-            max_distance = data.get("max_distance", 50)
-            frame_ids = data.get("frame_ids")
-            # Enqueue the job
-            agent_job = agent_queue.enqueue(
-                agent_id=agent_id,
-                threshold=threshold,
-                task_id=task_id,
-                mapping=mapping,
-                cleanup=cleanup,
-                conv_mask_to_poly=conv_mask_to_poly,
-                max_distance=max_distance,
-                request=request,
-                job_id=job_id,
-                frame_ids=frame_ids
-            )
+#         try:
+#             agent_queue = AgentQueue(self.dataup_client)
+#             # Extract validated data
+#             data = serializer.validated_data
+#             agent_id = data["agent_id"]
+#             task_id = data["task_id"]
+#             job_id = data.get("job_id")
+#             threshold = data.get("threshold", 0.5)
+#             mapping = data.get("mapping", {})
+#             cleanup = data.get("cleanup", False)
+#             conv_mask_to_poly = data.get("conv_mask_to_poly", False)
+#             max_distance = data.get("max_distance", 50)
+#             frame_ids = data.get("frame_ids")
+#             # Enqueue the job
+#             agent_job = agent_queue.enqueue(
+#                 agent_id=agent_id,
+#                 threshold=threshold,
+#                 task_id=task_id,
+#                 mapping=mapping,
+#                 cleanup=cleanup,
+#                 conv_mask_to_poly=conv_mask_to_poly,
+#                 max_distance=max_distance,
+#                 request=request,
+#                 job_id=job_id,
+#                 frame_ids=frame_ids
+#             )
 
-            # Return job details
-            job_data = {
-                "id": agent_job.job.id,
-                "status": agent_job.get_status(),
-                "created_at": agent_job.job.created_at,
-                "started_at": agent_job.job.started_at,
-                "ended_at": agent_job.job.ended_at,
-                "result": agent_job.job.result,
-                "exc_info": agent_job.job.exc_info,
-                "meta": agent_job.job.meta,
-            }
+#             # Return job details
+#             job_data = {
+#                 "id": agent_job.job.id,
+#                 "status": agent_job.get_status(),
+#                 "created_at": agent_job.job.created_at,
+#                 "started_at": agent_job.job.started_at,
+#                 "ended_at": agent_job.job.ended_at,
+#                 "result": agent_job.job.result,
+#                 "exc_info": agent_job.job.exc_info,
+#                 "meta": agent_job.job.meta,
+#             }
 
-            response_serializer = AgentJobSerializer(job_data)
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+#             response_serializer = AgentJobSerializer(job_data)
+#             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+#         except Exception as e:
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
 
-    @extend_schema(
-        summary="Retrieve a specific agent job",
-        description="GET: Retrieve a specific agent job by ID",
-        responses={
-            200: AgentJobSerializer,
-            404: OpenApiResponse(description="Job not found"),
-            500: OpenApiResponse(description="Internal server error"),
-        },
-        parameters=[
-            OpenApiParameter(
-                "X-Organization",
-                description="Organization slug for multi-tenant context",
-                required=False,
-                type=str,
-                location=OpenApiParameter.HEADER,
-            ),
-        ],
-    )
-    def retrieve(self, request, pk=None):
-        """Retrieve a specific agent job by ID"""
-        try:
-            agent_queue = AgentQueue(self.dataup_client)
-            job = agent_queue.fetch_job(pk)
+#     @extend_schema(
+#         summary="Retrieve a specific agent job",
+#         description="GET: Retrieve a specific agent job by ID",
+#         responses={
+#             200: AgentJobSerializer,
+#             404: OpenApiResponse(description="Job not found"),
+#             500: OpenApiResponse(description="Internal server error"),
+#         },
+#         parameters=[
+#             OpenApiParameter(
+#                 "X-Organization",
+#                 description="Organization slug for multi-tenant context",
+#                 required=False,
+#                 type=str,
+#                 location=OpenApiParameter.HEADER,
+#             ),
+#         ],
+#     )
+#     def retrieve(self, request, pk=None):
+#         """Retrieve a specific agent job by ID"""
+#         try:
+#             agent_queue = AgentQueue(self.dataup_client)
+#             job = agent_queue.fetch_job(pk)
 
-            serializer = AgentJobSerializer(job.to_dict())
-            return Response(serializer.data, status=status.HTTP_200_OK)
+#             serializer = AgentJobSerializer(job.to_dict())
+#             return Response(serializer.data, status=status.HTTP_200_OK)
 
-        except ValidationError as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_404_NOT_FOUND
-            )
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+#         except ValidationError as e:
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_404_NOT_FOUND
+#             )
+#         except Exception as e:
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+#             )
 
-    @extend_schema(
-        summary="Cancel a specific agent job",
-        description="DELETE: Cancel a specific agent job by ID",
-        responses={
-            204: OpenApiResponse(description="Job cancelled successfully"),
-            404: OpenApiResponse(description="Job not found"),
-            500: OpenApiResponse(description="Internal server error"),
-        },
-        parameters=[
-            OpenApiParameter(
-                "X-Organization",
-                description="Organization slug for multi-tenant context",
-                required=False,
-                type=str,
-                location=OpenApiParameter.HEADER,
-            ),
-        ],
-    )
-    def destroy(self, request, pk):
-        try:
-            queue = AgentQueue(self.dataup_client)
-            rq_job = queue.fetch_job(pk)
-            rq_job.delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
-        except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_404_NOT_FOUND
-            )
+#     @extend_schema(
+#         summary="Cancel a specific agent job",
+#         description="DELETE: Cancel a specific agent job by ID",
+#         responses={
+#             204: OpenApiResponse(description="Job cancelled successfully"),
+#             404: OpenApiResponse(description="Job not found"),
+#             500: OpenApiResponse(description="Internal server error"),
+#         },
+#         parameters=[
+#             OpenApiParameter(
+#                 "X-Organization",
+#                 description="Organization slug for multi-tenant context",
+#                 required=False,
+#                 type=str,
+#                 location=OpenApiParameter.HEADER,
+#             ),
+#         ],
+#     )
+#     def destroy(self, request, pk):
+#         try:
+#             queue = AgentQueue(self.dataup_client)
+#             rq_job = queue.fetch_job(pk)
+#             rq_job.delete()
+#             return Response(status=status.HTTP_204_NO_CONTENT)
+#         except Exception as e:
+#             return Response(
+#                 {"error": str(e)}, status=status.HTTP_404_NOT_FOUND
+#             )

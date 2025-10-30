@@ -104,7 +104,7 @@ export async function startAutomaticAnnotation(options: {
             ...(typeof threshold === 'number' ? { threshold } : {}),
             ...(typeof max_distance === 'number' ? { max_distance } : {}),
         };
-        const job = await core.agents.jobs.create(jobData);
+        const job = await core.agents.annotateJobs.create(jobData);
         return { type: 'agent_job', job };
     }
 
@@ -150,7 +150,7 @@ export async function startBatchFrames(options: {
             ...(typeof threshold === 'number' ? { threshold } : {}),
             ...(typeof max_distance === 'number' ? { max_distance } : {}),
         };
-        const job = await core.agents.jobs.create(jobData);
+        const job = await core.agents.annotateJobs.create(jobData);
         return { type: 'agent_job', job };
     }
 

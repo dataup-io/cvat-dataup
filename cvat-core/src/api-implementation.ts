@@ -83,10 +83,16 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.agents.delete, agentManager.delete.bind(agentManager));
     implementationMixin(cvat.agents.call, agentManager.call.bind(agentManager));
 
-    implementationMixin(cvat.agents.jobs.list, agentManager.listJobs.bind(agentManager));
-    implementationMixin(cvat.agents.jobs.get, agentManager.getJob.bind(agentManager));
-    implementationMixin(cvat.agents.jobs.create, agentManager.createJob.bind(agentManager));
-    implementationMixin(cvat.agents.jobs.cancel, agentManager.cancelJob.bind(agentManager));
+    implementationMixin(cvat.agents.annotateJobs.list, agentManager.listAnnotateJobs.bind(agentManager));
+    implementationMixin(cvat.agents.annotateJobs.get, agentManager.getAnnotateJob.bind(agentManager));
+    implementationMixin(cvat.agents.annotateJobs.create, agentManager.createAnnotateJob.bind(agentManager));
+    implementationMixin(cvat.agents.annotateJobs.cancel, agentManager.cancelAnnotateJob.bind(agentManager));
+
+    implementationMixin(cvat.agents.evaluateJobs.list, agentManager.listEvaluateJobs.bind(agentManager));
+    implementationMixin(cvat.agents.evaluateJobs.get, agentManager.getEvaluateJob.bind(agentManager));
+    implementationMixin(cvat.agents.evaluateJobs.create, agentManager.createEvaluateJob.bind(agentManager));
+    implementationMixin(cvat.agents.evaluateJobs.cancel, agentManager.cancelEvaluateJob.bind(agentManager));
+    implementationMixin(cvat.agents.evaluateJobs.results, agentManager.getEvaluateJobResults.bind(agentManager));
 
     implementationMixin(cvat.dataupApiKeys.get, apiKeysManager.listApiKeys.bind(apiKeysManager));
     implementationMixin(cvat.dataupApiKeys.create, apiKeysManager.createApiKey.bind(apiKeysManager));

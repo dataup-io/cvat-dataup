@@ -31,6 +31,7 @@ interface Props {
     modelLabels: LabelInterface[];
     taskLabels: LabelInterface[];
     onUpdateMapping(mapping: FullMapping): void;
+    initialMapping?: FullMapping;
 }
 
 function labelsCompatible(modelLabel: LabelInterface, jobLabel: LabelInterface): boolean {
@@ -78,12 +79,17 @@ function computeAttributesAutoMapping(
 }
 
 function LabelsMapperComponent(props: Props): JSX.Element {
-    const { modelLabels, taskLabels, onUpdateMapping } = props;
-    const mappingRef = useRef<FullMapping>([]);
+    const { modelLabels, taskLabels, onUpdateMapping, initialMapping } = props;
+    const mappingRef = useRef<FullMapping>(initialMapping || []);
     const setMapping = useCallback((_mapping: FullMapping) => {
         mappingRef.current = _mapping;
         onUpdateMapping(_mapping);
     }, [onUpdateMapping]);
+
+    // Extract top-level mappings from FullMapping for ObjectMatcher
+    const getTopLevelMapping = (fullMapping: FullMapping): [LabelInterface, LabelInterface][] => {
+        return fullMapping.map(([modelLabel, taskLabel]) => [modelLabel, taskLabel]);
+    };
 
     function getMappingItem(
         modelLabel: LabelInterface, taskLabel: LabelInterface, source: FullMapping,
@@ -149,7 +155,7 @@ function LabelsMapperComponent(props: Props): JSX.Element {
             leftData={modelLabels}
             rightData={taskLabels}
             allowManyToOne
-            defaultMapping={computeLabelsAutoMapping(modelLabels, taskLabels)}
+            defaultMapping={initialMapping ? getTopLevelMapping(initialMapping) : computeLabelsAutoMapping(modelLabels, taskLabels)}
             deleteMappingLabel='Remove mapped label'
             infoMappingLabel='Specify mapping between labels'
             containerClassName='cvat-runner-label-mapper'

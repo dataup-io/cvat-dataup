@@ -95,6 +95,8 @@ function ApisTableComponent(props: ApisTableProps): JSX.Element {
         onDeleteApi(record.id);
     }, [onDeleteApi]);
 
+
+
     const columns: ColumnsType<MLModel> = useMemo(() => [
         {
             title: 'Name',

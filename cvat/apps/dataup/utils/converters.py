@@ -10,7 +10,7 @@ def get_shape_points_from_anno(anno: dict, db_label: dict) -> list[float]:
     xl, yl = bbox["x"], bbox["y"]
     xr, yr = xl + bbox["width"], yl + bbox["height"]
 
-    if db_label["type"] == "bbox":
+    if db_label["type"] == "rectangle":
         return [xl, yl, xr, yr]
     elif db_label["type"] == "polygon":
         points = anno["polygon"].get("points", _bbox_to_polygon(xl, yl, xr, yr)) if anno["polygon"] else _bbox_to_polygon(xl, yl, xr, yr)

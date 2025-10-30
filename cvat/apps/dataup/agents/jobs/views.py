@@ -1,0 +1,172 @@
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from rest_framework.permissions import IsAuthenticated
+from cvat.apps.dataup.iam.context import get_dataup_iam_context, get_dataup_organization
+from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
+from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
+from rest_framework import status, viewsets
+from rest_framework.response import Response
+from django.core.exceptions import ValidationError
+
+from .serializers import AgentJobSerializer, AgentJobCreateSerializer
+from .auto_annotate import AgentAutoAnnotateQueue
+from .evaluate import AgentEvaluateQueue
+from .base_views import BaseAgentJobsViewSet
+
+
+
+class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
+    """ViewSet for agent auto-annotation jobs"""
+
+    def _get_queue_class(self):
+        return AgentAutoAnnotateQueue
+
+    def _get_job_type_name(self):
+        return "auto-annotation"
+
+    @extend_schema(
+        summary="Create a new auto-annotation job",
+        description="Creates a new agent auto-annotation job",
+        request=AgentJobCreateSerializer,
+        responses={
+            201: AgentJobSerializer,
+            400: OpenApiResponse(description="Invalid input data"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+    def create(self, request):
+        """Create a new auto-annotation job"""
+        serializer = AgentJobCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            agent_queue = self._get_queue_class()(self.dataup_client)
+            # Extract validated data
+            data = serializer.validated_data
+            agent_id = data["agent_id"]
+            task_id = data["task_id"]
+            job_id = data.get("job_id")
+            threshold = data.get("threshold", 0.5)
+            mapping = data.get("mapping", {})
+            cleanup = data.get("cleanup", False)
+            conv_mask_to_poly = data.get("conv_mask_to_poly", False)
+            max_distance = data.get("max_distance", 50)
+            frame_ids = data.get("frame_ids")
+
+            # Enqueue the auto-annotation job
+            agent_job = agent_queue.enqueue(
+                agent_id=agent_id,
+                threshold=threshold,
+                task_id=task_id,
+                mapping=mapping,
+                cleanup=cleanup,
+                conv_mask_to_poly=conv_mask_to_poly,
+                max_distance=max_distance,
+                request=request,
+                job_id=job_id,
+                frame_ids=frame_ids
+            )
+
+            # Return job details
+            job_data = {
+                "id": agent_job.job.id,
+                "status": agent_job.get_status(),
+                "created_at": agent_job.job.created_at,
+                "started_at": agent_job.job.started_at,
+                "ended_at": agent_job.job.ended_at,
+                "result": agent_job.job.result,
+                "exc_info": agent_job.job.exc_info,
+                "meta": agent_job.job.meta,
+            }
+
+            response_serializer = AgentJobSerializer(job_data)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
+    """ViewSet for agent evaluation jobs"""
+
+    def _get_queue_class(self):
+        return AgentEvaluateQueue
+
+    def _get_job_type_name(self):
+        return "evaluation"
+
+    @extend_schema(
+        summary="Create a new evaluation job",
+        description="Creates a new agent evaluation job",
+        request=AgentJobCreateSerializer,
+        responses={
+            201: AgentJobSerializer,
+            400: OpenApiResponse(description="Invalid input data"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+    def create(self, request):
+        """Create a new evaluation job"""
+        serializer = AgentJobCreateSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            agent_queue = self._get_queue_class()(self.dataup_client)
+            # Extract validated data
+            data = serializer.validated_data
+            agent_id = data["agent_id"]
+            task_id = data["task_id"]
+            job_id = data.get("job_id")
+            mapping = data.get("mapping", {})
+            frame_ids = data.get("frame_ids")
+
+            # Enqueue the evaluation job
+            agent_job = agent_queue.enqueue(
+                agent_id=agent_id,
+                task_id=task_id,
+                mapping=mapping,
+                request=request,
+                job_id=job_id,
+                frame_ids=frame_ids
+            )
+
+            # Return job details
+            job_data = {
+                "id": agent_job.job.id,
+                "status": agent_job.get_status(),
+                "created_at": agent_job.job.created_at,
+                "started_at": agent_job.job.started_at,
+                "ended_at": agent_job.job.ended_at,
+                "result": agent_job.job.result,
+                "exc_info": agent_job.job.exc_info,
+                "meta": agent_job.job.meta,
+            }
+
+            response_serializer = AgentJobSerializer(job_data)
+            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+
+        except Exception as e:
+            return Response(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

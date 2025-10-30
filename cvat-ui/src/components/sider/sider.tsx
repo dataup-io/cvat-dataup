@@ -6,6 +6,7 @@ import Menu from 'antd/lib/menu';
 import type { MenuProps } from 'antd/lib/menu';
 import Icon, {
     ApiOutlined,
+    BarChartOutlined,
     BulbOutlined,
     CloudServerOutlined,
     FolderOpenOutlined,
@@ -89,6 +90,7 @@ function SiderComponent(props: Props): JSX.Element {
             isModelsPluginActive && getItem('Agents', 'agents', undefined, <RobotOutlined />, [
                 getItem('Models', 'models', () => history.push('/agents/models'), <BulbOutlined />),
                 getItem('APIs', 'apis', () => history.push('/agents/apis'), <ApiOutlined />),
+                getItem('Benchmarks', 'benchmarks', () => history.push('/agents/benchmarks'), <BarChartOutlined />),
             ]),
             isModelsPluginActive && getItem('Pipelines', 'pipelines', undefined, <SubnodeOutlined />, [
                 getItem('Catalogue', 'catalogue', () => history.push('/pipelines/catalogue'), <ReadOutlined />),
@@ -119,6 +121,7 @@ function SiderComponent(props: Props): JSX.Element {
         '/requests': 'requests',
         '/agents/models': 'models',
         '/agents/apis': 'apis',
+        '/agents/benchmarks': 'benchmarks',
         '/analytics': 'analytics',
 
         '/pipelines/catalogue': 'catalogue',

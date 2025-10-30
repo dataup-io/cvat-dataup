@@ -37,6 +37,9 @@ export enum AgentActionTypes {
     CALL_AGENT = 'CALL_AGENT',
     CALL_AGENT_SUCCESS = 'CALL_AGENT_SUCCESS',
     CALL_AGENT_FAILED = 'CALL_AGENT_FAILED',
+    RUN_BENCHMARK = 'RUN_BENCHMARK',
+    RUN_BENCHMARK_SUCCESS = 'RUN_BENCHMARK_SUCCESS',
+    RUN_BENCHMARK_FAILED = 'RUN_BENCHMARK_FAILED',
     SHOW_RUN_AGENT_DIALOG = 'SHOW_RUN_AGENT_DIALOG',
     CLOSE_RUN_AGENT_DIALOG = 'CLOSE_RUN_AGENT_DIALOG',
     UPDATE_AGENTS_GETTING_QUERY = 'UPDATE_AGENTS_GETTING_QUERY',
@@ -84,6 +87,13 @@ export const agentActions = {
     }),
     callAgentFailed: (id: string | number, error: any) => createAction(AgentActionTypes.CALL_AGENT_FAILED, {
         id, error,
+    }),
+    runBenchmark: (agentId: string | number, taskId: number) => createAction(AgentActionTypes.RUN_BENCHMARK, { agentId, taskId }),
+    runBenchmarkSuccess: (agentId: string | number, taskId: number, result: any) => createAction(AgentActionTypes.RUN_BENCHMARK_SUCCESS, {
+        agentId, taskId, result,
+    }),
+    runBenchmarkFailed: (agentId: string | number, taskId: number, error: any) => createAction(AgentActionTypes.RUN_BENCHMARK_FAILED, {
+        agentId, taskId, error,
     }),
     showRunAgentDialog: (agentInstance: any) => createAction(AgentActionTypes.SHOW_RUN_AGENT_DIALOG, {
         agentInstance,
@@ -174,6 +184,23 @@ export function callAgentAsync(id: string | number, taskId: number, frameId?: nu
             dispatch(agentActions.callAgentSuccess(id, result));
         } catch (error) {
             dispatch(agentActions.callAgentFailed(id, error));
+        }
+    };
+}
+
+export function runBenchmarkAsync(agentId: string | number, taskId: number): ThunkAction {
+    return async (dispatch: ThunkDispatch): Promise<void> => {
+        dispatch(agentActions.runBenchmark(agentId, taskId));
+
+        try {
+            // Make POST request to agent-jobs/evaluate endpoint
+            const body = { agent_id: agentId, task_id: taskId };
+            const result = await core.agents.evaluateJobs.create(body);
+            
+            dispatch(agentActions.runBenchmarkSuccess(agentId, taskId, result));
+        } catch (error) {
+            dispatch(agentActions.runBenchmarkFailed(agentId, taskId, error));
+            throw error; // Re-throw the error so it can be caught by the component
         }
     };
 }

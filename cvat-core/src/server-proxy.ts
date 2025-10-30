@@ -2538,12 +2538,12 @@ async function callAgent(id: string | number, body: any): Promise<any> {
     }
 }
 
-async function getAgentJobs(filter = {}): Promise<any> {
+async function getAgentAnnotateJobs(filter = {}): Promise<any> {
     const { backendAPI } = config;
     const params = enableOrganization();
 
     try {
-        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs`, {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs/auto-annotate`, {
             params: { ...params, ...filter },
         });
         return response.data;
@@ -2552,12 +2552,12 @@ async function getAgentJobs(filter = {}): Promise<any> {
     }
 }
 
-async function getAgentJob(id: string | number): Promise<any> {
+async function getAgentAnnotateJob(id: string | number): Promise<any> {
     const { backendAPI } = config;
     const params = enableOrganization();
 
     try {
-        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs/${id}`, {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs/auto-annotate/${id}`, {
             params,
         });
         return response.data;
@@ -2566,12 +2566,12 @@ async function getAgentJob(id: string | number): Promise<any> {
     }
 }
 
-async function createAgentJob(jobData: any): Promise<any> {
+async function createAgentAnnotateJob(jobData: any): Promise<any> {
     const { backendAPI } = config;
     const params = enableOrganization();
 
     try {
-        const response = await Axios.post(`${backendAPI}/dataup/agent-jobs`, jobData, {
+        const response = await Axios.post(`${backendAPI}/dataup/agent-jobs/auto-annotate`, jobData, {
             params,
         });
         return response.data;
@@ -2580,14 +2580,83 @@ async function createAgentJob(jobData: any): Promise<any> {
     }
 }
 
-async function cancelAgentJob(id: string | number): Promise<void> {
+async function cancelAgentAnnotateJob(id: string | number): Promise<void> {
     const { backendAPI } = config;
     const params = enableOrganization();
 
     try {
-        await Axios.delete(`${backendAPI}/dataup/agent-jobs/${id}`, {
+        await Axios.delete(`${backendAPI}/dataup/agent-jobs/auto-annotate/${id}`, {
             params,
         });
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgentEvaluateJobs(filter = {}): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs/evaluate`, {
+            params: { ...params, ...filter },
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgentEvaluateJob(id: string | number): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs/evaluate/${id}`, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function createAgentEvaluateJob(jobData: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/agent-jobs/evaluate`, jobData, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function cancelAgentEvaluateJob(id: string | number): Promise<void> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        await Axios.delete(`${backendAPI}/dataup/agent-jobs/evaluate/${id}`, {
+            params,
+        });
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgentEvaluateJobResults(filter = {}): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/agent-jobs/evaluate/results`, {
+            params: { ...params, ...filter },
+        });
+        return response.data;
     } catch (errorData) {
         throw generateError(errorData);
     }
@@ -2762,11 +2831,19 @@ export default Object.freeze({
         call: callAgent,
     }),
 
-    agentJobs: Object.freeze({
-        get: getAgentJobs,
-        getOne: getAgentJob,
-        create: createAgentJob,
-        cancel: cancelAgentJob,
+    agentAnnotateJobs: Object.freeze({
+        get: getAgentAnnotateJobs,
+        getOne: getAgentAnnotateJob,
+        create: createAgentAnnotateJob,
+        cancel: cancelAgentAnnotateJob,
+    }),
+
+    agentEvaluateJobs: Object.freeze({
+        get: getAgentEvaluateJobs,
+        getOne: getAgentEvaluateJob,
+        create: createAgentEvaluateJob,
+        cancel: cancelAgentEvaluateJob,
+        results: getAgentEvaluateJobResults,
     }),
 
     dataupApiKeys: Object.freeze({

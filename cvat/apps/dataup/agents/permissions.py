@@ -118,9 +118,9 @@ class DataUpAgentJobPermission(OpenPolicyAgentPermission):
 
     @classmethod
     def create(cls, request, view, obj, iam_context=None):
-        if view.basename != "agent-jobs":
-            return []
 
+        if "agent-jobs" not in view.basename:
+            return []
 
         # building dataup iam context here
         dataup_iam_context = get_dataup_iam_context(request, obj)

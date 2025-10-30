@@ -290,8 +290,8 @@ class CVAT_QUEUES(Enum):
     CLEANING = "cleaning"
     CHUNKS = "chunks"
     CONSENSUS = "consensus"
-    AGENT_JOBS = "agent_jobs"
-
+    AGENT_AUTO_ANNOTATE = "agent_auto_annotate"
+    AGENT_EVALUATE = "agent_evaluate"
 
 redis_inmem_host = os.getenv("CVAT_REDIS_INMEM_HOST", "localhost")
 redis_inmem_port = os.getenv("CVAT_REDIS_INMEM_PORT", 6379)
@@ -323,7 +323,11 @@ RQ_QUEUES = {
         # custom fields
         "PARSED_JOB_ID_CLASS": "cvat.apps.engine.rq.ExportRequestId",
     },
-    CVAT_QUEUES.AGENT_JOBS.value: {
+    CVAT_QUEUES.AGENT_AUTO_ANNOTATE.value: {
+        **REDIS_INMEM_SETTINGS,
+        "DEFAULT_TIMEOUT": "24h",
+    },
+    CVAT_QUEUES.AGENT_EVALUATE.value: {
         **REDIS_INMEM_SETTINGS,
         "DEFAULT_TIMEOUT": "24h",
     },

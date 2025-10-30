@@ -20,6 +20,7 @@ import TopBar from './top-bar';
 import ApisTableComponent from './apis-table';
 import CreateApiModal from './create-api-modal';
 
+
 function ApisTablePage(): JSX.Element {
     const dispatch = useDispatch();
     const [createModalVisible, setCreateModalVisible] = useState(false);
@@ -141,6 +142,8 @@ function ApisTablePage(): JSX.Element {
             okText: 'Delete',
         });
     }, [dispatch, gettingQuery]);
+
+
 
     // Search is now managed through Redux state, no need for URL params
 

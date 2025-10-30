@@ -281,7 +281,7 @@ function BatchInferenceControlComponent(props: Props): JSX.Element | null {
 
                  const pollInterval = window.setInterval(async () => {
                      try {
-                         const jobInfo = await core.agents.jobs.get(agentJob.id);
+                         const jobInfo = await core.agents.annotateJobs.get(agentJob.id);
                          setJobStatus(`Status: ${jobInfo.status}`);
                          const progress: number | undefined = (jobInfo as any).progress
                              ?? (jobInfo?.meta && (jobInfo.meta.processed || jobInfo.meta.progress));

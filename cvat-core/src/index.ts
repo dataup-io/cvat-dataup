@@ -76,11 +76,18 @@ export default interface CVATCore {
         create: typeof agentManager.create;
         update: typeof agentManager.update;
         delete: typeof agentManager.delete;
-        jobs: {
-            list: typeof agentManager.listJobs;
-            get: typeof agentManager.getJob;
-            create: typeof agentManager.createJob;
-            cancel: typeof agentManager.cancelJob;
+        annotateJobs: {
+            list: typeof agentManager.listAnnotateJobs;
+            get: typeof agentManager.getAnnotateJob;
+            create: typeof agentManager.createAnnotateJob;
+            cancel: typeof agentManager.cancelAnnotateJob;
+        };
+        evaluateJobs: {
+            list: typeof agentManager.listEvaluateJobs;
+            get: typeof agentManager.getEvaluateJob;
+            create: typeof agentManager.createEvaluateJob;
+            cancel: typeof agentManager.cancelEvaluateJob;
+            results: typeof agentManager.getEvaluateJobResults;
         };
     };
 

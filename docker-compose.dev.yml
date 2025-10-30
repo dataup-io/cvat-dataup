@@ -8,7 +8,7 @@
 services:
   cvat_db:
     ports:
-      - '127.0.0.1:5432:5432'
+      - '127.0.0.1:5434:5432'
 
   cvat_server:
     build:
@@ -23,7 +23,7 @@ services:
     environment:
       # Use this with CVAT_DEBUG_ENABLED to avoid server response timeouts
       CVAT_DEBUG_ENABLED: '${CVAT_DEBUG_ENABLED:-no}'
-      DATAUP_BASE_URL: '${DATAUP_BASE_URL:-}'
+      DATAUP_BASE_URL: '${DATAUP_BASE_URL:-https://api.data-up.io}'
       CVAT_DEBUG_PORT: '9089'
       # If 'yes', wait for a debugger connection on startup
       CVAT_DEBUG_WAIT: '${CVAT_DEBUG_WAIT_CLIENT:-no}'
@@ -44,6 +44,17 @@ services:
     ports:
       - '9092:9092'
 
+  cvat_worker_agent_jobs:
+    environment:
+      # For debugging, make sure to set 1 process
+      # Due to the supervisord specifics, the extra processes will fail and
+      # after few attempts supervisord will give up restarting, leaving only 1 process
+      # NUMPROCS: 1
+      CVAT_DEBUG_ENABLED: '${CVAT_DEBUG_ENABLED:-no}'
+      CVAT_DEBUG_PORT: '9095'
+      COVERAGE_PROCESS_START:
+    ports:
+      - '9095:9094'
   cvat_worker_import:
     environment:
       # For debugging, make sure to set 1 process
