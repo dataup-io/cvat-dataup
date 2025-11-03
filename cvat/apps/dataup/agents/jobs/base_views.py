@@ -7,11 +7,12 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from django.core.exceptions import ValidationError
 
-from .serializers import AgentJobSerializer, AgentJobCreateSerializer
+from .serializers import AgentJobSerializer
 
 
 class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
     """Base class for agent job viewsets with common functionality"""
+
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
     iam_context_factory = staticmethod(get_dataup_iam_context)
     iam_organization_field = "organization"
@@ -59,7 +60,6 @@ class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-
     @extend_schema(
         summary="Retrieve a specific agent job",
         description="GET: Retrieve a specific agent job by ID",
@@ -88,9 +88,7 @@ class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except ValidationError as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response(
                 {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -121,6 +119,4 @@ class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
             rq_job.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_404_NOT_FOUND
-            )
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)

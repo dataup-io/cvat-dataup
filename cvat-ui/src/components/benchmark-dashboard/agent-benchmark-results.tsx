@@ -16,20 +16,27 @@ import {
     Space,
     Divider,
     Spin,
+    Collapse,
+    Tooltip,
 } from 'antd';
 import {
     ArrowLeftOutlined,
     BarChartOutlined,
     LineChartOutlined,
     DownloadOutlined,
+    InfoCircleOutlined,
+    TagsOutlined,
 } from '@ant-design/icons';
 import { CombinedState } from 'reducers';
 import { getCore } from 'cvat-core-wrapper';
 import { getAgentsAsync } from 'actions/agent-actions';
+
+
 import './agent-benchmark-results-styles.scss';
 
 const { Title, Text } = Typography;
 const { TabPane } = Tabs;
+const { Panel } = Collapse;
 
 interface PerClassMetric {
     class_name: string;
@@ -73,6 +80,7 @@ interface EvaluationResult {
     global_metrics: GlobalMetrics;
     per_class_metrics: PerClassMetric[];
     frame_metrics: FrameMetric[];
+    attribute_metrics?: Array<{[key: string]: any}>;
 }
 
 interface BenchmarkResult {
@@ -104,7 +112,7 @@ function AgentBenchmarkResults(): JSX.Element {
     const [task, setTask] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    
+
     const agents = useSelector((state: CombinedState) => state.agents.current);
     const dispatch = useDispatch();
     const core = getCore();
@@ -124,27 +132,27 @@ function AgentBenchmarkResults(): JSX.Element {
             try {
                 setLoading(true);
                 setError(null);
-                
+
                 // Get the resultId from URL parameters
                 const urlParams = new URLSearchParams(location.search);
                 const resultId = urlParams.get('resultId');
-                
+
                 if (!resultId) {
                     setError('No result ID provided');
                     setLoading(false);
                     return;
                 }
-                
+
                 // The resultId is the job ID in the format: action=evaluate&target=task&target_id=X
                 // Use it directly with the evaluateJobs.get API
                 const benchmarkJob = await core.agents.evaluateJobs.get(resultId);
-                
+
                 if (!benchmarkJob) {
                     setError('Benchmark result not found');
                     setLoading(false);
                     return;
                 }
-                
+
                 // Transform API response to match our BenchmarkResult interface
                 const transformedResult: BenchmarkResult = {
                     id: benchmarkJob.id,
@@ -165,9 +173,11 @@ function AgentBenchmarkResults(): JSX.Element {
                         }
                     }
                 };
-                
+
+                // attribute_metrics will be provided directly from the API response
+
                 setBenchmarkResult(transformedResult);
-                
+
                 // Set agent information from agents store first, then fall back to API result
                 const agentInfo = agents.find(a => a.id === transformedResult.meta.agent_id);
                 setAgent({
@@ -176,28 +186,31 @@ function AgentBenchmarkResults(): JSX.Element {
                     version: agentInfo?.version || transformedResult.result?.agent_version || '1.0.0'
                 });
 
-                // Fetch task information if available
+                // Fetch basic task information for display purposes only
                 try {
                     if (transformedResult.meta.task_id) {
                         const [taskInfo] = await core.tasks.get({ id: transformedResult.meta.task_id });
                         setTask({
                             id: transformedResult.meta.task_id,
-                            name: taskInfo?.name || transformedResult.result?.dataset_name || 'Unknown Task'
+                            name: taskInfo?.name || transformedResult.result?.dataset_name || 'Unknown Task',
+                            labels: [] // Not needed for attribute metrics
                         });
                     } else {
                         setTask({
                             id: 0,
-                            name: transformedResult.result?.dataset_name || 'Unknown Task'
+                            name: transformedResult.result?.dataset_name || 'Unknown Task',
+                            labels: []
                         });
                     }
                 } catch (taskError) {
                     console.warn('Could not fetch task information:', taskError);
                     setTask({
                         id: transformedResult.meta.task_id || 0,
-                        name: transformedResult.result?.dataset_name || 'Unknown Task'
+                        name: transformedResult.result?.dataset_name || 'Unknown Task',
+                        labels: []
                     });
                 }
-                
+
             } catch (err) {
                 console.error('Error loading benchmark result:', err);
                 setError('Failed to load benchmark result. Please try again.');
@@ -267,7 +280,7 @@ function AgentBenchmarkResults(): JSX.Element {
         }
 
         const globalMetrics = benchmarkResult.result.global_metrics;
-        
+
         return (
             <>
                 <Row gutter={[16, 16]}>
@@ -474,6 +487,79 @@ function AgentBenchmarkResults(): JSX.Element {
         },
     ];
 
+    // Attribute metrics rendering functions
+    const renderAttributeMetrics = () => {
+        const attributeMetrics = benchmarkResult.result?.attribute_metrics;
+
+        if (!attributeMetrics || attributeMetrics.length === 0) {
+            return (
+                <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <TagsOutlined style={{ fontSize: 48, color: '#d9d9d9' }} />
+                    <h3>No attribute metrics available</h3>
+                    <p>No attribute metrics were generated for this evaluation.</p>
+                </div>
+            );
+        }
+
+        return (
+            <Tabs defaultActiveKey="0" type="card">
+                {attributeMetrics.map((metric, index) => {
+                    const attributeKey = Object.keys(metric)[0];
+                    const attributeData = metric[attributeKey] as Record<string, any>;
+
+                    // Get all metric names and sort them for consistent ordering
+                    const metricNames = Object.keys(attributeData).sort();
+
+                    // Create columns for each metric
+                    const columns = [
+                        {
+                            title: 'Attribute',
+                            dataIndex: 'attribute',
+                            key: 'attribute',
+                            fixed: 'left' as const,
+                            width: 120,
+                            render: (text: string) => <Text strong>{text}</Text>,
+                        },
+                        ...metricNames.map((metricName) => ({
+                            title: metricName.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+                            dataIndex: metricName,
+                            key: metricName,
+                            width: 100,
+                            render: (value: any) => {
+                                if (typeof value === 'number') {
+                                    return formatMetric(value);
+                                }
+                                return String(value);
+                            },
+                        })),
+                    ];
+
+                    // Create single row of data for this attribute
+                    const tableData = [{
+                        key: attributeKey,
+                        attribute: attributeKey,
+                        ...attributeData,
+                    }];
+
+                    return (
+                        <TabPane tab={attributeKey} key={index.toString()}>
+                            <Table
+                                columns={columns}
+                                dataSource={tableData}
+                                pagination={false}
+                                size="small"
+                                bordered
+                                scroll={{ x: 'max-content' }}
+                            />
+                        </TabPane>
+                    );
+                })}
+            </Tabs>
+        );
+    };
+
+
+
     return (
         <div className="agent-benchmark-results">
             <div className="agent-benchmark-header">
@@ -545,6 +631,24 @@ function AgentBenchmarkResults(): JSX.Element {
                                     />
                                 </TabPane>
                             )}
+
+                            {(() => {
+                                const hasAttributeMetrics = benchmarkResult.result?.attribute_metrics && benchmarkResult.result.attribute_metrics.length > 0;
+
+                                return hasAttributeMetrics && (
+                                    <TabPane
+                                        tab={
+                                            <Space>
+                                                <TagsOutlined />
+                                                Attribute Metrics
+                                            </Space>
+                                        }
+                                        key="attribute-metrics"
+                                    >
+                                        {renderAttributeMetrics()}
+                                    </TabPane>
+                                );
+                            })()}
 
                             <TabPane tab="Charts" key="charts">
                                 <div className="charts-placeholder">

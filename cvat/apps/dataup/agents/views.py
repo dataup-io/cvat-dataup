@@ -24,6 +24,7 @@ from rest_framework import status, viewsets
 from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
 # from cvat.apps.dataup.agents.jobs import AgentQueue, AgentJob
 
+
 class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
     iam_context_factory = staticmethod(get_dataup_iam_context)
@@ -85,7 +86,9 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         if serializer.is_valid():
             agent_data = serializer.validated_data
             try:
-                response = self.dataup_client.make_request("POST", "agents/", data=agent_data)
+                response = self.dataup_client.make_request(
+                    "POST", "agents/", data=agent_data
+                )
 
                 response_data = response.json() if response.content else {}
                 # Serialize the response data to exclude auth_token
@@ -174,7 +177,7 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             inference_data["task_id"],
             inference_data["frame_ids"],
             inference_data["params"],
-            task_type=task_type
+            task_type=task_type,
         )
 
         try:
@@ -194,14 +197,12 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             )
 
         converter = DataUpAgentResultConverter(
-            task_id=inference_data["task_id"], label_mapping=label_mapping, task_type=task_type
+            task_id=inference_data["task_id"],
+            label_mapping=label_mapping,
+            task_type=task_type,
         )
         converted_outputs = converter.convert(frame_ids, data)
-        return Response(
-            data=converted_outputs, status=status.HTTP_200_OK
-        )
-
-
+        return Response(data=converted_outputs, status=status.HTTP_200_OK)
 
 
 # class AgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):

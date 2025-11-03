@@ -11,7 +11,6 @@ from typing import Optional, Dict, Any
 from cvat.apps.dataup.agents.rq import AgentRQMeta
 from cvat.apps.dataup.dataup_api.client import DataUpAPIClient
 from cvat.apps.engine.log import ServerLogManager
-from django.conf import settings
 from django.core.exceptions import ValidationError
 from rest_framework import status
 

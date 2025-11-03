@@ -4,7 +4,10 @@ from cvat.apps.engine.models import Task
 from django.conf import settings
 from rest_framework.exceptions import NotFound
 
-def get_frames_from_task(task_id: int, frame_ids: list[int]) -> tuple[list[str], list[str]]:
+
+def get_frames_from_task(
+    task_id: int, frame_ids: list[int]
+) -> tuple[list[str], list[str]]:
     try:
         task = Task.objects.get(id=task_id)
     except Task.DoesNotExist as ex:
@@ -16,7 +19,6 @@ def get_frames_from_task(task_id: int, frame_ids: list[int]) -> tuple[list[str],
     frame_provider = TaskFrameProviderV2(task)
     use_presigned_urls = getattr(settings, "USE_PRESIGNED_URLS", False)
     if use_presigned_urls and is_cloud_backed(task):
-
         image_urls = [
             frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.URL)
             for frame_id in frame_ids
@@ -32,11 +34,12 @@ def get_frames_from_task(task_id: int, frame_ids: list[int]) -> tuple[list[str],
 
 
 def _prepare_interactor_params(params: dict) -> dict:
-
     pos_points = [(int(p[0]), int(p[1])) for p in params.get("pos_points", [])]
     neg_points = [(int(p[0]), int(p[1])) for p in params.get("neg_points", [])]
-    pos_boxes  = [(int(p[0]), int(p[1]), int(p[2]), int(p[3])) for p in params.get("pos_boxes", [])]
-
+    pos_boxes = [
+        (int(p[0]), int(p[1]), int(p[2]), int(p[3]))
+        for p in params.get("pos_boxes", [])
+    ]
 
     return {
         "param_type": "sam2",
@@ -45,8 +48,8 @@ def _prepare_interactor_params(params: dict) -> dict:
         "pos_boxes": pos_boxes,
     }
 
-def _prepare_detector_params(params: dict) -> dict:
 
+def _prepare_detector_params(params: dict) -> dict:
     threshold = params.get("threshold", 0.5)
     iou_threshold = params.get("iou_threshold", 0.5)
     max_detections = params.get("max_detections", 100)
@@ -58,7 +61,7 @@ def _prepare_detector_params(params: dict) -> dict:
     }
 
 
-def prepare_payload_params(params: dict, task_type: str="annotate_frame") -> dict:
+def prepare_payload_params(params: dict, task_type: str = "annotate_frame") -> dict:
     if task_type == "interact":
         return _prepare_interactor_params(params)
     elif task_type == "annotate_frame":
@@ -67,12 +70,25 @@ def prepare_payload_params(params: dict, task_type: str="annotate_frame") -> dic
         raise ValueError(f"Unknown task type {task_type}")
 
 
-def get_request_id(organization_uuid: str, task_id: int, frame_ids: list[int], task_type: dict) -> str:
+def get_request_id(
+    organization_uuid: str, task_id: int, frame_ids: list[int], task_type: dict
+) -> str:
     return f"{organization_uuid}_{task_id}_{task_type}_{'-'.join(str(frame_id) for frame_id in frame_ids)}"
 
 
-def build_infer_payload(organization_uuid: str, task_id: int, frame_ids: list[int], params: dict, task_type: str="annotate_frame") -> dict:
+def build_infer_payload(
+    organization_uuid: str,
+    task_id: int,
+    frame_ids: list[int],
+    params: dict,
+    task_type: str = "annotate_frame",
+) -> dict:
     request_id = get_request_id(organization_uuid, task_id, frame_ids, task_type)
     image_urls, images = get_frames_from_task(task_id, frame_ids)
     params = prepare_payload_params(params, task_type)
-    return {"request_id": request_id, "image_urls": image_urls, "images_b64": images, "params": params}
+    return {
+        "request_id": request_id,
+        "image_urls": image_urls,
+        "images_b64": images,
+        "params": params,
+    }

@@ -88,7 +88,6 @@ class DataUpAgentPermission(OpenPolicyAgentPermission):
         return resource
 
 
-
 class DataUpAgentJobPermission(OpenPolicyAgentPermission):
     class Scopes(str, Enum):
         LIST = "list"
@@ -118,7 +117,6 @@ class DataUpAgentJobPermission(OpenPolicyAgentPermission):
 
     @classmethod
     def create(cls, request, view, obj, iam_context=None):
-
         if "agent-jobs" not in view.basename:
             return []
 

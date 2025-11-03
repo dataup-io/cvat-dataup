@@ -10,15 +10,9 @@ from cvat.apps.engine.serializers import LabeledDataSerializer
 from cvat.apps.dataset_manager.task import PatchAction
 import cvat.apps.dataset_manager as dm
 from cvat.apps.engine.log import ServerLogManager
-import random
 from collections import defaultdict
-from cvat.apps.dataup.agents.metrics import (
-    calculate_iou,
-    match_predictions_to_ground_truth,
-    calculate_average_precision,
-    calculate_frame_metrics,
-    calculate_per_class_metrics,
-)
+from cvat.apps.engine.models import Label, LabeledShapeAttributeVal
+
 
 slogger = ServerLogManager(__name__)
 
@@ -237,9 +231,9 @@ def get_bbox_from_shape(shape: LabeledShape) -> list[int]:
     return []
 
 
-
-
-def get_dataup_agent_predictions(frame_ids: list[int], predictions: list[dict], eval_classes: set[str]) -> dict[int, list[dict]]:
+def get_dataup_agent_predictions(
+    frame_ids: list[int], predictions: list[dict], eval_classes: set[str]
+) -> dict[int, list[dict]]:
     """
     Convert agent predictions to a standard format for validation.
 
@@ -251,19 +245,27 @@ def get_dataup_agent_predictions(frame_ids: list[int], predictions: list[dict], 
     """
     batch_frame_predictions = defaultdict(list)
     for frame_id, per_frame_preds in zip(frame_ids, predictions):
-       for pred in per_frame_preds["labels"]:
-            bbox_xyxy = [int(pred['bbox']['x']), int(pred['bbox']['y']), int(pred['bbox']['x'] + pred['bbox']['width']), int(pred['bbox']['y'] + pred['bbox']['height'])]
+        for pred in per_frame_preds["labels"]:
+            bbox_xyxy = [
+                int(pred["bbox"]["x"]),
+                int(pred["bbox"]["y"]),
+                int(pred["bbox"]["x"] + pred["bbox"]["width"]),
+                int(pred["bbox"]["y"] + pred["bbox"]["height"]),
+            ]
             standardized_pred = {
                 "frame_id": frame_id,
                 "label": pred["label"] if pred["label"] in eval_classes else "ignore",
                 "bbox": bbox_xyxy,
                 "confidence": pred.get("score", 0.0),
+                "attributes": pred.get("attributes", []),
             }
             batch_frame_predictions[frame_id].append(standardized_pred)
     return batch_frame_predictions
 
 
-def get_ground_truth_from_task(task_id: int, label_mapping: dict[str, dict]) -> dict[int, list[dict]]:
+def get_ground_truth_from_task(
+    task_id: int, label_mapping: dict[str, dict]
+) -> dict[int, list[dict]]:
     """
     Retrieve ground truth annotations for all frames in a task.
 
@@ -281,22 +283,42 @@ def get_ground_truth_from_task(task_id: int, label_mapping: dict[str, dict]) -> 
         return {}
 
     # Query labeled shapes with optimized database access
-    labeled_shapes = LabeledShape.objects.filter(
-        job__segment__task_id=task_id
-    ).select_related('label', 'job')
+    labeled_shapes = (
+        LabeledShape.objects.filter(job__segment__task_id=task_id)
+        .select_related("label", "job")
+        .prefetch_related("attributes__spec")
+    )
 
+    slogger.glob.info(
+        f"Found {labeled_shapes.count()} labeled shapes for task {task_id}"
+    )
 
     results = defaultdict(list)
     for shape in labeled_shapes:
         label_name = label_mapping.get(shape.label.name, "ignore")
         frame_id = shape.frame
-        results[frame_id].append({
-            "type": shape.type,
-            "bbox": get_bbox_from_shape(shape),
-            "label": label_name,
-            "db_label": shape.label.name,
-            "frame_id": shape.frame,
-        })
 
-    slogger.glob.info(f"Retrieved ground truth for task {task_id}: {sum(len(shapes) for shapes in results.values())} total annotations across {len(results)} frames")
+        # Get attributes in the requested format
+        attributes_list = [
+            {"key": attr.spec.name, "value": attr.value, "type": attr.spec.input_type}
+            for attr in shape.attributes.all()
+        ]
+
+        if attributes_list:
+            slogger.glob.info(f"Shape {shape.id} attributes: {attributes_list}")
+        else:
+            slogger.glob.info(f"Shape {shape.id} has no attributes")
+
+        results[frame_id].append(
+            {
+                "type": shape.type,
+                "bbox": get_bbox_from_shape(shape),
+                "label": label_name,
+                "db_label": shape.label.name,
+                "frame_id": shape.frame,
+                "attributes": attributes_list,
+            }
+        )
+
+    # slogger.glob.info(f"Retrieved ground truth for task {task_id}: {sum(len(shapes) for shapes in results.values())} total annotations across {len(results)} frames")
     return dict(results)

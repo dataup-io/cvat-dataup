@@ -56,11 +56,11 @@ class AgentReadSerializer(serializers.Serializer):
         External service sends 'provider', we store it as 'publisher' internally.
         """
         # Create a copy to avoid modifying the original data
-        internal_data = data.copy() if hasattr(data, 'copy') else dict(data)
+        internal_data = data.copy() if hasattr(data, "copy") else dict(data)
 
         # Map incoming provider from external service to publisher internally
-        if 'provider' in internal_data:
-            internal_data['publisher'] = internal_data['provider']
+        if "provider" in internal_data:
+            internal_data["publisher"] = internal_data["provider"]
 
         return super().to_internal_value(internal_data)
 
@@ -72,8 +72,8 @@ class AgentReadSerializer(serializers.Serializer):
         data = super().to_representation(instance)
 
         # If publisher is missing or empty but provider exists, use provider as publisher
-        if not data.get('publisher') and data.get('provider'):
-            data['publisher'] = data['provider']
+        if not data.get("publisher") and data.get("provider"):
+            data["publisher"] = data["provider"]
 
         return data
 
@@ -100,6 +100,7 @@ class AgentJobCreateSerializer(serializers.Serializer):
     conv_mask_to_poly = serializers.BooleanField(default=False)
     max_distance = serializers.IntegerField(default=50, min_value=1)
     frame_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
+
 
 class AgentWriteSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
@@ -150,12 +151,11 @@ class AgentWriteSerializer(serializers.Serializer):
         Handle input data processing. Map publisher to provider for external service.
         """
         # Make a copy to avoid modifying the original data
-        internal_data = data.copy() if hasattr(data, 'copy') else dict(data)
+        internal_data = data.copy() if hasattr(data, "copy") else dict(data)
 
         # If publisher is provided, map it to provider and remove publisher
-        if 'publisher' in internal_data:
-            internal_data['provider'] = internal_data['publisher']
-            internal_data.pop('publisher', None)
+        if "publisher" in internal_data:
+            internal_data["provider"] = internal_data["publisher"]
+            internal_data.pop("publisher", None)
 
         return super().to_internal_value(internal_data)
-

@@ -13,7 +13,6 @@ from .evaluate import AgentEvaluateQueue
 from .base_views import BaseAgentJobsViewSet
 
 
-
 class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
     """ViewSet for agent auto-annotation jobs"""
 
@@ -73,7 +72,7 @@ class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
                 max_distance=max_distance,
                 request=request,
                 job_id=job_id,
-                frame_ids=frame_ids
+                frame_ids=frame_ids,
             )
 
             # Return job details
@@ -148,7 +147,7 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
                 mapping=mapping,
                 request=request,
                 job_id=job_id,
-                frame_ids=frame_ids
+                frame_ids=frame_ids,
             )
 
             # Return job details

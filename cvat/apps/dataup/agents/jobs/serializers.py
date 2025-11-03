@@ -1,7 +1,6 @@
 from rest_framework import serializers
 
 
-
 class AgentJobSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)

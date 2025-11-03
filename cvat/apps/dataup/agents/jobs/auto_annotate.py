@@ -1,4 +1,3 @@
-from cvat.apps.dataup.iam.context import get_dataup_organization
 import django_rq
 from datetime import timedelta
 from cvat.apps.dataup.agents.rq import AgentRQMeta
@@ -60,11 +59,13 @@ class AgentAutoAnnotateQueue(BaseAgentQueue):
         request,
         *,
         job_id: Optional[int] = None,
-        frame_ids: Optional[list[int]] = None
+        frame_ids: Optional[list[int]] = None,
     ) -> "AgentAutoAnnotateJob":
         queue = self._get_queue()
         rq_id = RequestId(
-            action=RequestAction.AUTOANNOTATE, target=RequestTarget.TASK, target_id=task_id
+            action=RequestAction.AUTOANNOTATE,
+            target=RequestTarget.TASK,
+            target_id=task_id,
         ).render()
 
         with get_rq_lock_for_job(queue, rq_id):
@@ -149,22 +150,20 @@ class AgentAutoAnnotateJob(BaseAgentJob):
 
         return dict_
 
-
     @classmethod
     def __call__(cls, agent_id: str, task_id: int, cleanup: bool, **kwargs):
-
         dataup_client_cfg = kwargs.pop("dataup_client_cfg")
         dataup_client = DataUpAPIClient.from_cfg(dataup_client_cfg)
 
         job_id = kwargs.get("job_id")
-        organization_uuid = kwargs.get("organization_uuid", "dataup_org") # TODO: We need to pass this when we need it
+        organization_uuid = kwargs.get(
+            "organization_uuid", "dataup_org"
+        )  # TODO: We need to pass this when we need it
         db_task, db_job = get_task_job_from_ids(task_id, job_id, cleanup)
-
 
         frame_ids = kwargs.get("frame_ids")
         if not frame_ids:
             frame_ids = get_frame_ids_from_task_or_job(db_task, db_job)
-
 
         label_mapping = kwargs.get("mapping", {})
         converter = DataUpAgentResultConverter(task_id, label_mapping=label_mapping)
@@ -175,7 +174,9 @@ class AgentAutoAnnotateJob(BaseAgentJob):
         threshold = kwargs.get("threshold", 0.5)
         params = {"threshold": threshold}
         for frame_ids_batch in take_by(frame_ids, MAX_BATCH_SIZE):
-            payload = build_infer_payload(organization_uuid, task_id, frame_ids_batch, params)
+            payload = build_infer_payload(
+                organization_uuid, task_id, frame_ids_batch, params
+            )
 
             try:
                 resp = dataup_client.make_request(
@@ -217,11 +218,15 @@ class AgentAutoAnnotateJob(BaseAgentJob):
                     f"{e.kind.value.capitalize()} error; aborting. "
                     f"Details: {e.message} (status={e.status_code}{f', code={e.error_code}' if e.error_code else ''})"
                 )
-                if batched_output: # save remaining data if available
-                    batch_save_agent_results(converter, db_task, db_job, successful_frames, batched_output)
+                if batched_output:  # save remaining data if available
+                    batch_save_agent_results(
+                        converter, db_task, db_job, successful_frames, batched_output
+                    )
                     batched_output.clear()
                     successful_frames.clear()
                 raise
 
         if batched_output:
-            batch_save_agent_results(converter, db_task, db_job, successful_frames, batched_output)
+            batch_save_agent_results(
+                converter, db_task, db_job, successful_frames, batched_output
+            )
