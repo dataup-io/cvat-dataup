@@ -89,6 +89,17 @@ class BaseAgentJob(ABC):
         """Delete the job."""
         self.job.delete()
 
+
+    @property
+    def organization_uuid(self) -> str | None:
+        return self.job.kwargs.get("organization_id")
+
+    @property
+    def user_id(self) -> str | None:
+        return self.job.kwargs.get("user_id")
+
+
+
     @property
     def is_finished(self):
         """Check if job is finished."""

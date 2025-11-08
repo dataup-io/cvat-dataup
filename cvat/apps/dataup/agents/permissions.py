@@ -47,9 +47,7 @@ class DataUpAgentPermission(OpenPolicyAgentPermission):
         perms = []
         for scope in cls.get_scopes(request, view, obj):
             perms.append(
-                cls.create_base_perm(
-                    request, view, scope, iam_context=dataup_iam_context, obj=obj
-                )
+                cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj)
             )
         return perms
 
@@ -66,9 +64,7 @@ class DataUpAgentPermission(OpenPolicyAgentPermission):
             resource = {
                 "type": "dataup_agents",
                 "role": request_owner_role,
-                "dataup_user_id": str(request_owner_id)
-                if request_owner_id is not None
-                else None,
+                "dataup_user_id": str(request_owner_id) if request_owner_id is not None else None,
                 "dataup_org_id": str(request_org_id) if request_org_id else None,
                 "is_org": request_org_id is not None,
                 "is_personal": request_org_id is None and request_owner_id is not None,
@@ -84,7 +80,6 @@ class DataUpAgentPermission(OpenPolicyAgentPermission):
                 "is_personal": not getattr(o, "organization_id", None)
                 and bool(getattr(o, "owner_id", None)),
             }
-        print("Sending resource to OPA", resource)
         return resource
 
 
@@ -125,9 +120,7 @@ class DataUpAgentJobPermission(OpenPolicyAgentPermission):
         perms = []
         for scope in cls.get_scopes(request, view, obj):
             perms.append(
-                cls.create_base_perm(
-                    request, view, scope, iam_context=dataup_iam_context, obj=obj
-                )
+                cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj)
             )
         return perms
 
@@ -144,9 +137,7 @@ class DataUpAgentJobPermission(OpenPolicyAgentPermission):
             resource = {
                 "type": "dataup_agents_jobs",
                 "role": request_owner_role,
-                "dataup_user_id": str(request_owner_id)
-                if request_owner_id is not None
-                else None,
+                "dataup_user_id": str(request_owner_id) if request_owner_id is not None else None,
                 "dataup_org_id": str(request_org_id) if request_org_id else None,
                 "is_org": request_org_id is not None,
                 "is_personal": request_org_id is None and request_owner_id is not None,
@@ -162,5 +153,4 @@ class DataUpAgentJobPermission(OpenPolicyAgentPermission):
                 "is_personal": not getattr(o, "organization_id", None)
                 and bool(getattr(o, "owner_id", None)),
             }
-        print("Sending resource to OPA", resource)
         return resource

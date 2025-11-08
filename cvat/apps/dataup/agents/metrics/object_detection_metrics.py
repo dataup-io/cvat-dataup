@@ -1,11 +1,11 @@
-from typing import Any, List, Dict, Tuple
+from typing import Any, List, Dict
 from cvat.apps.engine.log import ServerLogManager
 from cvat.apps.dataup.agents.metrics.utils import (
     calculate_iou,
     match_predictions_to_ground_truth,
 )
 from collections import defaultdict
-
+from cvat.apps.dataup.agents.jobs.utils import get_frame_to_job_ids
 
 slogger = ServerLogManager(__name__)
 
@@ -42,9 +42,45 @@ def _calculate_stats_per_frame(
     return tp_per_frame, fp_per_frame, fn_per_frame
 
 
+def _calculate_stats_per_job(
+    all_preds: list[dict],
+    all_gts: list[dict],
+    matches: list[tuple[int, int]],
+    unmatched_preds: list[int],
+    unmatched_gts: list[int],
+    frame_to_job_ids: dict[int, int],
+) -> tuple[dict, dict, dict]:
+    tp_per_job = defaultdict(int)
+    fp_per_job = defaultdict(int)
+    fn_per_job = defaultdict(int)
+    # calculate true positives per frame
+
+    for pred_idx, _, _ in matches:
+        p = all_preds[pred_idx]
+        frame_id = p["frame_id"]
+        job_id = frame_to_job_ids[frame_id]
+        tp_per_job[job_id] += 1
+
+    # calculate false positives per frame
+    for pred_idx in unmatched_preds:
+        p = all_preds[pred_idx]
+        frame_id = p["frame_id"]
+        job_id = frame_to_job_ids[frame_id]
+        fp_per_job[job_id] += 1
+
+    # calculate false negatives per frame
+    for gt_idx in unmatched_gts:
+        g = all_gts[gt_idx]
+        frame_id = g["frame_id"]
+        job_id = frame_to_job_ids[frame_id]
+        fn_per_job[job_id] += 1
+
+    return tp_per_job, fp_per_job, fn_per_job
+
+
 def calculate_average_precision(
-    predictions: List[Dict],
-    ground_truth: List[Dict],
+    predictions: list[dict],
+    ground_truth: list[dict],
     iou_threshold: float = 0.5,
     iou_ignore: float = None,
 ) -> float:
@@ -178,94 +214,6 @@ def calculate_average_precision(
     return ap / 11.0
 
 
-def calculate_frame_metrics(
-    frames: List[int],
-    predictions: Dict[int, List[Dict]],
-    ground_truth: Dict[int, List[Dict]],
-    iou_threshold: float = 0.5,
-    iou_ignore: float = None,
-) -> List[Dict]:
-    """
-    Calculate metrics for each frame, honoring ignore semantics.
-
-    Args:
-        frames: List of frame IDs
-        predictions: Dict frame_id -> list of prediction dicts with 'bbox', 'label', 'confidence'
-        ground_truth: Dict frame_id -> list of GT dicts with 'bbox', 'label'
-        iou_threshold: IoU threshold for TPs
-        iou_ignore: IoU threshold for FP suppression against ignored GT (defaults to iou_threshold)
-
-    Returns:
-        List of frame metric dictionaries
-    """
-    if iou_ignore is None:
-        iou_ignore = iou_threshold
-
-    frame_metrics: List[Dict] = []
-
-    for frame_id in frames:
-        frame_preds = predictions.get(frame_id, []) or []
-        frame_gt = ground_truth.get(frame_id, []) or []
-
-        # Quick exit when both empty
-        if not frame_preds and not frame_gt:
-            frame_metrics.append(
-                {
-                    "frame_id": frame_id,
-                    "precision": 1.0,
-                    "recall": 1.0,
-                    "f1": 1.0,
-                    "accuracy": 1.0,
-                    "mean_iou": 0.0,
-                    "detections": 0,
-                    "ground_truths": 0,
-                    "true_positives": 0,
-                    "false_positives": 0,
-                    "false_negatives": 0,
-                }
-            )
-            continue
-
-        matches, unmatched_preds, unmatched_gt = match_predictions_to_ground_truth(
-            frame_preds, frame_gt, iou_threshold=iou_threshold, iou_ignore=iou_ignore
-        )
-
-        tp = len(matches)
-        fp = len(unmatched_preds)
-        fn = len(unmatched_gt)
-
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-        recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = (
-            2 * precision * recall / (precision + recall)
-            if (precision + recall) > 0
-            else 0.0
-        )
-        accuracy = tp / (tp + fp + fn) if (tp + fp + fn) > 0 else 0.0
-        mean_iou = (sum(i for _, _, i in matches) / tp) if tp > 0 else 0.0
-
-        # Count only evaluated boxes for reporting
-        num_eval_preds = sum(1 for p in frame_preds if p.get("label") != "ignore")
-        num_eval_gt = sum(1 for g in frame_gt if g.get("label") != "ignore")
-        frame_metrics.append(
-            {
-                "frame_id": frame_id,
-                "precision": precision,
-                "recall": recall,
-                "f1": f1,
-                "accuracy": accuracy,  # set-level Jaccard: TP/(TP+FP+FN)
-                "mean_iou": mean_iou,
-                "detections": num_eval_preds,
-                "ground_truths": num_eval_gt,
-                "true_positives": tp,
-                "false_positives": fp,
-                "false_negatives": fn,
-            }
-        )
-
-    return frame_metrics
-
-
 def calculate_per_class_metrics(
     class_names: List[str],
     all_preds: List[Dict],
@@ -303,8 +251,7 @@ def calculate_per_class_metrics(
 
         # AP@[.50:.95]
         ap_vals = [
-            calculate_average_precision(cls_preds, cls_gt, iou_threshold=t)
-            for t in iou_thresholds
+            calculate_average_precision(cls_preds, cls_gt, iou_threshold=t) for t in iou_thresholds
         ]
         ap_50_95 = sum(ap_vals) / len(ap_vals) if ap_vals else 0.0
 
@@ -319,11 +266,7 @@ def calculate_per_class_metrics(
 
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
         recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        f1 = (
-            2 * precision * recall / (precision + recall)
-            if (precision + recall) > 0
-            else 0.0
-        )
+        f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
 
         per_class_metrics.append(
             {
@@ -343,63 +286,14 @@ def calculate_per_class_metrics(
     return per_class_metrics
 
 
-def calculate_global_metrics(
-    frame_metrics: List[Dict],
-    per_class_metrics: List[Dict],
-) -> Dict:
-    tp = sum(fm.get("true_positives", 0) for fm in frame_metrics)
-    fp = sum(fm.get("false_positives", 0) for fm in frame_metrics)
-    fn = sum(fm.get("false_negatives", 0) for fm in frame_metrics)
-
-    micro_precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    micro_recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    micro_f1 = (
-        2 * micro_precision * micro_recall / (micro_precision + micro_recall)
-        if (micro_precision + micro_recall) > 0
-        else 0.0
-    )
-
-    # Mean IoU over all matched detections (weight frame mean_iou by TP count)
-    total_matched = tp
-    sum_iou = sum(
-        (fm.get("mean_iou", 0.0) or 0.0) * fm.get("true_positives", 0)
-        for fm in frame_metrics
-    )
-    mean_iou_overall = (sum_iou / total_matched) if total_matched > 0 else 0.0
-
-    # ---- mAP-like numbers from per-class metrics ----
-    if per_class_metrics:
-        # Unweighted mean across classes (standard mAP)
-        mAP50 = sum(c.get("ap_50", 0.0) for c in per_class_metrics) / len(
-            per_class_metrics
-        )
-        mAP75 = sum(c.get("ap_75", 0.0) for c in per_class_metrics) / len(
-            per_class_metrics
-        )
-    else:
-        mAP50 = 0.0
-        mAP75 = 0.0
-
-    return {
-        "average_precision": micro_precision,
-        "average_recall": micro_recall,
-        "average_f1": micro_f1,
-        "mean_iou": mean_iou_overall,
-        "precision_at_thresholds": {
-            "0.5": mAP50,
-            "0.75": mAP75,
-        },
-    }
-
-
 def calculate_object_detection_metrics(
-    eval_frame_ids: list[int],
     all_preds: list[dict],
     all_gts: list[dict],
-    matches: list[tuple[int, int]],
+    matches: list[tuple[int, int, float]],
     unmatched_preds: list[int],
     unmatched_gts: list[int],
     class_names: list[str],
+    frame_to_job_ids: dict[int, int],
 ) -> dict:
     """
     Calculate object detection metrics for all predictions and ground truth.
@@ -409,23 +303,28 @@ def calculate_object_detection_metrics(
         all_preds, all_gts, matches, unmatched_preds, unmatched_gts
     )
 
-    # calculate frame metrics
-    frame_metrics = []
-    for frame_id in eval_frame_ids:
-        tp = tp_per_frame[frame_id]
-        fp = fp_per_frame[frame_id]
-        fn = fn_per_frame[frame_id]
+    tp_per_job, fp_per_job, fn_per_job = _calculate_stats_per_job(
+        all_preds,
+        all_gts,
+        matches,
+        unmatched_preds,
+        unmatched_gts,
+        frame_to_job_ids=frame_to_job_ids,
+    )
+    # Collect all job ids from keys (not values)
+    all_job_ids = set(tp_per_job.keys()) | set(fp_per_job.keys()) | set(fn_per_job.keys())
+    job_metrics: list[dict] = []
+    for job_id in all_job_ids:
+        tp = tp_per_job[job_id]
+        fp = fp_per_job[job_id]
+        fn = fn_per_job[job_id]
         precision = tp / (tp + fp) if tp + fp > 0 else 0
         recall = tp / (tp + fn) if tp + fn > 0 else 0
 
-        f1 = (
-            2 * precision * recall / (precision + recall)
-            if precision + recall > 0
-            else 0
-        )
-        frame_metrics.append(
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0
+        job_metrics.append(
             {
-                "frame_id": frame_id,
+                "job_id": job_id,
                 "true_positives": tp,
                 "false_positives": fp,
                 "false_negatives": fn,
@@ -436,6 +335,7 @@ def calculate_object_detection_metrics(
                 "detections": tp + fp,
             }
         )
+    # Previously calculated per-frame metrics are no longer returned; UI will use per-job metrics.
 
     # calculate overall metrics
     tp = sum(tp_per_frame.values())
@@ -457,7 +357,7 @@ def calculate_object_detection_metrics(
     )
 
     return {
-        "frame_metrics": frame_metrics,
+        "job_metrics": job_metrics,
         "global_metrics": global_metrics,
         "per_class_metrics": per_class_metrics,
     }

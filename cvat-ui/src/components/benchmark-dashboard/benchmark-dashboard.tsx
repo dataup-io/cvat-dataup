@@ -52,16 +52,19 @@ interface PerClassMetric {
     ap_50_95: number;
     detections: number;
     ground_truths: number;
+    support: number;
 }
 
-interface FrameMetric {
-    frame_id: number;
+interface JobMetric {
+    job_id: number;
     precision: number;
     recall: number;
     f1: number;
     detections: number;
     ground_truths: number;
-    inference_time_ms: number;
+    true_positives: number;
+    false_positives: number;
+    false_negatives: number;
 }
 
 interface GlobalMetrics {
@@ -83,7 +86,7 @@ interface EvaluationResult {
     evaluation_time_sec: number;
     global_metrics: GlobalMetrics;
     per_class_metrics: PerClassMetric[];
-    frame_metrics: FrameMetric[];
+    job_metrics: JobMetric[];
 }
 
 interface BenchmarkResult {
@@ -106,223 +109,6 @@ interface BenchmarkResult {
     };
 }
 
-// Mock data for demonstration - using the exact template from evaluate.py
-const mockBenchmarkResults: BenchmarkResult[] = [
-    {
-        id: '1',
-        status: 'finished',
-        progress: 100,
-        created_date: '2024-01-15T10:30:00Z',
-        started_date: '2024-01-15T10:31:00Z',
-        finished_date: '2024-01-15T11:15:00Z',
-        exc_info: null,
-        result: {
-            agent_name: "example-agent",
-            agent_version: "1.0.0",
-            task_type: "object_detection",
-            dataset_name: "coco-sample",
-            processed_frames: 120,
-            evaluation_time_sec: 35.7,
-            global_metrics: {
-                average_precision: 0.78,
-                average_recall: 0.74,
-                average_f1: 0.76,
-                mean_iou: 0.81,
-                precision_at_thresholds: {
-                    "0.5": 0.85,
-                    "0.75": 0.72
-                }
-            },
-            per_class_metrics: [
-                {
-                    class_name: "person",
-                    precision: 0.88,
-                    recall: 0.82,
-                    f1: 0.85,
-                    iou: 0.83,
-                    support: 230
-                },
-                {
-                    class_name: "car",
-                    precision: 0.79,
-                    recall: 0.74,
-                    f1: 0.76,
-                    iou: 0.80,
-                    support: 180
-                }
-            ],
-            frame_metrics: [
-                {
-                    frame_id: 1,
-                    precision: 0.90,
-                    recall: 0.86,
-                    f1: 0.88,
-                    detections: 32,
-                    ground_truths: 34,
-                    inference_time_ms: 45
-                },
-                {
-                    frame_id: 2,
-                    precision: 0.72,
-                    recall: 0.68,
-                    f1: 0.70,
-                    detections: 25,
-                    ground_truths: 27,
-                    inference_time_ms: 47
-                }
-            ]
-        },
-        meta: {
-            task_id: 1,
-            job_id: 1,
-            agent_id: 'agent-1',
-            user: {
-                id: 1,
-                username: 'admin'
-            }
-        }
-    },
-    {
-        id: '2',
-        status: 'finished',
-        progress: 100,
-        created_date: '2024-01-14T14:20:00Z',
-        started_date: '2024-01-14T14:21:00Z',
-        finished_date: '2024-01-14T15:23:00Z',
-        exc_info: null,
-        result: {
-            agent_name: "yolo-v8-agent",
-            agent_version: "2.1.0",
-            task_type: "object_detection",
-            dataset_name: "custom-dataset",
-            processed_frames: 95,
-            evaluation_time_sec: 28.4,
-            global_metrics: {
-                average_precision: 0.82,
-                average_recall: 0.79,
-                average_f1: 0.80,
-                mean_iou: 0.84,
-                precision_at_thresholds: {
-                    "0.5": 0.89,
-                    "0.75": 0.75
-                }
-            },
-            per_class_metrics: [
-                {
-                    class_name: "bicycle",
-                    precision: 0.85,
-                    recall: 0.81,
-                    f1: 0.83,
-                    iou: 0.82,
-                    support: 95
-                },
-                {
-                    class_name: "motorcycle",
-                    precision: 0.79,
-                    recall: 0.77,
-                    f1: 0.78,
-                    iou: 0.86,
-                    support: 67
-                }
-            ],
-            frame_metrics: [
-                {
-                    frame_id: 1,
-                    precision: 0.87,
-                    recall: 0.83,
-                    f1: 0.85,
-                    detections: 28,
-                    ground_truths: 31,
-                    inference_time_ms: 41
-                },
-                {
-                    frame_id: 2,
-                    precision: 0.77,
-                    recall: 0.75,
-                    f1: 0.76,
-                    detections: 22,
-                    ground_truths: 24,
-                    inference_time_ms: 43
-                }
-            ]
-        },
-        meta: {
-            task_id: 2,
-            job_id: 2,
-            agent_id: 'agent-2',
-            user: {
-                id: 1,
-                username: 'admin'
-            }
-        }
-    },
-    {
-        id: '3',
-        status: 'finished',
-        progress: 100,
-        created_date: '2024-01-13T09:15:00Z',
-        started_date: '2024-01-13T09:16:00Z',
-        finished_date: '2024-01-13T09:54:00Z',
-        exc_info: null,
-        result: {
-            agent_name: "text-recognition-agent",
-            agent_version: "1.2.0",
-            task_type: "text_recognition",
-            dataset_name: "document-dataset",
-            processed_frames: 85,
-            evaluation_time_sec: 22.1,
-            global_metrics: {
-                average_precision: 0.91,
-                average_recall: 0.88,
-                average_f1: 0.89,
-                mean_iou: 0.87,
-                precision_at_thresholds: {
-                    "0.5": 0.94,
-                    "0.75": 0.88
-                }
-            },
-            per_class_metrics: [
-                {
-                    class_name: "text",
-                    precision: 0.91,
-                    recall: 0.88,
-                    f1: 0.89,
-                    iou: 0.87,
-                    support: 340
-                }
-            ],
-            frame_metrics: [
-                {
-                    frame_id: 1,
-                    precision: 0.93,
-                    recall: 0.90,
-                    f1: 0.91,
-                    detections: 18,
-                    ground_truths: 19,
-                    inference_time_ms: 35
-                },
-                {
-                    frame_id: 2,
-                    precision: 0.89,
-                    recall: 0.86,
-                    f1: 0.87,
-                    detections: 21,
-                    ground_truths: 23,
-                    inference_time_ms: 38
-                }
-            ]
-        },
-        meta: {
-            task_id: 3,
-            job_id: 3,
-            agent_id: 'agent-1',
-            user: {
-                id: 1,
-                username: 'admin'
-            }
-        }
-    },
-];
 
 function BenchmarkDashboard(): JSX.Element {
     const history = useHistory();
@@ -397,7 +183,7 @@ function BenchmarkDashboard(): JSX.Element {
         maxRetries: number = MAX_RETRY_ATTEMPTS
     ): Promise<any | null> => {
         const currentRetries = retryCount[jobId] || 0;
-        
+
         try {
             const result = await apiCall();
             // Reset retry count on success
@@ -409,7 +195,7 @@ function BenchmarkDashboard(): JSX.Element {
             if (currentRetries < maxRetries) {
                 console.warn(`API call failed for job ${jobId}, retrying... (${currentRetries + 1}/${maxRetries})`);
                 setRetryCount(prev => ({ ...prev, [jobId]: currentRetries + 1 }));
-                
+
                 // Wait before retrying
                 await new Promise(resolve => setTimeout(resolve, RETRY_DELAY));
                 return retryApiCall(apiCall, jobId, maxRetries);
@@ -436,7 +222,7 @@ function BenchmarkDashboard(): JSX.Element {
             try {
                 const core = getCore();
                 const jobInfo = await core.agents.evaluateJobs.get(jobId);
-                
+
                 if (!jobInfo) {
                     console.warn(`No job info found for job ${jobId}`);
                     return;
@@ -446,7 +232,7 @@ function BenchmarkDashboard(): JSX.Element {
                 const progressPercent = typeof progress === 'number' ? Math.max(0, Math.min(100, progress)) : 0;
 
                 // Update the specific result in the state
-                setResults(prevResults => 
+                setResults(prevResults =>
                     prevResults.map(result => {
                         if (result.id === jobId) {
                             return {
@@ -471,7 +257,7 @@ function BenchmarkDashboard(): JSX.Element {
                         newSet.delete(jobId);
                         return newSet;
                     });
-                    
+
                     // Stop global polling indicator if no more active jobs
                     if (activePollingJobs.size <= 1) { // Will be 0 after deletion
                         setIsPolling(false);
@@ -497,7 +283,7 @@ function BenchmarkDashboard(): JSX.Element {
                 newSet.delete(jobId);
                 return newSet;
             });
-            
+
             if (activePollingJobs.size <= 1) {
                 setIsPolling(false);
             }
@@ -521,7 +307,7 @@ function BenchmarkDashboard(): JSX.Element {
             try {
                 const core = getCore();
                 const benchmarkJobs = await core.agents.evaluateJobs.list();
-                
+
                 if (benchmarkJobs && Array.isArray(benchmarkJobs)) {
                     // Transform API response to match our BenchmarkResult interface
                     const transformedResults: BenchmarkResult[] = benchmarkJobs.map((job: any) => ({
@@ -543,9 +329,9 @@ function BenchmarkDashboard(): JSX.Element {
                             }
                         }
                     }));
-                    
+
                     setResults(transformedResults);
-                    
+
                     // Start polling for any running jobs
                     transformedResults.forEach(result => {
                         if (result.status === 'started' || result.status === 'pending') {
@@ -559,7 +345,7 @@ function BenchmarkDashboard(): JSX.Element {
             } catch (error) {
                 console.error('Failed to load benchmark results:', error);
                 message.error('Failed to load benchmark results. Please try again.');
-                // Fallback to empty results instead of mock data
+                // Fallback to empty results
                 setResults([]);
             }
         };
@@ -571,7 +357,11 @@ function BenchmarkDashboard(): JSX.Element {
     // Fetch agents and tasks on component mount
     useEffect(() => {
         dispatch(getAgentsAsync());
-        dispatch(getTasksAsync({}));
+        // Fetch all tasks by setting a large pageSize to avoid pagination limits
+        dispatch(getTasksAsync({
+            page: 1,
+            pageSize: 1000 // Large page size to fetch all tasks
+        }));
     }, [dispatch]);
 
     useEffect(() => {
@@ -605,7 +395,7 @@ function BenchmarkDashboard(): JSX.Element {
          if (!mapping || mapping.length === 0) {
              return {};
          }
-         
+
          const serverMapping: any = {};
          mapping.forEach(([modelLabel, taskLabel, attributesMapping, sublabelsMapping]) => {
              if (modelLabel && taskLabel) {
@@ -613,7 +403,7 @@ function BenchmarkDashboard(): JSX.Element {
                      name: taskLabel.name,
                      attributes: {},
                  };
-                 
+
                  // Handle sublabels recursively if they exist
                  if (sublabelsMapping && sublabelsMapping.length > 0) {
                      const sublabelsServerMapping = convertMappingToServer(sublabelsMapping);
@@ -623,7 +413,7 @@ function BenchmarkDashboard(): JSX.Element {
                  }
              }
          });
-         
+
          return serverMapping;
      };
 
@@ -632,30 +422,30 @@ function BenchmarkDashboard(): JSX.Element {
         setIsStartingBenchmark(true);
         try {
             const core = getCore();
-            
+
             // Prepare the body with label mapping if available
-            const body: any = { 
-                agent_id: values.agentId, 
-                task_id: values.taskId 
+            const body: any = {
+                agent_id: values.agentId,
+                task_id: values.taskId
             };
-            
+
             // Add threshold if provided
             if (threshold !== undefined) {
                 body.threshold = threshold;
             }
-            
+
             // Add label mapping if it exists
             if (labelMapping && labelMapping.length > 0) {
                 body.mapping = convertMappingToServer(labelMapping);
             }
-            
+
             const jobResult = await core.agents.evaluateJobs.create(body);
-            
+
             if (jobResult && jobResult.id) {
                 message.success('Benchmark started successfully!');
                 setIsModalVisible(false);
                 form.resetFields();
-                
+
                 // Add a new pending result to the table with the real job ID
                 const newResult: BenchmarkResult = {
                     id: jobResult.id,
@@ -677,7 +467,7 @@ function BenchmarkDashboard(): JSX.Element {
                     result: jobResult.result || null,
                 };
                 setResults(prev => [newResult, ...prev]);
-                
+
                 // Start polling for this specific job immediately
                 startBenchmarkPolling(jobResult.id);
             } else {
@@ -693,7 +483,7 @@ function BenchmarkDashboard(): JSX.Element {
 
     const getUniqueAgents = () => {
         const agents = results.map(result => ({ id: result.meta.agent_id, name: result.result?.agent_name || 'Unknown' }));
-        return agents.filter((agent, index, self) => 
+        return agents.filter((agent, index, self) =>
             index === self.findIndex(a => a.id === agent.id)
         );
     };
@@ -733,7 +523,7 @@ function BenchmarkDashboard(): JSX.Element {
             // TODO: Implement API call to submit benchmark result to external service
             console.log('Submitting benchmark result to external service:', record.id);
             message.loading('Submitting benchmark result...', 2);
-            
+
             // Simulate API call
             setTimeout(() => {
                 message.success('Benchmark result submitted successfully');
@@ -778,31 +568,31 @@ function BenchmarkDashboard(): JSX.Element {
         {
             title: 'Precision',
             key: 'precision',
-            render: (record: BenchmarkResult) => 
+            render: (record: BenchmarkResult) =>
                 record.result?.global_metrics?.average_precision != null
-                    ? `${(record.result.global_metrics.average_precision * 100).toFixed(1)}%` 
+                    ? `${(record.result.global_metrics.average_precision * 100).toFixed(1)}%`
                     : 'N/A',
-            sorter: (a: BenchmarkResult, b: BenchmarkResult) => 
+            sorter: (a: BenchmarkResult, b: BenchmarkResult) =>
                 (a.result?.global_metrics?.average_precision || 0) - (b.result?.global_metrics?.average_precision || 0),
         },
         {
             title: 'Recall',
             key: 'recall',
-            render: (record: BenchmarkResult) => 
+            render: (record: BenchmarkResult) =>
                 record.result?.global_metrics?.average_recall != null
-                    ? `${(record.result.global_metrics.average_recall * 100).toFixed(1)}%` 
+                    ? `${(record.result.global_metrics.average_recall * 100).toFixed(1)}%`
                     : 'N/A',
-            sorter: (a: BenchmarkResult, b: BenchmarkResult) => 
+            sorter: (a: BenchmarkResult, b: BenchmarkResult) =>
                 (a.result?.global_metrics?.average_recall || 0) - (b.result?.global_metrics?.average_recall || 0),
         },
         {
             title: 'F1 Score',
             key: 'f1Score',
-            render: (record: BenchmarkResult) => 
+            render: (record: BenchmarkResult) =>
                 record.result?.global_metrics?.average_f1 != null
-                    ? `${(record.result.global_metrics.average_f1 * 100).toFixed(1)}%` 
+                    ? `${(record.result.global_metrics.average_f1 * 100).toFixed(1)}%`
                     : 'N/A',
-            sorter: (a: BenchmarkResult, b: BenchmarkResult) => 
+            sorter: (a: BenchmarkResult, b: BenchmarkResult) =>
                 (a.result?.global_metrics?.average_f1 || 0) - (b.result?.global_metrics?.average_f1 || 0),
         },
         {
@@ -829,9 +619,9 @@ function BenchmarkDashboard(): JSX.Element {
             render: (record: BenchmarkResult) => {
                 if (record.status === 'started' || record.status === 'pending') {
                     return (
-                        <Progress 
-                            percent={record.progress} 
-                            size="small" 
+                        <Progress
+                            percent={record.progress}
+                            size="small"
                             status={record.status === 'started' ? 'active' : 'normal'}
                         />
                     );
@@ -842,7 +632,7 @@ function BenchmarkDashboard(): JSX.Element {
         {
             title: 'Date',
             key: 'createdAt',
-            render: (record: BenchmarkResult) => 
+            render: (record: BenchmarkResult) =>
                 record.created_date ? new Date(record.created_date).toLocaleDateString() : 'N/A',
             sorter: (a: BenchmarkResult, b: BenchmarkResult) => {
                 const dateA = a.created_date ? new Date(a.created_date).getTime() : 0;
@@ -882,6 +672,7 @@ function BenchmarkDashboard(): JSX.Element {
                 </div>
             ),
         },
+        // Removed redundant View column; actions already include a view
     ];
 
     return (
@@ -1013,7 +804,7 @@ function BenchmarkDashboard(): JSX.Element {
                         pageSize: 10,
                         showSizeChanger: true,
                         showQuickJumper: true,
-                        showTotal: (total, range) => 
+                        showTotal: (total, range) =>
                             `${range[0]}-${range[1]} of ${total} results`,
                     }}
                 />
@@ -1109,8 +900,8 @@ function BenchmarkDashboard(): JSX.Element {
                             <Divider>
                                 <Space>
                                     Label Mapping
-                                    <Button 
-                                        type="link" 
+                                    <Button
+                                        type="link"
                                         size="small"
                                         onClick={handleAutoMapping}
                                         style={{ padding: 0 }}

@@ -26,6 +26,7 @@ import {
     DownloadOutlined,
     InfoCircleOutlined,
     TagsOutlined,
+    EyeOutlined,
 } from '@ant-design/icons';
 import { CombinedState } from 'reducers';
 import { getCore } from 'cvat-core-wrapper';
@@ -49,15 +50,19 @@ interface PerClassMetric {
     ap_50_95: number;
     detections: number;
     ground_truths: number;
+    support: number;
 }
 
-interface FrameMetric {
-    frame_id: number;
+interface JobMetric {
+    job_id: number;
     precision: number;
     recall: number;
     f1: number;
     detections: number;
     ground_truths: number;
+    true_positives: number;
+    false_positives: number;
+    false_negatives: number;
 }
 
 interface GlobalMetrics {
@@ -79,7 +84,7 @@ interface EvaluationResult {
     evaluation_time_sec: number;
     global_metrics: GlobalMetrics;
     per_class_metrics: PerClassMetric[];
-    frame_metrics: FrameMetric[];
+    job_metrics: JobMetric[];
     attribute_metrics?: Array<{[key: string]: any}>;
 }
 
@@ -444,17 +449,19 @@ function AgentBenchmarkResults(): JSX.Element {
         },
     ];
 
-    const frameMetricsColumns = [
+    const jobMetricsColumns = [
         {
-            title: 'Frame ID',
-            dataIndex: 'frame_id',
-            key: 'frame_id',
-            sorter: (a: any, b: any) => a.frame_id - b.frame_id,
+            title: 'Job ID',
+            dataIndex: 'job_id',
+            key: 'job_id',
+            width: 90,
+            sorter: (a: any, b: any) => a.job_id - b.job_id,
         },
         {
             title: 'Precision',
             dataIndex: 'precision',
             key: 'precision',
+            width: 100,
             render: (value: number) => `${formatMetric(value)}%`,
             sorter: (a: any, b: any) => a.precision - b.precision,
             defaultSortOrder: 'descend' as const,
@@ -463,6 +470,7 @@ function AgentBenchmarkResults(): JSX.Element {
             title: 'Recall',
             dataIndex: 'recall',
             key: 'recall',
+            width: 100,
             render: (value: number) => `${formatMetric(value)}%`,
             sorter: (a: any, b: any) => a.recall - b.recall,
         },
@@ -470,20 +478,63 @@ function AgentBenchmarkResults(): JSX.Element {
             title: 'F1 Score',
             dataIndex: 'f1',
             key: 'f1',
+            width: 100,
             render: (value: number) => `${formatMetric(value)}%`,
             sorter: (a: any, b: any) => a.f1 - b.f1,
+        },
+        {
+            title: 'True Positives',
+            dataIndex: 'true_positives',
+            key: 'true_positives',
+            width: 110,
+            sorter: (a: any, b: any) => a.true_positives - b.true_positives,
+        },
+        {
+            title: 'False Positives',
+            dataIndex: 'false_positives',
+            key: 'false_positives',
+            width: 110,
+            sorter: (a: any, b: any) => a.false_positives - b.false_positives,
+        },
+        {
+            title: 'False Negatives',
+            dataIndex: 'false_negatives',
+            key: 'false_negatives',
+            width: 110,
+            sorter: (a: any, b: any) => a.false_negatives - b.false_negatives,
         },
         {
             title: 'Detections',
             dataIndex: 'detections',
             key: 'detections',
+            width: 120,
             sorter: (a: any, b: any) => a.detections - b.detections,
         },
         {
             title: 'Ground Truths',
             dataIndex: 'ground_truths',
             key: 'ground_truths',
+            width: 120,
             sorter: (a: any, b: any) => a.ground_truths - b.ground_truths,
+        },
+        {
+            title: 'View',
+            key: 'view',
+            width: 80,
+            render: (_: any, record: JobMetric) => (
+                <Tooltip title="Open job">
+                    <Button
+                        type="link"
+                        icon={<EyeOutlined />}
+                        onClick={() => {
+                            if (benchmarkResult?.meta?.task_id && record?.job_id) {
+                                const url = `/tasks/${benchmarkResult.meta.task_id}/jobs/${record.job_id}`;
+                                window.open(url, '_blank');
+                            }
+                        }}
+                    />
+                </Tooltip>
+            ),
         },
     ];
 
@@ -620,14 +671,15 @@ function AgentBenchmarkResults(): JSX.Element {
                                 </TabPane>
                             )}
 
-                            {benchmarkResult.result?.frame_metrics && benchmarkResult.result.frame_metrics.length > 0 && (
-                                <TabPane tab="Frame Metrics" key="frame-metrics">
+                            {benchmarkResult.result?.job_metrics && benchmarkResult.result.job_metrics.length > 0 && (
+                                <TabPane tab="Job Metrics" key="job-metrics">
                                     <Table
-                                        columns={frameMetricsColumns}
-                                        dataSource={benchmarkResult.result.frame_metrics}
-                                        rowKey="frame_id"
+                                        columns={jobMetricsColumns}
+                                        dataSource={benchmarkResult.result.job_metrics}
+                                        rowKey="job_id"
                                         pagination={{ pageSize: 10 }}
                                         size="small"
+                                        scroll={{ x: 'max-content' }}
                                     />
                                 </TabPane>
                             )}

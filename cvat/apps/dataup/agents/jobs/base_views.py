@@ -46,7 +46,15 @@ class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
         """List all agent jobs"""
         try:
             agent_queue = self._get_queue_class()(self.dataup_client)
-            jobs = agent_queue.get_jobs()
+            iam_context = self.iam_context_factory(request, None)
+            organization_uuid = iam_context.get("org_id")
+            user_id = iam_context.get("user_id")
+            if organization_uuid:
+                jobs = [job for job in agent_queue.get_jobs() if job.organization_uuid == organization_uuid]
+            elif user_id:
+                jobs = [job for job in agent_queue.get_jobs() if job.user_id == user_id]
+            else:
+                raise ValidationError("User or organization must be specified")
 
             job_data = []
             for job in jobs:

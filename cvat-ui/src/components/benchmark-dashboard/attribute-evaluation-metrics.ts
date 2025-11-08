@@ -14,6 +14,8 @@ export interface AttributePrediction {
   predicted_value: any;
   ground_truth_value: any;
   confidence?: number;
+  // Optional sample identifier to group multi-attribute predictions deterministically
+  sample_id?: string;
 }
 
 export interface ConfusionMatrix {
@@ -209,7 +211,7 @@ export class AttributeEvaluator {
       exact_match: exactMatch,
       cer,
       wer,
-      sample_errors
+      sample_errors: sampleErrors
     };
   }
 
@@ -380,7 +382,11 @@ export class AttributeEvaluator {
       perAttributeMetrics.push(metrics);
     });
 
-    const globalMetrics = this.calculateGlobalMetrics(perAttributeMetrics, allPredictions);
+    const globalMetrics = this.calculateGlobalMetrics(
+      attributeSpecs,
+      perAttributeMetrics,
+      allPredictions
+    );
     const compositionAnalysis = this.calculateCompositionAnalysis(
       attributeSpecs, 
       allPredictions
@@ -394,6 +400,7 @@ export class AttributeEvaluator {
   }
 
   private static calculateGlobalMetrics(
+    attributeSpecs: AttributeSpec[],
     perAttributeMetrics: AttributeMetrics[],
     allPredictions: AttributePrediction[]
   ): GlobalAttributeMetrics {
@@ -411,30 +418,45 @@ export class AttributeEvaluator {
     const meanAttributeAccuracy = accuracies.length > 0 ?
       accuracies.reduce((sum, acc) => sum + acc, 0) / accuracies.length : 0;
 
-    // Calculate joint correctness
-    const sampleIds = [...new Set(allPredictions.map(p => 
-      `${p.attribute_name}_sample_${Math.floor(Math.random() * 1000)}`
-    ))];
-    
+    // Calculate joint correctness using provided sample_id when available
     const jointCorrectness = this.calculateJointCorrectness(allPredictions);
 
     return {
       total_attributes: perAttributeMetrics.length,
-      total_samples: Math.floor(allPredictions.length / perAttributeMetrics.length),
+      total_samples: this.countSamples(allPredictions),
       attr_macro_f1: attrMacroF1,
       attr_weighted_f1: attrMacroF1, // Simplified
       joint_correctness: jointCorrectness,
       mean_attribute_accuracy: meanAttributeAccuracy,
-      attribute_coverage: perAttributeMetrics.length / perAttributeMetrics.length // 100% for mock data
+      // Percentage of attributes that have predictions
+      attribute_coverage: attributeSpecs.length > 0
+        ? this.calculateAttributeCoverage(attributeSpecs, allPredictions)
+        : 0
     };
   }
 
+  private static countSamples(allPredictions: AttributePrediction[]): number {
+    const ids = new Set(
+      allPredictions.map((p, idx) => p.sample_id ?? `sample_${idx}`)
+    );
+    return ids.size;
+  }
+
+  private static calculateAttributeCoverage(
+    attributeSpecs: AttributeSpec[],
+    allPredictions: AttributePrediction[]
+  ): number {
+    const predictedAttrs = new Set(allPredictions.map(p => p.attribute_name));
+    const covered = attributeSpecs.filter(spec => predictedAttrs.has(spec.name)).length;
+    return attributeSpecs.length > 0 ? covered / attributeSpecs.length : 0;
+  }
+
   private static calculateJointCorrectness(allPredictions: AttributePrediction[]): number {
-    // Group predictions by sample (simplified for mock data)
+    // Group predictions by provided sample_id, falling back to index-based ids
     const sampleGroups: { [key: string]: AttributePrediction[] } = {};
-    
-    allPredictions.forEach(pred => {
-      const sampleId = `sample_${Math.floor(Math.random() * 100)}`;
+
+    allPredictions.forEach((pred, idx) => {
+      const sampleId = pred.sample_id ?? `sample_${idx}`;
       if (!sampleGroups[sampleId]) {
         sampleGroups[sampleId] = [];
       }
@@ -456,55 +478,34 @@ export class AttributeEvaluator {
     attributeSpecs: AttributeSpec[],
     allPredictions: AttributePrediction[]
   ): CompositionAnalysis {
-    const jointCorrectness = this.calculateJointCorrectness(allPredictions);
-    
-    // Mock composition analysis data
-    const partialCorrectnessDistribution = {
-      "0_correct": 0.05,
-      "1_correct": 0.15,
-      "2_correct": 0.25,
-      "3_correct": 0.30,
-      "all_correct": jointCorrectness
-    };
+    const sampleGroups: { [key: string]: AttributePrediction[] } = {};
+    allPredictions.forEach((pred, idx) => {
+      const sampleId = pred.sample_id ?? `sample_${idx}`;
+      if (!sampleGroups[sampleId]) sampleGroups[sampleId] = [];
+      sampleGroups[sampleId].push(pred);
+    });
 
-    const topFailurePatterns = [
-      {
-        pattern: "Color + Material misclassification",
-        frequency: 0.35,
-        example_attributes: ["color", "material"]
-      },
-      {
-        pattern: "Size estimation errors",
-        frequency: 0.28,
-        example_attributes: ["width", "height", "size_category"]
-      },
-      {
-        pattern: "Text recognition failures",
-        frequency: 0.22,
-        example_attributes: ["text_content", "language"]
-      }
-    ];
+    const totalSamples = Object.keys(sampleGroups).length;
+    let allCorrectCount = 0;
+    const bucketCounts: { [key: string]: number } = {};
 
-    const attributeCorrelationErrors = [
-      {
-        attr1: "color",
-        attr2: "material",
-        correlation_score: 0.65,
-        joint_error_rate: 0.23
-      },
-      {
-        attr1: "size_category",
-        attr2: "width",
-        correlation_score: 0.78,
-        joint_error_rate: 0.18
-      }
-    ];
+    Object.values(sampleGroups).forEach(samplePreds => {
+      const correctCount = samplePreds.filter(p => p.predicted_value === p.ground_truth_value).length;
+      const bucketKey = `${correctCount}_correct`;
+      bucketCounts[bucketKey] = (bucketCounts[bucketKey] ?? 0) + 1;
+      if (correctCount === samplePreds.length) allCorrectCount++;
+    });
+
+    const partialCorrectnessDistribution: { [key: string]: number } = {};
+    Object.entries(bucketCounts).forEach(([k, v]) => {
+      partialCorrectnessDistribution[k] = totalSamples > 0 ? v / totalSamples : 0;
+    });
 
     return {
-      joint_correctness: jointCorrectness,
+      joint_correctness: totalSamples > 0 ? allCorrectCount / totalSamples : 0,
       partial_correctness_distribution: partialCorrectnessDistribution,
-      top_failure_patterns: topFailurePatterns,
-      attribute_correlation_errors: attributeCorrelationErrors
+      top_failure_patterns: [],
+      attribute_correlation_errors: []
     };
   }
 }

@@ -17,7 +17,7 @@ from cvat.apps.dataup.agents.jobs.utils import update_progress
 from cvat.apps.engine.rq import RequestId, define_dependent_job
 from cvat.apps.dataup.agents.payload import build_infer_payload
 from cvat.apps.engine.log import ServerLogManager
-from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.core.exceptions import ValidationError
 from rest_framework import status
 from django.conf import settings
 import uuid
@@ -29,11 +29,11 @@ from .utils import (
     get_frame_ids_from_task_or_job,
     update_progress,
     get_dataup_agent_predictions,
+    get_frame_to_job_ids,
 )
 
 from cvat.apps.dataup.agents.metrics import (
     match_predictions_to_ground_truth,
-    # calculate_per_class_metrics, calculate_global_metrics,
     calculate_attribute_metrics,
     calculate_object_detection_metrics,
 )
@@ -67,6 +67,8 @@ class AgentEvaluateQueue(BaseAgentQueue):
         *,
         job_id: Optional[int] = None,
         frame_ids: Optional[list[int]] = None,
+        organization_id: Optional[str] = None,
+        user_id: Optional[int] = None,
     ) -> "AgentEvaluateJob":
         """
         Enqueue an evaluation job.
@@ -101,14 +103,11 @@ class AgentEvaluateQueue(BaseAgentQueue):
                     )
                 rq_job.delete()
 
-            user_id = request.user.id
-
+            # user_id = request.user.id
             with get_rq_lock_by_user(queue, user_id):
                 meta = AgentRQMeta.build_for(
                     request=request,
-                    db_obj=Job.objects.get(pk=job_id)
-                    if job_id
-                    else Task.objects.get(pk=task_id),
+                    db_obj=Job.objects.get(pk=job_id) if job_id else Task.objects.get(pk=task_id),
                     agent_id=agent_id,
                 )
                 rq_job = queue.create_job(
@@ -122,6 +121,8 @@ class AgentEvaluateQueue(BaseAgentQueue):
                         "dataup_client_cfg": self.dataup_client.cfg(),
                         "frame_ids": frame_ids,
                         "mapping": mapping,
+                        "organization_id": organization_id,
+                        "user_id": user_id,
                     },
                     depends_on=define_dependent_job(queue, user_id),
                     result_ttl=self.RESULT_TTL.total_seconds(),
@@ -135,7 +136,9 @@ class AgentEvaluateQueue(BaseAgentQueue):
 
 class AgentEvaluateJob(BaseAgentJob):
     def __init__(self, job: rq.job.Job):
-        super().__init__(job, settings.CVAT_QUEUES.AGENT_EVALUATE.value)
+        super().__init__(job=job, queue_name=settings.CVAT_QUEUES.AGENT_EVALUATE.value)
+
+
 
     def to_dict(self):
         agent_id = self.job.kwargs.get("agent_id")
@@ -143,12 +146,8 @@ class AgentEvaluateJob(BaseAgentJob):
             "id": self.job.id,
             "status": self.job.get_status(),
             "progress": AgentRQMeta.for_job(self.job).progress,
-            "created_date": self.job.created_at.isoformat()
-            if self.job.created_at
-            else None,
-            "started_at": self.job.started_at.isoformat()
-            if self.job.started_at
-            else None,
+            "created_date": self.job.created_at.isoformat() if self.job.created_at else None,
+            "started_at": self.job.started_at.isoformat() if self.job.started_at else None,
             "finished_at": self.job.ended_at.isoformat() if self.job.ended_at else None,
             "exc_info": self.job.exc_info,
             "result": self.job.result,
@@ -184,9 +183,7 @@ class AgentEvaluateJob(BaseAgentJob):
             frame_ids = get_frame_ids_from_task_or_job(db_task, db_job)
 
         class_names = set(kwargs.get("mapping", {}).keys())
-        label_mapping = {
-            value["name"]: key for key, value in kwargs.get("mapping", {}).items()
-        }
+        label_mapping = {value["name"]: key for key, value in kwargs.get("mapping", {}).items()}
         ground_truth_annotations = get_ground_truth_from_task(
             task_id=task_id, label_mapping=label_mapping
         )
@@ -196,12 +193,11 @@ class AgentEvaluateJob(BaseAgentJob):
             for frame_id in frame_ids
             if len(ground_truth_annotations.get(frame_id, [])) > 0
         ]
-
+        frame_to_job_ids = get_frame_to_job_ids(task_id=task_id)
         processed_frames = 0
         threshold = kwargs.get("threshold", 0.5)
         iou_threshold = kwargs.get("iou_threshold", 0.5)
         params = {"threshold": threshold}
-        metric_stats = {"frame_metrics": [], "per_class_metrics": []}
         all_preds = []
         all_gts = list(chain(*ground_truth_annotations.values()))
         for frame_ids_batch in take_by(benchmark_frame_ids, MAX_BATCH_SIZE):
@@ -209,9 +205,7 @@ class AgentEvaluateJob(BaseAgentJob):
                 organization_uuid, task_id, frame_ids_batch, params=params
             )
             try:
-                resp = dataup_client.make_request(
-                    "POST", f"agents/{agent_id}/infer", data=payload
-                )
+                resp = dataup_client.make_request("POST", f"agents/{agent_id}/infer", data=payload)
                 body = resp.json() if getattr(resp, "content", None) else {}
                 predictions: list[dict] = body.get("data", [])
 
@@ -245,20 +239,18 @@ class AgentEvaluateJob(BaseAgentJob):
                     update_progress(processed_frames, len(frame_ids))
                 raise
 
-        matches, unmatched_predictions, unmatched_ground_truth = (
-            match_predictions_to_ground_truth(
-                predictions=all_preds, ground_truth=all_gts, iou_threshold=iou_threshold
-            )
+        matches, unmatched_predictions, unmatched_ground_truth = match_predictions_to_ground_truth(
+            predictions=all_preds, ground_truth=all_gts, iou_threshold=iou_threshold
         )
 
         metric_stats: dict = calculate_object_detection_metrics(
-            eval_frame_ids=benchmark_frame_ids,
             matches=matches,
             unmatched_preds=unmatched_predictions,
             unmatched_gts=unmatched_ground_truth,
             class_names=class_names,
             all_preds=all_preds,
             all_gts=all_gts,
+            frame_to_job_ids=frame_to_job_ids,
         )
 
         metric_stats["attribute_metrics"] = calculate_attribute_metrics(

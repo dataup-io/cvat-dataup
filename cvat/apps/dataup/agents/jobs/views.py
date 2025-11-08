@@ -1,11 +1,6 @@
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
-from rest_framework.permissions import IsAuthenticated
-from cvat.apps.dataup.iam.context import get_dataup_iam_context, get_dataup_organization
-from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
-from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
-from rest_framework import status, viewsets
+from rest_framework import status
 from rest_framework.response import Response
-from django.core.exceptions import ValidationError
 
 from .serializers import AgentJobSerializer, AgentJobCreateSerializer
 from .auto_annotate import AgentAutoAnnotateQueue
@@ -139,7 +134,7 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
             job_id = data.get("job_id")
             mapping = data.get("mapping", {})
             frame_ids = data.get("frame_ids")
-
+            iam_context = self.iam_context_factory(request, None)
             # Enqueue the evaluation job
             agent_job = agent_queue.enqueue(
                 agent_id=agent_id,
@@ -148,6 +143,8 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
                 request=request,
                 job_id=job_id,
                 frame_ids=frame_ids,
+                organization_id=iam_context.get("org_id"),
+                user_id=iam_context.get("user_id"),
             )
 
             # Return job details

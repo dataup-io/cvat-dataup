@@ -1,5 +1,3 @@
-import random
-from enum import Enum
 from cvat.apps.dataup.agents.metrics.utils import wer, cer
 from collections import defaultdict
 from nltk.translate.bleu_score import sentence_bleu, SmoothingFunction

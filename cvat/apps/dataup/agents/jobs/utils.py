@@ -10,8 +10,6 @@ from cvat.apps.engine.serializers import LabeledDataSerializer
 from cvat.apps.dataset_manager.task import PatchAction
 import cvat.apps.dataset_manager as dm
 from cvat.apps.engine.log import ServerLogManager
-from collections import defaultdict
-from cvat.apps.engine.models import Label, LabeledShapeAttributeVal
 
 
 slogger = ServerLogManager(__name__)
@@ -19,6 +17,25 @@ slogger = ServerLogManager(__name__)
 # Common constants
 MAX_BATCH_SIZE = 1
 SAVE_EVERY_FRAMES = 10
+
+
+def get_frame_to_job_ids(task_id: int, job_id: Optional[int] = None) -> dict[int, int]:
+    """
+    Build a mapping from frame_id -> job_id for the given task.
+    If job_id is provided, map only that job’s frames.
+    """
+    mapping: dict[int, int] = {}
+    if job_id:
+        job = Job.objects.select_related("segment").get(pk=job_id)
+        for f in job.segment.frame_set:
+            mapping[f] = job.id
+        return mapping
+
+    jobs = Job.objects.filter(segment__task_id=task_id).select_related("segment")
+    for job in jobs:
+        for f in job.segment.frame_set:
+            mapping[f] = job.id
+    return mapping
 
 
 def cleanup_task_or_job(db_task: Task, db_job: Optional[Job]):
@@ -107,13 +124,9 @@ def batch_save_agent_results(
     serialized_output.is_valid(raise_exception=True)
 
     if db_job:
-        dm.task.patch_job_data(
-            db_job.id, serialized_output.validated_data, PatchAction.CREATE
-        )
+        dm.task.patch_job_data(db_job.id, serialized_output.validated_data, PatchAction.CREATE)
     else:
-        dm.task.patch_task_data(
-            db_task.id, serialized_output.validated_data, PatchAction.CREATE
-        )
+        dm.task.patch_task_data(db_task.id, serialized_output.validated_data, PatchAction.CREATE)
 
 
 def update_progress(processed_frames: int, total_frames: int):
@@ -131,9 +144,7 @@ def update_progress(processed_frames: int, total_frames: int):
     if job:
         rq_job_meta = AgentRQMeta.for_job(job)
         # Calculate percentage (0-100) based on processed vs total frames
-        progress_percent = (
-            int((processed_frames / total_frames) * 100) if total_frames > 0 else 0
-        )
+        progress_percent = int((processed_frames / total_frames) * 100) if total_frames > 0 else 0
         rq_job_meta.progress = progress_percent
         rq_job_meta.save()
         slogger.glob.info(
@@ -177,9 +188,7 @@ def get_agent_queue_name(agent_type: str) -> str:
     return f"agent_{agent_type}_queue"
 
 
-def log_agent_job_start(
-    agent_id: str, task_id: int, job_id: Optional[int], job_type: str
-):
+def log_agent_job_start(agent_id: str, task_id: int, job_id: Optional[int], job_type: str):
     """
     Log the start of an agent job.
 
@@ -208,9 +217,7 @@ def log_agent_job_completion(
     """
     target = f"job {job_id}" if job_id else f"task {task_id}"
     status = "completed successfully" if success else "failed"
-    slogger.glob.info(
-        f"{job_type.capitalize()} job for agent {agent_id} on {target} {status}"
-    )
+    slogger.glob.info(f"{job_type.capitalize()} job for agent {agent_id} on {target} {status}")
 
 
 def get_bbox_from_shape(shape: LabeledShape) -> list[int]:
@@ -289,9 +296,7 @@ def get_ground_truth_from_task(
         .prefetch_related("attributes__spec")
     )
 
-    slogger.glob.info(
-        f"Found {labeled_shapes.count()} labeled shapes for task {task_id}"
-    )
+    slogger.glob.info(f"Found {labeled_shapes.count()} labeled shapes for task {task_id}")
 
     results = defaultdict(list)
     for shape in labeled_shapes:
@@ -304,10 +309,6 @@ def get_ground_truth_from_task(
             for attr in shape.attributes.all()
         ]
 
-        if attributes_list:
-            slogger.glob.info(f"Shape {shape.id} attributes: {attributes_list}")
-        else:
-            slogger.glob.info(f"Shape {shape.id} has no attributes")
 
         results[frame_id].append(
             {
@@ -319,6 +320,4 @@ def get_ground_truth_from_task(
                 "attributes": attributes_list,
             }
         )
-
-    # slogger.glob.info(f"Retrieved ground truth for task {task_id}: {sum(len(shapes) for shapes in results.values())} total annotations across {len(results)} frames")
     return dict(results)
