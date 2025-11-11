@@ -17,6 +17,19 @@ class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
     def _get_job_type_name(self):
         return "auto-annotation"
 
+    def _get_job_queue_kwargs(self, request):
+        return {
+            "agent_id": request.data.get("agent_id"),
+            "task_id": request.data.get("task_id"),
+            "job_id": request.data.get("job_id"),
+            "threshold": request.data.get("threshold", 0.5),
+            "mapping": request.data.get("mapping", {}),
+            "cleanup": request.data.get("cleanup", False),
+            "conv_mask_to_poly": request.data.get("conv_mask_to_poly", False),
+            "max_distance": request.data.get("max_distance", 50),
+            "frame_ids": request.data.get("frame_ids"),
+        }
+
     @extend_schema(
         summary="Create a new auto-annotation job",
         description="Creates a new agent auto-annotation job",
@@ -45,29 +58,13 @@ class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
         try:
             agent_queue = self._get_queue_class()(self.dataup_client)
             # Extract validated data
-            data = serializer.validated_data
-            agent_id = data["agent_id"]
-            task_id = data["task_id"]
-            job_id = data.get("job_id")
-            threshold = data.get("threshold", 0.5)
-            mapping = data.get("mapping", {})
-            cleanup = data.get("cleanup", False)
-            conv_mask_to_poly = data.get("conv_mask_to_poly", False)
-            max_distance = data.get("max_distance", 50)
-            frame_ids = data.get("frame_ids")
+
+            job_kwargs = self._get_job_queue_kwargs(request)
 
             # Enqueue the auto-annotation job
             agent_job = agent_queue.enqueue(
-                agent_id=agent_id,
-                threshold=threshold,
-                task_id=task_id,
-                mapping=mapping,
-                cleanup=cleanup,
-                conv_mask_to_poly=conv_mask_to_poly,
-                max_distance=max_distance,
+                **job_kwargs,
                 request=request,
-                job_id=job_id,
-                frame_ids=frame_ids,
             )
 
             # Return job details
@@ -86,9 +83,7 @@ class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
@@ -99,6 +94,15 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
 
     def _get_job_type_name(self):
         return "evaluation"
+
+    def _get_job_queue_kwargs(self, request):
+        return {
+            "agent_id": request.data.get("agent_id"),
+            "task_id": request.data.get("task_id"),
+            "job_id": request.data.get("job_id"),
+            "mapping": request.data.get("mapping", {}),
+            "frame_ids": request.data.get("frame_ids"),
+        }
 
     @extend_schema(
         summary="Create a new evaluation job",
@@ -128,21 +132,13 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
         try:
             agent_queue = self._get_queue_class()(self.dataup_client)
             # Extract validated data
-            data = serializer.validated_data
-            agent_id = data["agent_id"]
-            task_id = data["task_id"]
-            job_id = data.get("job_id")
-            mapping = data.get("mapping", {})
-            frame_ids = data.get("frame_ids")
+
+            job_kwargs = self._get_job_queue_kwargs(request)
             iam_context = self.iam_context_factory(request, None)
             # Enqueue the evaluation job
             agent_job = agent_queue.enqueue(
-                agent_id=agent_id,
-                task_id=task_id,
-                mapping=mapping,
+                **job_kwargs,
                 request=request,
-                job_id=job_id,
-                frame_ids=frame_ids,
                 organization_id=iam_context.get("org_id"),
                 user_id=iam_context.get("user_id"),
             )
@@ -163,6 +159,4 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
         except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

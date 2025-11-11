@@ -29,9 +29,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="dataupapikey",
             name="default",
-            field=models.BooleanField(
-                default=False, help_text="Mark as the default key within its scope"
-            ),
+            field=models.BooleanField(default=False, help_text="Mark as the default key within its scope"),
         ),
         migrations.AlterField(
             model_name="dataupapikey",
@@ -66,9 +64,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="dataupapikey",
-            index=models.Index(
-                fields=["owner", "organization"], name="dataup_data_owner_i_6eac2e_idx"
-            ),
+            index=models.Index(fields=["owner", "organization"], name="dataup_data_owner_i_6eac2e_idx"),
         ),
         migrations.AddConstraint(
             model_name="dataupapikey",

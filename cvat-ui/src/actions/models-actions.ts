@@ -268,12 +268,12 @@ function listenToAgentJob(taskID: number, jobId: string, functionID: string | nu
                  }, error instanceof Error ? error : new Error(String(error))),
              );
         }
-    }, 2000); // Poll every 2 seconds
+    }, 5000); // Poll every 5 seconds
 
-    // Set timeout to stop polling after 10 minutes
+    // Set timeout to stop polling after one hour
     setTimeout(() => {
         clearInterval(pollInterval);
-    }, 600000);
+    }, 3600000);
 }
 
 export function getInferenceStatusAsync(): ThunkAction {

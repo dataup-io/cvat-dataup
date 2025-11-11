@@ -82,10 +82,7 @@ class DataUpOrganizationAdmin(admin.ModelAdmin):
     def api_keys_count(self, obj):
         count = obj.api_keys.count()
         if count > 0:
-            url = (
-                reverse("admin:dataup_dataupapikey_changelist")
-                + f"?organization__id__exact={obj.id}"
-            )
+            url = reverse("admin:dataup_dataupapikey_changelist") + f"?organization__id__exact={obj.id}"
             return format_html('<a href="{}">{} API keys</a>', url, count)
         return "0 API keys"
 
@@ -130,12 +127,8 @@ class DataUpAPIKeyAdmin(admin.ModelAdmin):
 
     preview_display.short_description = "Key Preview"
 
-
-
     def get_queryset(self, request):
-        return (
-            super().get_queryset(request).select_related("organization__organization")
-        )
+        return super().get_queryset(request).select_related("organization__organization")
 
     def save_model(self, request, obj, form, change):
         # Ensure preview is generated when saving

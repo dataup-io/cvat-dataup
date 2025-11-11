@@ -10,7 +10,7 @@ extend_skip=[
 ]
 
 [tool.black]
-line-length = 100
+line-length = 150
 target-version = ['py39']
 extend-exclude = """
 # TODO: get rid of these
@@ -31,3 +31,6 @@ extend-exclude = """
 )
 | ^/serverless/
 """
+
+[tool.ruff]
+line-length  = 150

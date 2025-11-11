@@ -97,13 +97,9 @@ def match_predictions_to_ground_truth(
     if iou_ignore is None:
         iou_ignore = iou_threshold
 
-    gt_evals_indices = [
-        i for i, gt in enumerate(ground_truth) if gt["label"] != "ignore"
-    ]
+    gt_evals_indices = [i for i, gt in enumerate(ground_truth) if gt["label"] != "ignore"]
     gt_ignore = [g for g in ground_truth if g["label"] == "ignore"]
-    preds_eval_indices = [
-        i for i, p in enumerate(predictions) if p["label"] != "ignore"
-    ]
+    preds_eval_indices = [i for i, p in enumerate(predictions) if p["label"] != "ignore"]
 
     # Filter predictions and ground truth to only include evaluated boxes
     preds_f = [predictions[i] for i in preds_eval_indices]
@@ -148,17 +144,11 @@ def match_predictions_to_ground_truth(
             used_pred.add(pred_idx)
             used_gt.add(best_gt_idx)
             # Map back to original indices
-            matches.append(
-                (preds_eval_indices[pred_idx], gt_evals_indices[best_gt_idx], best_iou)
-            )
+            matches.append((preds_eval_indices[pred_idx], gt_evals_indices[best_gt_idx], best_iou))
 
-    unmatched_ground_truth: list[int] = [
-        j for j in range(len(gts_f)) if j not in used_gt
-    ]
+    unmatched_ground_truth: list[int] = [j for j in range(len(gts_f)) if j not in used_gt]
     unmatched_pred_filtered = [i for i in range(len(preds_f)) if i not in used_pred]
-    unmatched_predictions: list[int] = _suppress_fp_over_ignored(
-        unmatched_pred_filtered, preds_f, gt_ignore, iou_ignore
-    )
+    unmatched_predictions: list[int] = _suppress_fp_over_ignored(unmatched_pred_filtered, preds_f, gt_ignore, iou_ignore)
 
     return matches, unmatched_predictions, unmatched_ground_truth
 
@@ -204,20 +194,12 @@ def lev(s, t):
 
 
 def cer(pred, label):
-    error = (
-        lev(pred, label) / max(len(pred), len(label))
-        if max(len(pred), len(label)) != 0
-        else 0
-    )
+    error = lev(pred, label) / max(len(pred), len(label)) if max(len(pred), len(label)) != 0 else 0
     return error
 
 
 def wer(pred, label, sep=None):
     preds = pred.split(sep)
     words = label.split(sep)
-    error = (
-        lev(preds, words) / max(len(preds), len(words))
-        if max(len(preds), len(words)) != 0
-        else 0
-    )
+    error = lev(preds, words) / max(len(preds), len(words)) if max(len(preds), len(words)) != 0 else 0
     return error

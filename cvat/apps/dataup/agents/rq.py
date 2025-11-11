@@ -11,9 +11,7 @@ from django.db.models import Model
 class AgentRQMeta(BaseRQMeta):
     agent_id = str = ImmutableRQMetaAttribute(RQJobMetaField.AGENT_ID)
     agent_: bool | None = ImmutableRQMetaAttribute(RQJobMetaField.AGENT, optional=True)
-    progress: int | None = MutableRQMetaAttribute(
-        RQJobMetaField.PROGRESS, validator=lambda x: isinstance(x, int), optional=True
-    )
+    progress: int | None = MutableRQMetaAttribute(RQJobMetaField.PROGRESS, validator=lambda x: isinstance(x, int), optional=True)
 
     @classmethod
     def build_for(

@@ -26,9 +26,7 @@ class DataUpPolicyEnforcer(PolicyEnforcer):
 
             iam_context = self._resolve_iam_context(request, view, obj)
             for perm_class in self._collect_permission_types():
-                for perm in perm_class.create(
-                    request, view, obj, iam_context=iam_context
-                ):
+                for perm in perm_class.create(request, view, obj, iam_context=iam_context):
                     checked_permissions.append(perm)
                     result = perm.check_access()
                     if not result.allow:

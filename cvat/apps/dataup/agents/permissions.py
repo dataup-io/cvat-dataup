@@ -46,9 +46,7 @@ class DataUpAgentPermission(OpenPolicyAgentPermission):
 
         perms = []
         for scope in cls.get_scopes(request, view, obj):
-            perms.append(
-                cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj)
-            )
+            perms.append(cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj))
         return perms
 
     def get_resource(self):
@@ -77,8 +75,7 @@ class DataUpAgentPermission(OpenPolicyAgentPermission):
                 "dataup_user_id": str(getattr(o, "owner_id", "") or "") or None,
                 "dataup_org_id": str(getattr(o, "organization_id", "") or "") or None,
                 "is_org": bool(getattr(o, "organization_id", None)),
-                "is_personal": not getattr(o, "organization_id", None)
-                and bool(getattr(o, "owner_id", None)),
+                "is_personal": not getattr(o, "organization_id", None) and bool(getattr(o, "owner_id", None)),
             }
         return resource
 
@@ -119,9 +116,7 @@ class DataUpAgentJobPermission(OpenPolicyAgentPermission):
         dataup_iam_context = get_dataup_iam_context(request, obj)
         perms = []
         for scope in cls.get_scopes(request, view, obj):
-            perms.append(
-                cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj)
-            )
+            perms.append(cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj))
         return perms
 
     def get_resource(self):
@@ -150,7 +145,6 @@ class DataUpAgentJobPermission(OpenPolicyAgentPermission):
                 "dataup_user_id": str(getattr(o, "owner_id", "") or "") or None,
                 "dataup_org_id": str(getattr(o, "organization_id", "") or "") or None,
                 "is_org": bool(getattr(o, "organization_id", None)),
-                "is_personal": not getattr(o, "organization_id", None)
-                and bool(getattr(o, "owner_id", None)),
+                "is_personal": not getattr(o, "organization_id", None) and bool(getattr(o, "owner_id", None)),
             }
         return resource

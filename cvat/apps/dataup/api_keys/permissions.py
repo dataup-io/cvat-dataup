@@ -53,11 +53,7 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
 
         perms = []
         for scope in cls.get_scopes(request, view, obj):
-            perms.append(
-                cls.create_base_perm(
-                    request, view, scope, iam_context=dataup_iam_context, obj=obj
-                )
-            )
+            perms.append(cls.create_base_perm(request, view, scope, iam_context=dataup_iam_context, obj=obj))
         return perms
 
     def get_resource(self):
@@ -72,12 +68,8 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
             resource = {
                 "type": "dataup_api_key",
                 "id": None,  # No ID during creation
-                "owner_dataup_id": str(request_owner_id)
-                if request_owner_id is not None
-                else None,
-                "organization_dataup_id": str(request_org_id)
-                if request_org_id
-                else None,
+                "owner_dataup_id": str(request_owner_id) if request_owner_id is not None else None,
+                "organization_dataup_id": str(request_org_id) if request_org_id else None,
                 "organization_core_id": None,  # Will be resolved later
                 "is_org": request_org_id is not None,
                 "is_personal": request_org_id is None and request_owner_id is not None,
@@ -90,12 +82,10 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
                 "type": "dataup_api_key",
                 "id": str(getattr(o, "id", "")) or None,
                 "owner_dataup_id": str(getattr(o, "owner_id", "") or "") or None,
-                "organization_dataup_id": str(getattr(o, "organization_id", "") or "")
-                or None,
+                "organization_dataup_id": str(getattr(o, "organization_id", "") or "") or None,
                 "organization_core_id": getattr(core_org, "id", None),
                 "is_org": bool(getattr(o, "organization_id", None)),
-                "is_personal": not getattr(o, "organization_id", None)
-                and bool(getattr(o, "owner_id", None)),
+                "is_personal": not getattr(o, "organization_id", None) and bool(getattr(o, "owner_id", None)),
             }
         return resource
 
@@ -120,9 +110,7 @@ class DataUpPolicyEnforcer(PolicyEnforcer):
                 iam_context = get_iam_context(request, obj)
 
             for perm_class in self._collect_permission_types():
-                for perm in perm_class.create(
-                    request, view, obj, iam_context=iam_context
-                ):
+                for perm in perm_class.create(request, view, obj, iam_context=iam_context):
                     checked_permissions.append(perm)
                     result = perm.check_access()
                     if not result.allow:

@@ -16,24 +16,12 @@ class AgentReadSerializer(serializers.Serializer):
     id = serializers.CharField(max_length=256)
     name = serializers.CharField(max_length=256, help_text="Agent name")
     # endpoint = serializers.URLField(help_text="Model endpoint URL")
-    timeout = serializers.IntegerField(
-        default=30, min_value=1, max_value=300, help_text="Request timeout in seconds"
-    )
-    rate_limit = serializers.IntegerField(
-        default=100, min_value=1, help_text="Rate limit per hour"
-    )
-    provider = serializers.CharField(
-        max_length=50, help_text="External service provider"
-    )
-    publisher = serializers.CharField(
-        max_length=50, help_text="External service publisher", required=False
-    )
-    agent_type = serializers.CharField(
-        max_length=50, default="DETECTOR", help_text="Agent type"
-    )
-    is_public = serializers.BooleanField(
-        default=False, help_text="If true, the Agent is available to all organizations"
-    )
+    timeout = serializers.IntegerField(default=30, min_value=1, max_value=300, help_text="Request timeout in seconds")
+    rate_limit = serializers.IntegerField(default=100, min_value=1, help_text="Rate limit per hour")
+    provider = serializers.CharField(max_length=50, help_text="External service provider")
+    publisher = serializers.CharField(max_length=50, help_text="External service publisher", required=False)
+    agent_type = serializers.CharField(max_length=50, default="DETECTOR", help_text="Agent type")
+    is_public = serializers.BooleanField(default=False, help_text="If true, the Agent is available to all organizations")
     labels = serializers.ListField(
         child=serializers.CharField(max_length=100),
         required=False,
@@ -112,24 +100,12 @@ class AgentWriteSerializer(serializers.Serializer):
         allow_blank=True,
         help_text="Authentication token",
     )
-    timeout = serializers.IntegerField(
-        default=30, min_value=1, max_value=300, help_text="Request timeout in seconds"
-    )
-    rate_limit = serializers.IntegerField(
-        default=100, min_value=1, help_text="Rate limit per hour"
-    )
-    provider = serializers.CharField(
-        max_length=50, help_text="External service provider"
-    )
-    publisher = serializers.CharField(
-        max_length=50, help_text="External service publisher", required=False
-    )
-    agent_type = serializers.CharField(
-        max_length=50, default="DETECTOR", help_text="Agent type"
-    )
-    is_public = serializers.BooleanField(
-        default=False, help_text="If true, the Agent is available to all organizations"
-    )
+    timeout = serializers.IntegerField(default=30, min_value=1, max_value=300, help_text="Request timeout in seconds")
+    rate_limit = serializers.IntegerField(default=100, min_value=1, help_text="Rate limit per hour")
+    provider = serializers.CharField(max_length=50, help_text="External service provider")
+    publisher = serializers.CharField(max_length=50, help_text="External service publisher", required=False)
+    agent_type = serializers.CharField(max_length=50, default="DETECTOR", help_text="Agent type")
+    is_public = serializers.BooleanField(default=False, help_text="If true, the Agent is available to all organizations")
     labels = serializers.ListField(
         child=serializers.CharField(max_length=100),
         required=False,

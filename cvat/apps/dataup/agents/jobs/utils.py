@@ -57,9 +57,7 @@ def cleanup_task_or_job(db_task: Task, db_job: Optional[Job]):
         raise ValueError("Either task or job must be provided")
 
 
-def get_task_job_from_ids(
-    task_id: int, job_id: Optional[int], cleanup: bool = False
-) -> tuple[Task, Optional[Job]]:
+def get_task_job_from_ids(task_id: int, job_id: Optional[int], cleanup: bool = False) -> tuple[Task, Optional[Job]]:
     """
     Retrieve task and job objects from their IDs.
 
@@ -129,28 +127,23 @@ def batch_save_agent_results(
         dm.task.patch_task_data(db_task.id, serialized_output.validated_data, PatchAction.CREATE)
 
 
-def update_progress(processed_frames: int, total_frames: int):
+def update_progress(rq_job_meta, processed_frames: int, total_frames: int):
     """
     Update job progress.
 
     Args:
+        rq_job_meta:
         processed_frames: Number of processed frames
         total_frames: Total number of frames
     """
-    import rq
-    from cvat.apps.dataup.agents.rq import AgentRQMeta
 
-    job = rq.get_current_job()
-    if job:
-        rq_job_meta = AgentRQMeta.for_job(job)
-        # Calculate percentage (0-100) based on processed vs total frames
-        progress_percent = int((processed_frames / total_frames) * 100) if total_frames > 0 else 0
+    progress_percent = int((processed_frames / total_frames) * 100) if total_frames > 0 else 0
+    if rq_job_meta:
         rq_job_meta.progress = progress_percent
         rq_job_meta.save()
-        slogger.glob.info(
-            f"Progress: {progress_percent}% ({processed_frames}/{total_frames} frames)"
-        )
-    return job.get_status() if job else None
+        slogger.glob.info(f"Progress: {progress_percent}% ({processed_frames}/{total_frames} frames)")
+
+
 
 
 def validate_agent_parameters(agent_id: str, task_id: int, **kwargs):
@@ -202,9 +195,7 @@ def log_agent_job_start(agent_id: str, task_id: int, job_id: Optional[int], job_
     slogger.glob.info(f"Starting {job_type} job for agent {agent_id} on {target}")
 
 
-def log_agent_job_completion(
-    agent_id: str, task_id: int, job_id: Optional[int], job_type: str, success: bool
-):
+def log_agent_job_completion(agent_id: str, task_id: int, job_id: Optional[int], job_type: str, success: bool):
     """
     Log the completion of an agent job.
 
@@ -238,9 +229,7 @@ def get_bbox_from_shape(shape: LabeledShape) -> list[int]:
     return []
 
 
-def get_dataup_agent_predictions(
-    frame_ids: list[int], predictions: list[dict], eval_classes: set[str]
-) -> dict[int, list[dict]]:
+def get_dataup_agent_predictions(frame_ids: list[int], predictions: list[dict], eval_classes: set[str]) -> dict[int, list[dict]]:
     """
     Convert agent predictions to a standard format for validation.
 
@@ -270,9 +259,7 @@ def get_dataup_agent_predictions(
     return batch_frame_predictions
 
 
-def get_ground_truth_from_task(
-    task_id: int, label_mapping: dict[str, dict]
-) -> dict[int, list[dict]]:
+def get_ground_truth_from_task(task_id: int, label_mapping: dict[str, dict]) -> dict[int, list[dict]]:
     """
     Retrieve ground truth annotations for all frames in a task.
 
@@ -290,11 +277,7 @@ def get_ground_truth_from_task(
         return {}
 
     # Query labeled shapes with optimized database access
-    labeled_shapes = (
-        LabeledShape.objects.filter(job__segment__task_id=task_id)
-        .select_related("label", "job")
-        .prefetch_related("attributes__spec")
-    )
+    labeled_shapes = LabeledShape.objects.filter(job__segment__task_id=task_id).select_related("label", "job").prefetch_related("attributes__spec")
 
     slogger.glob.info(f"Found {labeled_shapes.count()} labeled shapes for task {task_id}")
 
@@ -304,11 +287,7 @@ def get_ground_truth_from_task(
         frame_id = shape.frame
 
         # Get attributes in the requested format
-        attributes_list = [
-            {"key": attr.spec.name, "value": attr.value, "type": attr.spec.input_type}
-            for attr in shape.attributes.all()
-        ]
-
+        attributes_list = [{"key": attr.spec.name, "value": attr.value, "type": attr.spec.input_type} for attr in shape.attributes.all()]
 
         results[frame_id].append(
             {

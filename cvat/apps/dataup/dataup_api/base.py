@@ -36,9 +36,7 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
 
             org_uuid = DataUpOrganization.objects.get(organization=organization).id
         except DataUpOrganization.DoesNotExist:
-            slogger.glob.info(
-                "Cannot find DataUp organization for this user - use personal key"
-            )
+            slogger.glob.info("Cannot find DataUp organization for this user - use personal key")
             org_uuid = None
 
         # Use the classmethod to get the appropriate API key
@@ -111,9 +109,7 @@ class DataUpBaseViewSet(viewsets.ModelViewSet):
             error_data = self._get_error_data(error)
 
             if status_code == 404:
-                return Response(
-                    {"error": "Resource not found"}, status=status.HTTP_404_NOT_FOUND
-                )
+                return Response({"error": "Resource not found"}, status=status.HTTP_404_NOT_FOUND)
             elif status_code == 400:
                 return Response(error_data, status=status.HTTP_400_BAD_REQUEST)
 

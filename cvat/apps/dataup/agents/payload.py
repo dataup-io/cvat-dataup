@@ -5,9 +5,7 @@ from django.conf import settings
 from rest_framework.exceptions import NotFound
 
 
-def get_frames_from_task(
-    task_id: int, frame_ids: list[int]
-) -> tuple[list[str], list[str]]:
+def get_frames_from_task(task_id: int, frame_ids: list[int]) -> tuple[list[str], list[str]]:
     try:
         task = Task.objects.get(id=task_id)
     except Task.DoesNotExist as ex:
@@ -19,16 +17,10 @@ def get_frames_from_task(
     frame_provider = TaskFrameProviderV2(task)
     use_presigned_urls = getattr(settings, "USE_PRESIGNED_URLS", False)
     if use_presigned_urls and is_cloud_backed(task):
-        image_urls = [
-            frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.URL)
-            for frame_id in frame_ids
-        ]
+        image_urls = [frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.URL) for frame_id in frame_ids]
         print("Using presgined_urls", image_urls)
     else:
-        images = [
-            frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.BUFFER)
-            for frame_id in frame_ids
-        ]
+        images = [frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.BUFFER) for frame_id in frame_ids]
 
     return image_urls, images
 
@@ -36,10 +28,7 @@ def get_frames_from_task(
 def _prepare_interactor_params(params: dict) -> dict:
     pos_points = [(int(p[0]), int(p[1])) for p in params.get("pos_points", [])]
     neg_points = [(int(p[0]), int(p[1])) for p in params.get("neg_points", [])]
-    pos_boxes = [
-        (int(p[0]), int(p[1]), int(p[2]), int(p[3]))
-        for p in params.get("pos_boxes", [])
-    ]
+    pos_boxes = [(int(p[0]), int(p[1]), int(p[2]), int(p[3])) for p in params.get("pos_boxes", [])]
 
     return {
         "param_type": "sam2",
@@ -70,9 +59,7 @@ def prepare_payload_params(params: dict, task_type: str = "annotate_frame") -> d
         raise ValueError(f"Unknown task type {task_type}")
 
 
-def get_request_id(
-    organization_uuid: str, task_id: int, frame_ids: list[int], task_type: dict
-) -> str:
+def get_request_id(organization_uuid: str, task_id: int, frame_ids: list[int], task_type: dict) -> str:
     return f"{organization_uuid}_{task_id}_{task_type}_{'-'.join(str(frame_id) for frame_id in frame_ids)}"
 
 

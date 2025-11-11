@@ -54,14 +54,29 @@ function CreateApiModalComponent(props: Props): JSX.Element {
     const isPublicAgent = api && (api as any).is_public;
     const isFormDisabled = isPublicAgent;
 
-    const validateJSON = (_: any, value: string) => {
-        if (!value) return Promise.resolve();
-        try {
-            JSON.parse(value);
-            return Promise.resolve();
-        } catch (error) {
-            return Promise.reject(new Error('Please enter valid JSON'));
+    const parseLabelsValue = (value: string): string[] => (
+        value
+            .split(/[,\n]/)
+            .map((item) => item.trim())
+            .filter((item) => item.length > 0)
+    );
+
+    const extractLabelName = (item: any): string | null => {
+        if (typeof item === 'string') return item;
+        if (item && typeof item === 'object') {
+            if (typeof item.name === 'string') return item.name;
+            if (typeof item.label === 'string') return item.label;
         }
+        return null;
+    };
+
+    const validateLabels = (_: any, value: string) => {
+        if (!value) return Promise.resolve();
+        const labels = parseLabelsValue(value);
+        if (!labels.length) {
+            return Promise.reject(new Error('Please enter at least one label name'));
+        }
+        return Promise.resolve();
     };
 
     useEffect(() => {
@@ -69,6 +84,11 @@ function CreateApiModalComponent(props: Props): JSX.Element {
             if (api) {
                 const apiData = api as any; // Cast to any to access agent API properties
                 console.log('Setting form values with apiData:', apiData);
+                const hasLabels = Array.isArray(apiData.labels) && apiData.labels.length > 0;
+                const resolvedLabelSource = apiData.label_source ? apiData.label_source : (hasLabels ? 'custom' : undefined);
+                const normalizedLabelLines = hasLabels && Array.isArray(apiData.labels)
+                    ? (apiData.labels as any[]).map(extractLabelName).filter((v): v is string => !!v)
+                    : [];
                 form.setFieldsValue({
                     name: apiData.name,
                     endpoint: '', // Don't show the actual endpoint when editing
@@ -77,10 +97,10 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     timeout: apiData.timeout,
                     rate_limit: apiData.rate_limit,
                     agent_type: apiData.agent_type,
-                    label_source: apiData.label_source,
-                    labels: apiData.labels ? JSON.stringify(apiData.labels, null, 2) : '',
+                    label_source: resolvedLabelSource,
+                    labels: normalizedLabelLines.join(', '),
                 });
-                const shouldUseCustomLabels = apiData.label_source === 'custom';
+                const shouldUseCustomLabels = resolvedLabelSource === 'custom' || hasLabels;
                 setUseCustomLabels(shouldUseCustomLabels);
             } else {
                 form.resetFields();
@@ -94,12 +114,7 @@ function CreateApiModalComponent(props: Props): JSX.Element {
             .then((values) => {
                 const formData = { ...values };
                 if (values.labels) {
-                    try {
-                        formData.labels = JSON.parse(values.labels);
-                    } catch (error) {
-                        console.error('JSON parsing error:', error);
-                        return;
-                    }
+                    formData.labels = parseLabelsValue(values.labels);
                 }
 
                 // Always set provider to dataup for agent APIs
@@ -150,10 +165,10 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     label='Endpoint URL'
                     rules={[{ required: !api, message: 'Please enter an endpoint URL' }]}
                 >
-                    <Input 
+                    <Input
                         placeholder={api ? 'Enter new endpoint to change (current endpoint is hidden)' : 'Enter endpoint URL'}
-                        autoComplete="off" 
-                        disabled={isFormDisabled} 
+                        autoComplete="off"
+                        disabled={isFormDisabled}
                     />
                 </Form.Item>
                 <Form.Item
@@ -217,23 +232,16 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                     </Select>
                 </Form.Item>
 
-                {useCustomLabels && (
+                {(useCustomLabels || (api && Array.isArray((api as any).labels) && (api as any).labels.length > 0)) && (
                     <Form.Item
                         name='labels'
-                        label='Custom Labels (JSON)'
-                        rules={[{ validator: validateJSON }]}
-                        help='Enter your labels as a simple array'
-                        tooltip={JSON.stringify(
-                            ['person', 'car', 'bicycle', 'motorcycle', 'truck'],
-                            null,
-                            2)}
+                        label='Custom Labels'
+                        rules={[{ validator: validateLabels }]}
+                        help='Enter label names separated by commas'
                     >
                         <TextArea
                             rows={4}
-                            defaultValue={JSON.stringify(
-                                ['person', 'car', 'bicycle', 'motorcycle', 'truck'],
-                                null,
-                                2)}
+                            placeholder={['person', 'car', 'bicycle', 'motorcycle', 'truck'].join(', ')}
                             disabled={isFormDisabled}
                         />
                     </Form.Item>

@@ -2,8 +2,10 @@ from cvat.apps.engine.models import Task
 import itertools
 from cvat.apps.engine.serializers import LabeledDataSerializer
 
+
 def _bbox_to_polygon(xl: float, yl: float, xr: float, yr: float) -> list[list[float]]:
     return [[xl, yl], [xr, yl], [xr, yr], [xl, yr]]
+
 
 def get_shape_points_from_anno(anno: dict, db_label: dict) -> list[float]:
     bbox = anno["bbox"]
@@ -17,6 +19,7 @@ def get_shape_points_from_anno(anno: dict, db_label: dict) -> list[float]:
         return list(itertools.chain(*points))
     else:
         raise ValueError(f"Unsupported conversion for label type {db_label['type']}")
+
 
 class DataUpAgentResultConverter:
     def __init__(self, task_id: int, label_mapping: dict = {}, task_type: str = "annotate_frame") -> None:
@@ -35,13 +38,10 @@ class DataUpAgentResultConverter:
         for label in db_labels:
             labels[label.name] = {"id": label.id, "attributes": {}, "type": label.type}
             if label.type == "skeleton":
-                labels[label.name]["sublabels"] = cls._convert_labels(
-                    label.sublabels.all()
-                )
+                labels[label.name]["sublabels"] = cls._convert_labels(label.sublabels.all())
             for attr in label.attributespec_set.values():
                 labels[label.name]["attributes"][attr["name"]] = attr["id"]
         return labels
-
 
     def convert(self, frames: list[int], results: list[list[dict]]) -> dict:
         if self.task_type == "annotate_frame":
@@ -49,8 +49,6 @@ class DataUpAgentResultConverter:
         elif self.task_type == "interact":
             return self.convert_interact_results(frames, results)
         raise ValueError(f"Unknown task type {self.task_type}")
-
-
 
     def convert_interact_results(self, frames: list[int], interaction_results: list[dict]) -> dict:
         # TODO: refactor this, just for testing purposes right now
@@ -67,9 +65,7 @@ class DataUpAgentResultConverter:
         serialized_output.is_valid(raise_exception=True)
         return serialized_output.validated_data
 
-    def _convert_annotations_one_frame(
-        self, frame, anns_per_frame, conv_mask_to_polygon: bool = False
-    ):
+    def _convert_annotations_one_frame(self, frame, anns_per_frame, conv_mask_to_polygon: bool = False):
         shapes, tags = [], []
         for anno in anns_per_frame:
             shape = self._parse_shape(frame, anno, conv_mask_to_polygon)
@@ -90,9 +86,7 @@ class DataUpAgentResultConverter:
         mapped_label = self.label_mapping.get(anno["label"].lower(), "unknown")
         return self.db_labels.get(mapped_label)
 
-    def _parse_shape(
-        self, frame: int, anno: dict, conv_mask_to_poly: bool = False
-    ) -> dict:
+    def _parse_shape(self, frame: int, anno: dict, conv_mask_to_poly: bool = False) -> dict:
         db_label = self._map_label(anno)
         if db_label is None:
             return None

@@ -23,9 +23,7 @@ class StepRegistryViewSet(DataUpBaseViewSet):
             200: OpenApiResponse(description="List of available steps"),
         },
         parameters=[
-            OpenApiParameter(
-                "type", description="Filter by step type", required=False, type=str
-            ),
+            OpenApiParameter("type", description="Filter by step type", required=False, type=str),
         ],
     )
     def list(self, request):

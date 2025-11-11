@@ -11,11 +11,7 @@ slogger = ServerLogManager(__name__)
 
 
 def _calculate_stats_per_frame(
-    all_preds: list[dict],
-    all_gts: list[dict],
-    matches: list[tuple[int, int]],
-    unmatched_preds: list[int],
-    unmatched_gts: list[int],
+    all_preds: list[dict], all_gts: list[dict], matches: list[tuple[int, int]], unmatched_preds: list[int], unmatched_gts: list[int]
 ) -> tuple[dict, dict, dict]:
     tp_per_frame = defaultdict(int)
     fp_per_frame = defaultdict(int)
@@ -78,12 +74,7 @@ def _calculate_stats_per_job(
     return tp_per_job, fp_per_job, fn_per_job
 
 
-def calculate_average_precision(
-    predictions: list[dict],
-    ground_truth: list[dict],
-    iou_threshold: float = 0.5,
-    iou_ignore: float = None,
-) -> float:
+def calculate_average_precision(predictions: list[dict], ground_truth: list[dict], iou_threshold: float = 0.5, iou_ignore: float = None) -> float:
     """
     Calculate Average Precision (AP) at a given IoU threshold for a SINGLE CLASS.
     Implements ignore semantics and SAME-FRAME constraint.
@@ -215,10 +206,7 @@ def calculate_average_precision(
 
 
 def calculate_per_class_metrics(
-    class_names: List[str],
-    all_preds: List[Dict],
-    all_gts: Dict[int, List[Dict]],
-    iou_thresholds: List[float] = None,
+    class_names: List[str], all_preds: List[Dict], all_gts: Dict[int, List[Dict]], iou_thresholds: List[float] = None
 ) -> List[Dict]:
     """
     Calculate per-class metrics including AP at different IoU thresholds,
@@ -250,15 +238,11 @@ def calculate_per_class_metrics(
         ap_75 = calculate_average_precision(cls_preds, cls_gt, iou_threshold=0.75)
 
         # AP@[.50:.95]
-        ap_vals = [
-            calculate_average_precision(cls_preds, cls_gt, iou_threshold=t) for t in iou_thresholds
-        ]
+        ap_vals = [calculate_average_precision(cls_preds, cls_gt, iou_threshold=t) for t in iou_thresholds]
         ap_50_95 = sum(ap_vals) / len(ap_vals) if ap_vals else 0.0
 
         # For PR/F1-style snapshot at IoU=0.5, we need TP/FP/FN:
-        matches, unmatched_preds, unmatched_gt = match_predictions_to_ground_truth(
-            cls_preds, cls_gt, iou_threshold=0.5
-        )
+        matches, unmatched_preds, unmatched_gt = match_predictions_to_ground_truth(cls_preds, cls_gt, iou_threshold=0.5)
         tp = len(matches)
         fp = len(unmatched_preds)
         # unmatched_gt currently includes only evaluated GT (class == cls)
@@ -299,17 +283,10 @@ def calculate_object_detection_metrics(
     Calculate object detection metrics for all predictions and ground truth.
     """
     # overall metric
-    tp_per_frame, fp_per_frame, fn_per_frame = _calculate_stats_per_frame(
-        all_preds, all_gts, matches, unmatched_preds, unmatched_gts
-    )
+    tp_per_frame, fp_per_frame, fn_per_frame = _calculate_stats_per_frame(all_preds, all_gts, matches, unmatched_preds, unmatched_gts)
 
     tp_per_job, fp_per_job, fn_per_job = _calculate_stats_per_job(
-        all_preds,
-        all_gts,
-        matches,
-        unmatched_preds,
-        unmatched_gts,
-        frame_to_job_ids=frame_to_job_ids,
+        all_preds, all_gts, matches, unmatched_preds, unmatched_gts, frame_to_job_ids=frame_to_job_ids
     )
     # Collect all job ids from keys (not values)
     all_job_ids = set(tp_per_job.keys()) | set(fp_per_job.keys()) | set(fn_per_job.keys())
@@ -346,18 +323,7 @@ def calculate_object_detection_metrics(
     mean_iou = sum([match[2] for match in matches]) / len(matches) if matches else 0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0
 
-    global_metrics = {
-        "average_precision": precision,
-        "average_recall": recall,
-        "average_f1": f1,
-        "mean_iou": mean_iou,
-    }
-    per_class_metrics = calculate_per_class_metrics(
-        class_names=class_names, all_preds=all_preds, all_gts=all_gts
-    )
+    global_metrics = {"average_precision": precision, "average_recall": recall, "average_f1": f1, "mean_iou": mean_iou}
+    per_class_metrics = calculate_per_class_metrics(class_names=class_names, all_preds=all_preds, all_gts=all_gts)
 
-    return {
-        "job_metrics": job_metrics,
-        "global_metrics": global_metrics,
-        "per_class_metrics": per_class_metrics,
-    }
+    return {"job_metrics": job_metrics, "global_metrics": global_metrics, "per_class_metrics": per_class_metrics}

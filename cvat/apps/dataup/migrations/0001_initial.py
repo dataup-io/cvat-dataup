@@ -29,15 +29,11 @@ class Migration(migrations.Migration):
                 ("key", models.CharField(max_length=128)),
                 (
                     "name",
-                    models.CharField(
-                        help_text="Descriptive name for the API key", max_length=255
-                    ),
+                    models.CharField(help_text="Descriptive name for the API key", max_length=255),
                 ),
                 (
                     "preview",
-                    models.CharField(
-                        help_text="Descriptive name for the API key", max_length=255
-                    ),
+                    models.CharField(help_text="Descriptive name for the API key", max_length=255),
                 ),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("last_used_at", models.DateTimeField(blank=True, null=True)),
@@ -92,21 +88,15 @@ class Migration(migrations.Migration):
                 ),
                 (
                     "name",
-                    models.CharField(
-                        help_text="Descriptive name for the API key", max_length=255
-                    ),
+                    models.CharField(help_text="Descriptive name for the API key", max_length=255),
                 ),
                 (
                     "preview",
-                    models.CharField(
-                        help_text="Preview of the API key", max_length=255
-                    ),
+                    models.CharField(help_text="Preview of the API key", max_length=255),
                 ),
                 (
                     "allowed_roles",
-                    models.JSONField(
-                        default=list, help_text="List of allowed roles for this API key"
-                    ),
+                    models.JSONField(default=list, help_text="List of allowed roles for this API key"),
                 ),
                 (
                     "label",

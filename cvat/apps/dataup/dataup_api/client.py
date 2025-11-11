@@ -2,14 +2,14 @@ from __future__ import annotations
 
 
 from http import HTTPStatus
-import requests
 from django.conf import settings
 from cvat.apps.dataup.iam.context import DataUpContext
 from cvat.apps.dataup.api_keys.models import DataUpAPIKey
 from typing import Callable, Any, Dict
 from django.utils.functional import cached_property
 from cvat.apps.dataup.dataup_api.exceptions import DataUpAPIError
-
+import httpx
+from typing import Optional
 
 def _get_api_key(context: DataUpContext) -> str:
     api_key = DataUpAPIKey.get_api_key(
@@ -32,22 +32,23 @@ class DataUpAPIClient:
             "X-API-KEY": self.api_key,
         }
 
-    def make_request(
-        self, method: str, endpoint: str, data=None, params=None
-    ) -> requests.Response:
-        url = f"{self.base_url}/{endpoint}"
+    async def make_request(
+        self, method: str, endpoint: str, data=None, params=None,
+        _client: Optional[httpx.AsyncClient] = None,  # <— allow reuse
+    ) -> httpx.Response:
+        url = f"{self.base_url.rstrip('/')}/{str(endpoint).lstrip('/')}"
         headers = self.get_header()
-        request_method = getattr(requests, method.lower(), None)
-        if not request_method:
-            raise DataUpAPIError(f"Invalid request method: {method}")
+        own = _client is None
+        client = _client or httpx.AsyncClient(timeout=60.0, http2=True)
+
         try:
-            print(f"Sending request with header {headers}")
-            resp = request_method(url, json=data, params=params, headers=headers)
+            resp = await client.request(method.upper(), url, json=data, params=params, headers=headers)
             if resp.status_code >= 400:
                 raise DataUpAPIError.from_response(resp)
             return resp
-        except requests.RequestException as e:
-            raise DataUpAPIError(f"Request failed: {e}")
+        finally:
+            if own:
+                await client.aclose()
 
     def cfg(self) -> dict:
         return {"api_key": self.api_key, "base_url": self.base_url}

@@ -32,9 +32,7 @@ class PipelineExecutionViewSet(DataUpBaseViewSet):
                 required=False,
                 type=int,
             ),
-            OpenApiParameter(
-                "status", description="Filter by status", required=False, type=str
-            ),
+            OpenApiParameter("status", description="Filter by status", required=False, type=str),
         ],
     )
     def list(self, request):

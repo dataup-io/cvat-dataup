@@ -14,7 +14,6 @@ def calculate_text_metrics(preds: list[str], gts: list[str]) -> dict:
     char_acc = 1 - (sum(ch_errors) / len(ch_errors)) if ch_errors else 0.0
     word_acc = 1 - (sum(w_errors) / len(w_errors)) if w_errors else 0.0
 
-
     # BLEU score (using sentence-level BLEU and smoothing)
     smoothie = SmoothingFunction().method4
     bleu_scores = []
@@ -29,7 +28,6 @@ def calculate_text_metrics(preds: list[str], gts: list[str]) -> dict:
             bleu_scores.append(score)
     avg_bleu = sum(bleu_scores) / len(bleu_scores) if bleu_scores else 0.0
 
-
     return {
         "char_accuracy": round(char_acc, 4),
         "word_accuracy": round(word_acc, 4),
@@ -39,12 +37,7 @@ def calculate_text_metrics(preds: list[str], gts: list[str]) -> dict:
     }
 
 
-
-
-
-def calculate_attribute_metrics(
-    all_preds: list[dict], all_gts: list[dict], matches: list[tuple[int, int, float]]
-) -> list[dict]:
+def calculate_attribute_metrics(all_preds: list[dict], all_gts: list[dict], matches: list[tuple[int, int, float]]) -> list[dict]:
     attribute_matches = defaultdict(list)
     for pred_idx, gt_idx, _ in matches:
         pred_attributes = all_preds[pred_idx].get("attributes", [])
@@ -59,7 +52,7 @@ def calculate_attribute_metrics(
                     [
                         pred_attr
                         for pred_attr in pred_attributes
-                        if pred_attr["key"] == gt_attr["key"] # match by key
+                        if pred_attr["key"] == gt_attr["key"]  # match by key
                     ]
                 ),
                 None,

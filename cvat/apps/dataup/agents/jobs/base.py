@@ -48,20 +48,14 @@ class BaseAgentQueue(ABC):
         )
         jobs = queue.job_class.fetch_many(job_ids, queue.connection)
         job_class = self._get_job_class()
-        return [
-            job_class(job=job)
-            for job in jobs
-            if job and AgentRQMeta.for_job(job).agent_
-        ]
+        return [job_class(job=job) for job in jobs if job and AgentRQMeta.for_job(job).agent_]
 
     def fetch_job(self, pk):
         """Fetch a specific job by ID."""
         queue = self._get_queue()
         rq_job = queue.fetch_job(pk)
         if rq_job is None or not AgentRQMeta.for_job(rq_job).agent_:
-            raise ValidationError(
-                "{} agent job is not found".format(pk), code=status.HTTP_404_NOT_FOUND
-            )
+            raise ValidationError("{} agent job is not found".format(pk), code=status.HTTP_404_NOT_FOUND)
         job_class = self._get_job_class()
         return job_class(job=rq_job)
 
@@ -89,7 +83,6 @@ class BaseAgentJob(ABC):
         """Delete the job."""
         self.job.delete()
 
-
     @property
     def organization_uuid(self) -> str | None:
         return self.job.kwargs.get("organization_id")
@@ -97,8 +90,6 @@ class BaseAgentJob(ABC):
     @property
     def user_id(self) -> str | None:
         return self.job.kwargs.get("user_id")
-
-
 
     @property
     def is_finished(self):

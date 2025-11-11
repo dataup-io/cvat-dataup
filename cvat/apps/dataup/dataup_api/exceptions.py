@@ -1,7 +1,8 @@
 from http import HTTPStatus
-import requests
 from enum import Enum
 from typing import Optional
+import httpx
+
 
 class ErrorKind(str, Enum):
     INFERENCE = "inference"
@@ -11,15 +12,14 @@ class ErrorKind(str, Enum):
     SERVER = "server"
     UNKNOWN = "unknown"
 
+
 class DataUpAPIError(Exception):
     def __init__(self, message: str, status_code: int = HTTPStatus.BAD_REQUEST, error_code: Optional[str] = None, payload: Optional[dict] = None):
         self.message = message
         self.status_code = status_code
         self.error_code = error_code
         self.payload = payload
-        super().__init__(f"{self.message} (status {self.status_code}"
-                         f"{f', code {self.error_code}' if self.error_code else ''})")
-
+        super().__init__(f"{self.message} (status {self.status_code}{f', code {self.error_code}' if self.error_code else ''})")
 
     @property
     def kind(self) -> ErrorKind:
@@ -39,7 +39,7 @@ class DataUpAPIError(Exception):
         return ErrorKind.UNKNOWN
 
     @classmethod
-    def from_response(cls, response: requests.Response) -> "DataUpAPIError":
+    def from_response(cls, response: httpx.Response) -> "DataUpAPIError":
         try:
             data = response.json()
         except ValueError:

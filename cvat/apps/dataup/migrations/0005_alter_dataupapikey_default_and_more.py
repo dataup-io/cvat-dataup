@@ -13,9 +13,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name="dataupapikey",
             name="default",
-            field=models.BooleanField(
-                default=False, help_text="Is this the default API key within its scope?"
-            ),
+            field=models.BooleanField(default=False, help_text="Is this the default API key within its scope?"),
         ),
         migrations.AlterField(
             model_name="dataupapikey",
@@ -43,9 +41,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="dataupapikey",
-            index=models.Index(
-                fields=["owner", "default"], name="dataup_data_owner_i_c28cb1_idx"
-            ),
+            index=models.Index(fields=["owner", "default"], name="dataup_data_owner_i_c28cb1_idx"),
         ),
         migrations.AddIndex(
             model_name="dataupapikey",
@@ -56,15 +52,11 @@ class Migration(migrations.Migration):
         ),
         migrations.AddIndex(
             model_name="dataupapikey",
-            index=models.Index(
-                fields=["created_at"], name="dataup_data_created_e60fee_idx"
-            ),
+            index=models.Index(fields=["created_at"], name="dataup_data_created_e60fee_idx"),
         ),
         migrations.AddIndex(
             model_name="dataupapikey",
-            index=models.Index(
-                fields=["last_used_at"], name="dataup_data_last_us_bae394_idx"
-            ),
+            index=models.Index(fields=["last_used_at"], name="dataup_data_last_us_bae394_idx"),
         ),
         migrations.AddConstraint(
             model_name="dataupapikey",

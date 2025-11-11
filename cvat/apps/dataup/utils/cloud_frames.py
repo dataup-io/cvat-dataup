@@ -70,11 +70,7 @@ def _presign_gcs(db_storage, key: str, ttl: int) -> Optional[str]:
     from google.cloud import storage
 
     creds = _load_credentials(db_storage)
-    client = (
-        storage.Client.from_service_account_json(creds.key_file_path)
-        if creds.key_file_path
-        else storage.Client()
-    )
+    client = storage.Client.from_service_account_json(creds.key_file_path) if creds.key_file_path else storage.Client()
     bucket = client.bucket(db_storage.resource)
     blob = bucket.blob(key)
     return blob.generate_signed_url(expiration=timedelta(seconds=ttl))
@@ -82,9 +78,7 @@ def _presign_gcs(db_storage, key: str, ttl: int) -> Optional[str]:
 
 def _load_credentials(db_storage) -> Credentials:
     creds = Credentials()
-    creds.convert_from_db(
-        {"type": db_storage.credentials_type, "value": db_storage.credentials}
-    )
+    creds.convert_from_db({"type": db_storage.credentials_type, "value": db_storage.credentials})
     return creds
 
 
@@ -103,17 +97,11 @@ def get_object_key_for_frame(task, frame_id: int) -> Optional[str]:
         return None
     cs = _get_db_cloud_storage(task)
     prefix = (getattr(cs, "prefix", "") or "").strip("/") if cs else ""
-    key = (
-        f"{prefix}/{rel_path.lstrip('/')}".lstrip("/")
-        if prefix
-        else rel_path.lstrip("/")
-    )
+    key = f"{prefix}/{rel_path.lstrip('/')}".lstrip("/") if prefix else rel_path.lstrip("/")
     return key or None
 
 
-def generate_presigned_url_from_task_frame(
-    task, frame_id: int, ttl: int = DEFAULT_URL_TTL
-) -> Optional[str]:
+def generate_presigned_url_from_task_frame(task, frame_id: int, ttl: int = DEFAULT_URL_TTL) -> Optional[str]:
     if not getattr(settings, "ENABLE_CLOUD_PRESIGN", True):
         return None
 
@@ -194,14 +182,6 @@ class TaskFrameProviderV2(TaskFrameProvider):
         rel_path = self.frame_info[frame_id]["path"]
         if not rel_path:
             return None
-        prefix = (
-            (getattr(self.cloud_storage, "prefix", "") or "").strip("/")
-            if self.cloud_storage
-            else ""
-        )
-        key = (
-            f"{prefix}/{rel_path.lstrip('/')}".lstrip("/")
-            if prefix
-            else rel_path.lstrip("/")
-        )
+        prefix = (getattr(self.cloud_storage, "prefix", "") or "").strip("/") if self.cloud_storage else ""
+        key = f"{prefix}/{rel_path.lstrip('/')}".lstrip("/") if prefix else rel_path.lstrip("/")
         return key or None

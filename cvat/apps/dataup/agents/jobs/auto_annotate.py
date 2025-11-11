@@ -33,6 +33,12 @@ from .utils import (
 
 # Import base classes
 from .base import BaseAgentQueue, BaseAgentJob
+import asyncio
+import httpx
+
+
+MAX_CONCURRENCY = 5
+MAX_TIMEOUT = 60
 
 slogger = ServerLogManager(__name__)
 
@@ -75,9 +81,7 @@ class AgentAutoAnnotateQueue(BaseAgentQueue):
                     rq.job.JobStatus.FINISHED,
                 }:
                     raise ValidationError(
-                        "Only one running request is allowed for the same task #{}".format(
-                            task_id
-                        ),
+                        "Only one running request is allowed for the same task #{}".format(task_id),
                         code=status.HTTP_409_CONFLICT,
                     )
                 rq_job.delete()
@@ -87,9 +91,7 @@ class AgentAutoAnnotateQueue(BaseAgentQueue):
             with get_rq_lock_by_user(queue, user_id):
                 meta = AgentRQMeta.build_for(
                     request=request,
-                    db_obj=Job.objects.get(pk=job_id)
-                    if job_id
-                    else Task.objects.get(pk=task_id),
+                    db_obj=Job.objects.get(pk=job_id) if job_id else Task.objects.get(pk=task_id),
                     agent_id=agent_id,
                 )
                 rq_job = queue.create_job(
@@ -152,81 +154,76 @@ class AgentAutoAnnotateJob(BaseAgentJob):
 
     @classmethod
     def __call__(cls, agent_id: str, task_id: int, cleanup: bool, **kwargs):
+        # ---- sync setup (safe for ORM) ----
         dataup_client_cfg = kwargs.pop("dataup_client_cfg")
         dataup_client = DataUpAPIClient.from_cfg(dataup_client_cfg)
 
         job_id = kwargs.get("job_id")
-        organization_uuid = kwargs.get(
-            "organization_uuid", "dataup_org"
-        )  # TODO: We need to pass this when we need it
+        organization_uuid = kwargs.get("organization_uuid", "dataup_org")
         db_task, db_job = get_task_job_from_ids(task_id, job_id, cleanup)
 
-        frame_ids = kwargs.get("frame_ids")
-        if not frame_ids:
-            frame_ids = get_frame_ids_from_task_or_job(db_task, db_job)
-
+        frame_ids = kwargs.get("frame_ids") or get_frame_ids_from_task_or_job(db_task, db_job)
         label_mapping = kwargs.get("mapping", {})
         converter = DataUpAgentResultConverter(task_id, label_mapping=label_mapping)
-
-        batched_output: list = []
-        successful_frames: list = []
-        processed_frames = 0
         threshold = kwargs.get("threshold", 0.5)
         params = {"threshold": threshold}
-        for frame_ids_batch in take_by(frame_ids, MAX_BATCH_SIZE):
-            payload = build_infer_payload(
-                organization_uuid, task_id, frame_ids_batch, params
-            )
+        batches = list(take_by(frame_ids, MAX_BATCH_SIZE))
+        curr_job = rq.get_current_job()
+        rq_job_meta = AgentRQMeta.for_job(curr_job) if curr_job else None
 
-            try:
-                resp = dataup_client.make_request(
-                    "POST", f"agents/{agent_id}/infer", data=payload
-                )
-                body = resp.json() if getattr(resp, "content", None) else {}
-                data = body.get("data", [])
+        async def run():
+            sem = asyncio.Semaphore(MAX_CONCURRENCY)
+            batched_output, successful_frames = [], []
+            processed_frames = 0
 
-                if not data:
-                    slogger.glob.warning(
-                        f"No data returned for frames {frame_ids_batch}. "
-                        "Skipping save for this batch."
-                    )
-                    continue
+            async with httpx.AsyncClient(timeout=MAX_TIMEOUT, http2=True) as hc:
 
-                successful_frames.extend(frame_ids_batch)
-                batched_output.extend(data)
+                async def fetch(batch):
+                    payload = await asyncio.to_thread(build_infer_payload, organization_uuid, task_id, batch, params, task_type="annotate_frame")
+                    async with sem:
+                        resp = await dataup_client.make_request("POST", f"agents/{agent_id}/infer", data=payload, _client=hc)
+                        body = resp.json() if getattr(resp, "content", None) else {}
+                        return batch, body.get("data", [])
 
-                # increment after a successful batch
-                processed_frames += len(frame_ids_batch)
-                update_progress(processed_frames, len(frame_ids))
+                tasks = [asyncio.create_task(fetch(b)) for b in batches]
+                for coro in asyncio.as_completed(tasks):
+                    try:
+                        frame_ids_batch, data = await coro
+                        if not data:
+                            slogger.glob.warning(f"No data returned for frames {frame_ids_batch}. Skipping.")
+                            continue
 
-                # save every SAVE_EVERY_FRAMES processed frames
-                if SAVE_EVERY_FRAMES and processed_frames % SAVE_EVERY_FRAMES == 0:
-                    batch_save_agent_results(
-                        converter, db_task, db_job, successful_frames, batched_output
-                    )
-                    batched_output.clear()
-                    successful_frames.clear()
+                        successful_frames.extend(frame_ids_batch)
+                        batched_output.extend(data)
+                        processed_frames += len(frame_ids_batch)
 
-            except DataUpAPIError as e:
-                if e.kind == ErrorKind.INFERENCE:
-                    slogger.glob.warning(
-                        f"Inference error for frames {frame_ids_batch}; skipping batch. "
-                        f"Details: {e.message} (status={e.status_code}{f', code={e.error_code}' if e.error_code else ''})"
-                    )
-                    continue
-                slogger.glob.error(
-                    f"{e.kind.value.capitalize()} error; aborting. "
-                    f"Details: {e.message} (status={e.status_code}{f', code={e.error_code}' if e.error_code else ''})"
-                )
-                if batched_output:  # save remaining data if available
-                    batch_save_agent_results(
-                        converter, db_task, db_job, successful_frames, batched_output
-                    )
-                    batched_output.clear()
-                    successful_frames.clear()
-                raise
+                        # ORM work -> off the loop
+                        await asyncio.to_thread(update_progress, rq_job_meta, processed_frames, len(frame_ids))
 
-        if batched_output:
-            batch_save_agent_results(
-                converter, db_task, db_job, successful_frames, batched_output
-            )
+                        if SAVE_EVERY_FRAMES and processed_frames % SAVE_EVERY_FRAMES == 0:
+                            await asyncio.to_thread(batch_save_agent_results, converter, db_task, db_job, successful_frames, batched_output)
+                            batched_output.clear()
+                            successful_frames.clear()
+
+                    except DataUpAPIError as e:
+                        if getattr(e, "kind", None) == ErrorKind.INFERENCE:
+                            slogger.glob.warning(
+                                f"Inference error for frames {frame_ids_batch}; skipping. "
+                                f"Details: {e.message} (status={e.status_code}"
+                                f"{f', code={e.error_code}' if getattr(e, 'error_code', None) else ''})"
+                            )
+                            continue
+                        # fatal
+                        slogger.glob.error(
+                            f"{getattr(e, 'kind', 'API').capitalize()} error; aborting. "
+                            f"Details: {e.message} (status={e.status_code}"
+                            f"{f', code={e.error_code}' if getattr(e, 'error_code', None) else ''})"
+                        )
+                        if batched_output:
+                            await asyncio.to_thread(batch_save_agent_results, converter, db_task, db_job, successful_frames, batched_output)
+                        raise
+
+            if batched_output:
+                await asyncio.to_thread(batch_save_agent_results, converter, db_task, db_job, successful_frames, batched_output)
+
+        asyncio.run(run())

@@ -32,9 +32,7 @@ class PipelineViewSet(DataUpBaseViewSet):
             200: OpenApiResponse(description="List of pipelines"),
         },
         parameters=[
-            OpenApiParameter(
-                "name", description="Filter by name", required=False, type=str
-            ),
+            OpenApiParameter("name", description="Filter by name", required=False, type=str),
         ],
     )
     def list(self, request):

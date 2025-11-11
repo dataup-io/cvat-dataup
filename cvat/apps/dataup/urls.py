@@ -22,9 +22,7 @@ router.register("agent-jobs/evaluate", AgentEvaluateJobsViewSet, basename="agent
 router.register("pipelines", PipelineViewSet, basename="pipeline")
 router.register("pipeline-steps", PipelineStepViewSet, basename="pipeline-step")
 router.register("step-registry", StepRegistryViewSet, basename="step-registry")
-router.register(
-    "pipeline-executions", PipelineExecutionViewSet, basename="pipeline-execution"
-)
+router.register("pipeline-executions", PipelineExecutionViewSet, basename="pipeline-execution")
 router.register("api-keys", DataUpAPIKeyViewSet, basename="api-key")
 
 

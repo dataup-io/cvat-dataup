@@ -118,9 +118,7 @@ class DataUpAPIKeyWriteSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Role cannot be null.")
             r = role.strip().lower()
             if r not in allowed:
-                raise serializers.ValidationError(
-                    f"Invalid role: {role}. Valid roles are: {', '.join(sorted(allowed))}"
-                )
+                raise serializers.ValidationError(f"Invalid role: {role}. Valid roles are: {', '.join(sorted(allowed))}")
             if r not in seen:
                 seen.add(r)
                 out.append(r)
@@ -134,12 +132,8 @@ class DataUpAPIKeyWriteSerializer(serializers.ModelSerializer):
         Both empty is invalid; both set is allowed.
         """
         owner = attrs.get("owner", getattr(self.instance, "owner", None))
-        organization = attrs.get(
-            "organization", getattr(self.instance, "organization", None)
-        )
+        organization = attrs.get("organization", getattr(self.instance, "organization", None))
 
         if not owner and not organization:
-            raise serializers.ValidationError(
-                "Provide at least one of 'owner' or 'organization'."
-            )
+            raise serializers.ValidationError("Provide at least one of 'owner' or 'organization'.")
         return attrs

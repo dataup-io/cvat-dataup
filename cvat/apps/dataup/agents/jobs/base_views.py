@@ -64,9 +64,7 @@ class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
         except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         summary="Retrieve a specific agent job",
@@ -98,9 +96,7 @@ class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
         except ValidationError as e:
             return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response(
-                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
         summary="Cancel a specific agent job",

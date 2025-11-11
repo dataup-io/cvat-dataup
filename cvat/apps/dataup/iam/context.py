@@ -27,17 +27,13 @@ def get_dataup_organization(request, obj=None) -> DataUpOrganization:
         return None
 
 
-def get_dataup_membership(
-    request, dataup_organization: DataUpOrganization
-) -> Membership:
+def get_dataup_membership(request, dataup_organization: DataUpOrganization) -> Membership:
     if dataup_organization is None:
         return None
     return get_membership(request, dataup_organization.organization)
 
 
-def build_dataup_iam_context(
-    request, dataup_organization: DataUpOrganization, membership: Membership
-) -> IamContext:
+def build_dataup_iam_context(request, dataup_organization: DataUpOrganization, membership: Membership) -> IamContext:
     # Get DataUp user ID
     try:
         dataup_user = DataUpUser.objects.get(user=request.user)

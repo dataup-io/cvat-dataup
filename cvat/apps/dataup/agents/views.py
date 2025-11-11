@@ -20,6 +20,7 @@ from cvat.apps.dataup.utils.converters import DataUpAgentResultConverter
 from cvat.apps.dataup.dataup_api import DataUpAPIError
 from rest_framework import status, viewsets
 from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
+from asgiref.sync import async_to_sync
 # from cvat.apps.dataup.agents.jobs import AgentQueue, AgentJob
 
 
@@ -44,8 +45,12 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         ],
     )
     def list(self, request):
+        client = self.dataup_client
+        return async_to_sync(self._alist)(request, client)
+
+    async def _alist(self, request, client, *args, **kwargs):
         try:
-            resp = self.dataup_client.make_request("GET", "agents/")
+            resp = await client.make_request("GET", "agents/")
             agents_data = resp.json().get("items", [])
             serializer = AgentReadSerializer(data=agents_data, many=True)
             serializer.is_valid(raise_exception=True)
@@ -61,9 +66,13 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Agent API not found"),
         },
     )
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request, pk=None, *args, **kwargs):
+        client = self.dataup_client
+        return async_to_sync(self._aretrieve)(request, client, pk, *args, **kwargs)
+
+    async def _aretrieve(self, request, client, pk=None, *args, **kwargs):
         try:
-            resp = self.dataup_client.make_request("GET", f"agents/{pk}")
+            resp = await client.make_request("GET", f"agents/{pk}")
             data = resp.json() if resp.content else {}
             serializer = AgentReadSerializer(instance=data)
             return Response(serializer.data, status=resp.status_code)
@@ -79,14 +88,16 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             400: OpenApiResponse(description="Invalid input data"),
         },
     )
-    def create(self, request):
+    def create(self, request, *args, **kwargs):
+        client = self.dataup_client
+        return async_to_sync(self._acreate)(request, client, *args, **kwargs)
+
+    async def _acreate(self, request, client, *args, **kwargs):
         serializer = AgentWriteSerializer(data=request.data)
         if serializer.is_valid():
             agent_data = serializer.validated_data
             try:
-                response = self.dataup_client.make_request(
-                    "POST", "agents/", data=agent_data
-                )
+                response = await client.make_request("POST", "agents/", data=agent_data)
 
                 response_data = response.json() if response.content else {}
                 # Serialize the response data to exclude auth_token
@@ -109,13 +120,15 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Agent API not found"),
         },
     )
-    def update(self, request, pk=None, partial=False):
+    def update(self, request, pk=None, partial=False, *args, **kwargs):
+        client = self.dataup_client
+        return async_to_sync(self._aupdate)(request, client, pk, partial, *args, **kwargs)
+
+    async def _aupdate(self, request, client, pk=None, partial=False, *args, **kwargs):
         serializer = AgentWriteSerializer(data=request.data, partial=partial)
         if serializer.is_valid():
             try:
-                response = self.dataup_client.make_request(
-                    "PATCH", f"agents/{pk}", data=serializer.validated_data
-                )
+                response = await client.make_request("PATCH", f"agents/{pk}", data=serializer.validated_data)
                 response_data = response.json() if response.content else {}
                 # Serialize the response data to exclude auth_token
                 if response.status_code == 200 and response_data:
@@ -135,9 +148,13 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             404: OpenApiResponse(description="Agent API not found"),
         },
     )
-    def destroy(self, request, pk=None):
+    def destroy(self, request, pk=None, *args, **kwargs):
+        client = self.dataup_client
+        return async_to_sync(self._adestroy)(request, client, pk, *args, **kwargs)
+
+    async def _adestroy(self, request, client, pk=None, *args, **kwargs):
         try:
-            resp = self.dataup_client.make_request("DELETE", f"agents/{pk}")
+            resp = await client.make_request("DELETE", f"agents/{pk}")
             return Response(status=resp.status_code)
         except DataUpAPIError as e:
             return Response({"message": e.message}, status=e.status_code)
@@ -162,7 +179,7 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         },
     )
     @action(detail=True, methods=["post"], url_path="infer")
-    def infer(self, request, pk=None):
+    def infer(self, request, pk=None, *args, **kwargs):
         serialized_input = AgentInferenceRequest(data=request.data)
         serialized_input.is_valid(raise_exception=True)
         inference_data = serialized_input.validated_data
@@ -177,17 +194,10 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             inference_data["params"],
             task_type=task_type,
         )
-
-        try:
-            resp = self.dataup_client.make_request(
-                "POST", f"agents/{pk}/infer", data=payload
-            )
-            body = resp.json() if resp.content else {}
-        except DataUpAPIError as e:
-            return Response({"message": e.message}, status=e.status_code)
-
+        client = self.dataup_client
+        response = async_to_sync(self._ainfer)(client, payload, pk, *args, **kwargs)
         frame_ids = inference_data["frame_ids"]
-        data = body.get("data", None)
+        data = response.get("data", None)
         if data is None:
             return Response(
                 {"message": "No data found in agent response body"},
@@ -202,4 +212,9 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         converted_outputs = converter.convert(frame_ids, data)
         return Response(data=converted_outputs, status=status.HTTP_200_OK)
 
-
+    async def _ainfer(self, client, payload, pk=None, *args, **kwargs):
+        try:
+            resp = await client.make_request("POST", f"agents/{pk}/infer", data=payload)
+            return resp.json() if resp.content else {}
+        except DataUpAPIError as e:
+            return Response({"message": e.message}, status=e.status_code)

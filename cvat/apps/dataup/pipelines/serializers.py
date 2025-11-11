@@ -47,9 +47,7 @@ class PipelineUpdateSerializer(serializers.Serializer):
     description = serializers.CharField(required=False, allow_null=True)
     usage_limit = serializers.IntegerField(min_value=0, required=False, allow_null=True)
     is_public = serializers.BooleanField(required=False, allow_null=True)
-    steps = serializers.ListField(
-        child=PipelineStepCreateSerializer(), required=False, allow_null=True
-    )
+    steps = serializers.ListField(child=PipelineStepCreateSerializer(), required=False, allow_null=True)
 
 
 class PipelineSerializer(serializers.Serializer):
@@ -72,9 +70,7 @@ class PipelineSerializer(serializers.Serializer):
 
 class PipelineRunSerializer(serializers.Serializer):
     input_data = serializers.JSONField(default=dict)
-    step_params = serializers.JSONField(
-        default=dict, help_text="Parameters for specific steps, keyed by step ID"
-    )
+    step_params = serializers.JSONField(default=dict, help_text="Parameters for specific steps, keyed by step ID")
     cvat_token = serializers.CharField(
         required=False,
         allow_null=True,
@@ -144,9 +140,7 @@ class PipelineExecutionStepSerializer(serializers.Serializer):
 class PipelineExecutionCreateSerializer(serializers.Serializer):
     pipeline_id = serializers.CharField()
     input_data = serializers.JSONField(default=dict)
-    step_params = serializers.JSONField(
-        default=dict, help_text="Parameters for specific steps, keyed by step ID"
-    )
+    step_params = serializers.JSONField(default=dict, help_text="Parameters for specific steps, keyed by step ID")
     cvat_token = serializers.CharField(
         required=False,
         allow_null=True,
@@ -173,9 +167,7 @@ class PipelineExecutionSerializer(serializers.Serializer):
     started_at = serializers.DateTimeField(read_only=True)
     completed_at = serializers.DateTimeField(required=False, allow_null=True)
     error_message = serializers.CharField(required=False, allow_null=True)
-    step_executions = serializers.ListField(
-        child=PipelineExecutionStepSerializer(), default=list
-    )
+    step_executions = serializers.ListField(child=PipelineExecutionStepSerializer(), default=list)
 
 
 class PipelineExecutionResponseSerializer(PipelineExecutionSerializer):

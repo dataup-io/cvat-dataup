@@ -1,3 +1,5 @@
+from multiprocessing import process
+from cvat.apps.dataup.agents.jobs.auto_annotate import MAX_CONCURRENCY
 import django_rq
 from datetime import timedelta
 from cvat.apps.dataup.agents.rq import AgentRQMeta
@@ -30,22 +32,23 @@ from .utils import (
     update_progress,
     get_dataup_agent_predictions,
     get_frame_to_job_ids,
+    MAX_BATCH_SIZE,
+    update_progress,
 )
 
-from cvat.apps.dataup.agents.metrics import (
-    match_predictions_to_ground_truth,
-    calculate_attribute_metrics,
-    calculate_object_detection_metrics,
-)
+from cvat.apps.dataup.agents.metrics import match_predictions_to_ground_truth, calculate_attribute_metrics, calculate_object_detection_metrics
 
 # Import base classes
 from .base import BaseAgentQueue, BaseAgentJob
 from itertools import chain
+import asyncio
+import httpx
 
 slogger = ServerLogManager(__name__)
 
 
-MAX_BATCH_SIZE = 1
+MAX_CONCURRENCY = 5
+DEFAULT_TIMEOUT = 60
 
 
 class AgentEvaluateQueue(BaseAgentQueue):
@@ -85,9 +88,7 @@ class AgentEvaluateQueue(BaseAgentQueue):
             AgentEvaluateJob instance
         """
         queue = self._get_queue()
-        rq_id = RequestId(
-            action=RequestAction.EVALUATE, target=RequestTarget.TASK, id=uuid.uuid4()
-        ).render()
+        rq_id = RequestId(action=RequestAction.EVALUATE, target=RequestTarget.TASK, id=uuid.uuid4()).render()
 
         with get_rq_lock_for_job(queue, rq_id):
             if rq_job := queue.fetch_job(rq_id):
@@ -96,9 +97,7 @@ class AgentEvaluateQueue(BaseAgentQueue):
                     rq.job.JobStatus.FINISHED,
                 }:
                     raise ValidationError(
-                        "Only one running evaluation request is allowed for the same task #{}".format(
-                            task_id
-                        ),
+                        "Only one running evaluation request is allowed for the same task #{}".format(task_id),
                         code=status.HTTP_409_CONFLICT,
                     )
                 rq_job.delete()
@@ -138,8 +137,6 @@ class AgentEvaluateJob(BaseAgentJob):
     def __init__(self, job: rq.job.Job):
         super().__init__(job=job, queue_name=settings.CVAT_QUEUES.AGENT_EVALUATE.value)
 
-
-
     def to_dict(self):
         agent_id = self.job.kwargs.get("agent_id")
         return {
@@ -168,15 +165,14 @@ class AgentEvaluateJob(BaseAgentJob):
     def _get_queue(self):
         return django_rq.get_queue(settings.CVAT_QUEUES.AGENT_EVALUATE.value)
 
+
     @classmethod
     def __call__(cls, agent_id: str, task_id: int, **kwargs):
         dataup_client_cfg = kwargs.pop("dataup_client_cfg")
         dataup_client = DataUpAPIClient.from_cfg(dataup_client_cfg)
 
         job_id = kwargs.get("job_id")
-        organization_uuid = kwargs.get(
-            "organization_uuid", "dataup_org"
-        )  # TODO: We need to pass this when we need it
+        organization_uuid = kwargs.get("organization_uuid", "dataup_org")  # TODO: We need to pass this when we need it
         db_task, db_job = get_task_job_from_ids(task_id, job_id, cleanup=False)
         frame_ids = kwargs.get("frame_ids")
         if not frame_ids:
@@ -184,87 +180,88 @@ class AgentEvaluateJob(BaseAgentJob):
 
         class_names = set(kwargs.get("mapping", {}).keys())
         label_mapping = {value["name"]: key for key, value in kwargs.get("mapping", {}).items()}
-        ground_truth_annotations = get_ground_truth_from_task(
-            task_id=task_id, label_mapping=label_mapping
-        )
+        ground_truth_annotations = get_ground_truth_from_task(task_id=task_id, label_mapping=label_mapping)
 
-        benchmark_frame_ids = [
-            frame_id
-            for frame_id in frame_ids
-            if len(ground_truth_annotations.get(frame_id, [])) > 0
-        ]
+        benchmark_frame_ids = [frame_id for frame_id in frame_ids if len(ground_truth_annotations.get(frame_id, [])) > 0]
+        total_frames_to_benchmark = len(benchmark_frame_ids)
         frame_to_job_ids = get_frame_to_job_ids(task_id=task_id)
-        processed_frames = 0
         threshold = kwargs.get("threshold", 0.5)
         iou_threshold = kwargs.get("iou_threshold", 0.5)
         params = {"threshold": threshold}
-        all_preds = []
+
         all_gts = list(chain(*ground_truth_annotations.values()))
-        for frame_ids_batch in take_by(benchmark_frame_ids, MAX_BATCH_SIZE):
-            payload = build_infer_payload(
-                organization_uuid, task_id, frame_ids_batch, params=params
-            )
-            try:
-                resp = dataup_client.make_request("POST", f"agents/{agent_id}/infer", data=payload)
-                body = resp.json() if getattr(resp, "content", None) else {}
-                predictions: list[dict] = body.get("data", [])
+        all_batches = list(take_by(benchmark_frame_ids, MAX_BATCH_SIZE))
+        curr_job = rq.get_current_job()
+        rq_job_meta = AgentRQMeta.for_job(curr_job) if curr_job else None
+        async def run():
+            sem = asyncio.Semaphore(MAX_CONCURRENCY)
+            all_preds = []
+            processed_frames = 0
+            async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT, http2=True) as hc:
 
-                if not predictions:
-                    slogger.glob.warning(
-                        f"No data returned for frames {frame_ids_batch}. "
-                        "Skipping save for this batch."
-                    )
-                    continue
+                async def fetch(batch):
+                    payload = await asyncio.to_thread(build_infer_payload, organization_uuid, task_id, batch, params, task_type="annotate_frame")
+                    async with sem:
+                        resp = await dataup_client.make_request("POST", f"agents/{agent_id}/infer", data=payload, _client=hc)
+                        body = resp.json() if getattr(resp, "content", None) else {}
+                        return batch, body.get("data", [])
 
-                batch_frame_predictions = get_dataup_agent_predictions(
-                    frame_ids_batch, predictions, class_names
-                )
-                all_preds.extend(list(chain(*batch_frame_predictions.values())))
-                processed_frames += len(frame_ids_batch)
-                update_progress(processed_frames, len(frame_ids))
-            except DataUpAPIError as e:
-                if e.kind == ErrorKind.INFERENCE:
-                    slogger.glob.warning(
-                        f"Inference error for frames {frame_ids_batch}; skipping batch. "
-                        f"Details: {e.message} (status={e.status_code}{f', code={e.error_code}' if e.error_code else ''})"
-                    )
-                    continue
-                slogger.glob.error(
-                    f"{e.kind.value.capitalize()} error; aborting. "
-                    f"Details: {e.message} (status={e.status_code}{f', code={e.error_code}' if e.error_code else ''})"
-                )
-                if batch_frame_predictions:  # save remaining data if available
-                    all_preds.extend(list(chain(*batch_frame_predictions.values())))
-                    processed_frames += len(frame_ids_batch)
-                    update_progress(processed_frames, len(frame_ids))
-                raise
+                tasks = [asyncio.create_task(fetch(b)) for b in all_batches]
+                for coro in asyncio.as_completed(tasks):
+                    try:
+                        frame_ids_batch, predictions = await coro
+                        if not predictions:
+                            slogger.glob.warning(f"No predictions returned for frames {frame_ids_batch}. Skipping.")
+                            continue
 
-        matches, unmatched_predictions, unmatched_ground_truth = match_predictions_to_ground_truth(
+                        batch_frame_predictions = get_dataup_agent_predictions(frame_ids_batch, predictions, class_names)
+                        all_preds.extend(list(chain(*batch_frame_predictions.values())))
+                        processed_frames += len(frame_ids_batch)
+                        asyncio.to_thread(update_progress, rq_job_meta, processed_frames, total_frames_to_benchmark)
+                    except DataUpAPIError as e:
+                        if getattr(e, "kind", None) == ErrorKind.INFERENCE:
+                            slogger.glob.warning(
+                                f"Inference error for frames {frame_ids_batch}; skipping. "
+                                f"Details: {e.message} (status={e.status_code}"
+                                f"{f', code={e.error_code}' if getattr(e, 'error_code', None) else ''})"
+                            )
+                            continue
+                            # fatal
+                        slogger.glob.error(
+                            f"{getattr(e, 'kind', 'API').capitalize()} error; aborting. "
+                            f"Details: {e.message} (status={e.status_code}"
+                            f"{f', code={e.error_code}' if getattr(e, 'error_code', None) else ''})"
+                        )
+
+            matches, unmatched_predictions, unmatched_ground_truth = match_predictions_to_ground_truth(
             predictions=all_preds, ground_truth=all_gts, iou_threshold=iou_threshold
         )
 
-        metric_stats: dict = calculate_object_detection_metrics(
-            matches=matches,
-            unmatched_preds=unmatched_predictions,
-            unmatched_gts=unmatched_ground_truth,
-            class_names=class_names,
-            all_preds=all_preds,
-            all_gts=all_gts,
-            frame_to_job_ids=frame_to_job_ids,
-        )
+            metric_stats: dict = calculate_object_detection_metrics(
+                matches=matches,
+                unmatched_preds=unmatched_predictions,
+                unmatched_gts=unmatched_ground_truth,
+                class_names=class_names,
+                all_preds=all_preds,
+                all_gts=all_gts,
+                frame_to_job_ids=frame_to_job_ids,
+            )
 
-        metric_stats["attribute_metrics"] = calculate_attribute_metrics(
-            all_preds=all_preds, all_gts=all_gts, matches=matches
-        )
+            metric_stats["attribute_metrics"] = calculate_attribute_metrics(all_preds=all_preds, all_gts=all_gts, matches=matches)
 
-        metric_stats.update(
-            {
-                "agent_name": agent_id,
-                "agent_version": "1.0.0",
-                "task_type": "object_detection",
-                "dataset_name": task_id,
-                "processed_frames": processed_frames,
-                "evaluation_time_sec": 35.7,
-            }
-        )
-        return metric_stats
+            metric_stats.update(
+                {
+                    "agent_name": agent_id,
+                    "agent_version": "1.0.0",
+                    "task_type": "object_detection",
+                    "dataset_name": task_id,
+                    "processed_frames": processed_frames,
+                    "evaluation_time_sec": 35.7,
+                }
+            )
+            return metric_stats
+
+
+        # execute the async plan
+        return asyncio.run(run())
+
