@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: MIT
 
 from rest_framework import serializers
-import rq
 
 
 class AgentInferenceRequest(serializers.Serializer):
@@ -83,6 +82,7 @@ class AgentJobCreateSerializer(serializers.Serializer):
     task_id = serializers.IntegerField(required=True)
     job_id = serializers.IntegerField(required=False, allow_null=True)
     threshold = serializers.FloatField(default=0.5, min_value=0.0, max_value=1.0)
+    prompt = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     mapping = serializers.JSONField(default=dict)
     cleanup = serializers.BooleanField(default=False)
     conv_mask_to_poly = serializers.BooleanField(default=False)

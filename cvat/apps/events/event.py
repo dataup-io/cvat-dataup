@@ -19,7 +19,7 @@ class EventScopes:
     RESOURCES = {
         "project": ["create", "update", "delete"],
         "task": ["create", "update", "delete"],
-        "job": ["create", "update", "delete"],
+        "job": ["create", "update", "delete", "submit"],
         "organization": ["create", "update", "delete"],
         "membership": ["create", "update", "delete"],
         "invitation": ["create", "delete"],

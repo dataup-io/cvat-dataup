@@ -3188,12 +3188,23 @@ export class CanvasViewImpl implements CanvasView, Listener {
                     });
                 }
                 if (withAttr) {
+                    const MAX_ATTR_PREVIEW_LENGTH = 20;
+
                     Object.keys(attributes).forEach((attrID: string, idx: number) => {
-                        const values = `${attributes[attrID] === undefinedAttrValue ?
-                            '' : attributes[attrID]}`.split('\n');
+                        const rawValue = attributes[attrID] === undefinedAttrValue ?
+                            '' : String(attributes[attrID] ?? '');
+
+                        // Truncate long values to avoid overloading the canvas with text.
+                        // Full value is still available via the text editor popup.
+                        const truncatedValue = rawValue.length > MAX_ATTR_PREVIEW_LENGTH ?
+                            `${rawValue.slice(0, MAX_ATTR_PREVIEW_LENGTH)}…` : rawValue;
+
+                        const values = truncatedValue.split('\n');
+
                         const parent = block.tspan(`${attrNames[attrID]}: `)
                             .attr({ attrID, dy: idx === 0 ? '1.25em' : '1em', x: 0 })
                             .addClass('cvat_canvas_text_attribute');
+
                         values.forEach((attrLine: string, index: number) => {
                             parent
                                 .tspan(attrLine)

@@ -18,7 +18,6 @@ def get_frames_from_task(task_id: int, frame_ids: list[int]) -> tuple[list[str],
     use_presigned_urls = getattr(settings, "USE_PRESIGNED_URLS", False)
     if use_presigned_urls and is_cloud_backed(task):
         image_urls = [frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.URL) for frame_id in frame_ids]
-        print("Using presgined_urls", image_urls)
     else:
         images = [frame_provider.get_frame_v2(frame_id, out_type=FrameOutputType.BUFFER) for frame_id in frame_ids]
 
@@ -42,11 +41,13 @@ def _prepare_detector_params(params: dict) -> dict:
     threshold = params.get("threshold", 0.5)
     iou_threshold = params.get("iou_threshold", 0.5)
     max_detections = params.get("max_detections", 100)
+    prompt = params.get("prompt")
     return {
         "param_type": "detector",
         "threshold": threshold,
         "iou_threshold": iou_threshold,
         "max_detections": max_detections,
+        "prompt": prompt,
     }
 
 

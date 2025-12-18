@@ -8,7 +8,6 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from django.core.exceptions import ValidationError
 from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
 from cvat.apps.dataup.iam.context import get_dataup_iam_context, get_dataup_organization
 from cvat.apps.dataup.agents.serializers import (
@@ -21,7 +20,6 @@ from cvat.apps.dataup.dataup_api import DataUpAPIError
 from rest_framework import status, viewsets
 from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
 from asgiref.sync import async_to_sync
-# from cvat.apps.dataup.agents.jobs import AgentQueue, AgentJob
 
 
 class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
@@ -112,7 +110,7 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
 
     @extend_schema(
         summary="Update an agent API",
-        description="Updates an existing agent API",
+        description="Updates an existing agent API (PATCH - partial update)",
         request=AgentWriteSerializer,
         responses={
             200: AgentReadSerializer,
@@ -121,8 +119,14 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         },
     )
     def update(self, request, pk=None, partial=False, *args, **kwargs):
+        # Handle both PUT and PATCH as partial updates
         client = self.dataup_client
-        return async_to_sync(self._aupdate)(request, client, pk, partial, *args, **kwargs)
+        return async_to_sync(self._aupdate)(request, client, pk, partial=True, *args, **kwargs)
+
+    def partial_update(self, request, pk=None, *args, **kwargs):
+        # PATCH requests route here
+        client = self.dataup_client
+        return async_to_sync(self._aupdate)(request, client, pk, partial=True, *args, **kwargs)
 
     async def _aupdate(self, request, client, pk=None, partial=False, *args, **kwargs):
         serializer = AgentWriteSerializer(data=request.data, partial=partial)

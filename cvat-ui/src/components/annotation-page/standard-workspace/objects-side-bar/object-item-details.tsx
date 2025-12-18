@@ -16,6 +16,7 @@ interface Props {
     collapsed: boolean;
     attributes: any[];
     values: Record<number, string>;
+    clientID: number;
     changeAttribute(attrID: number, value: string): void;
     collapse(): void;
     sizeParams: SizeParams | null;
@@ -56,6 +57,7 @@ function attrAreTheSame(prevProps: Props, nextProps: Props): boolean {
 function ItemAttributesComponent(props: Props): JSX.Element {
     const {
         collapsed, attributes, values, readonly, changeAttribute, collapse,
+        clientID,
         sizeParams, changeSize,
     } = props;
 
@@ -102,6 +104,7 @@ function ItemAttributesComponent(props: Props): JSX.Element {
                                 >
                                     <ItemAttribute
                                         readonly={readonly}
+                                        clientID={clientID}
                                         attrValue={values[attribute.id]}
                                         attrInputType={attribute.inputType}
                                         attrName={attribute.name}

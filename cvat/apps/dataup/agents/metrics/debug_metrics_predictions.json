@@ -1,0 +1,349 @@
+{
+    "id": "01KBW7CGCVVE2Y07CFJDKM44QC",
+    "predictions": [
+        {
+            "frame_id": 157,
+            "job_id": 3135,
+            "labels": [
+                {
+                    "label": "multipack",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 974,
+                        "y": 2265,
+                        "width": 227,
+                        "height": 155
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "multipack",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 952,
+                        "y": 2037,
+                        "width": 248,
+                        "height": 154
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "multipack",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 726,
+                        "y": 1991,
+                        "width": 230,
+                        "height": 143
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "multipack",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 747,
+                        "y": 2212,
+                        "width": 228,
+                        "height": 146
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "multipack",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 934,
+                        "y": 1804,
+                        "width": 247,
+                        "height": 143
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "multipack",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 708,
+                        "y": 1774,
+                        "width": 228,
+                        "height": 136
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "multipack",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 768,
+                        "y": 2422,
+                        "width": 220,
+                        "height": 153
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "multipack",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 986,
+                        "y": 2482,
+                        "width": 227,
+                        "height": 162
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "promo",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1227,
+                        "y": 543,
+                        "width": 1102,
+                        "height": 379
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1064,
+                        "y": 1295,
+                        "width": 88,
+                        "height": 144
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 898,
+                        "y": 1294,
+                        "width": 81,
+                        "height": 137
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 976,
+                        "y": 1299,
+                        "width": 90,
+                        "height": 136
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 816,
+                        "y": 1292,
+                        "width": 85,
+                        "height": 133
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 663,
+                        "y": 1290,
+                        "width": 79,
+                        "height": 125
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 918,
+                        "y": 1560,
+                        "width": 83,
+                        "height": 124
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 737,
+                        "y": 1288,
+                        "width": 82,
+                        "height": 132
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1088,
+                        "y": 1571,
+                        "width": 80,
+                        "height": 125
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 688,
+                        "y": 1539,
+                        "width": 77,
+                        "height": 120
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 836,
+                        "y": 1551,
+                        "width": 83,
+                        "height": 125
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1001,
+                        "y": 1566,
+                        "width": 88,
+                        "height": 126
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 760,
+                        "y": 1545,
+                        "width": 78,
+                        "height": 122
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1267,
+                        "y": 1085,
+                        "width": 157,
+                        "height": 150
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1435,
+                        "y": 1079,
+                        "width": 148,
+                        "height": 156
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1582,
+                        "y": 1072,
+                        "width": 167,
+                        "height": 163
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1908,
+                        "y": 1059,
+                        "width": 181,
+                        "height": 174
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                },
+                {
+                    "label": "single",
+                    "score": 1.0,
+                    "bbox": {
+                        "x": 1754,
+                        "y": 1063,
+                        "width": 157,
+                        "height": 171
+                    },
+                    "polygon": null,
+                    "rle_mask": "",
+                    "attributes": []
+                }
+            ]
+        }
+    ]
+}

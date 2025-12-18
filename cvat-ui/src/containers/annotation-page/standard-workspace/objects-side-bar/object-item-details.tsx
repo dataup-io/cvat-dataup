@@ -138,6 +138,7 @@ class ObjectItemDetailsContainer extends React.PureComponent<Props> {
                     attributes={[...state.label.attributes]}
                     changeSize={this.changeSize}
                     sizeParams={sizeParams}
+                    clientID={state.clientID}
                 />
             );
         }

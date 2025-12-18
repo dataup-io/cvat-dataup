@@ -133,7 +133,7 @@ function CreateApiModalComponent(props: Props): JSX.Element {
                 }
 
                 if (api) {
-                    dispatch(updateAgentAsync(Number(api.id), formData));
+                    dispatch(updateAgentAsync(api.id, formData));
                 } else {
                     dispatch(createAgentAsync(formData));
                 }

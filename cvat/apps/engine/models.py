@@ -1525,6 +1525,7 @@ class RequestAction(TextChoices):
     IMPORT = "import"
     EXPORT = "export"
     EVALUATE = "evaluate"
+    LENS_SNAPSHOT = "lens_snapshot"
 
 
 

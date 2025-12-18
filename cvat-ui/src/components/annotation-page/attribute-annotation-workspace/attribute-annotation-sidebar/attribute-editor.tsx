@@ -19,6 +19,7 @@ import { subKeyMap } from 'utils/component-subkeymap';
 import { isEqual } from 'lodash';
 import { CombinedState } from 'reducers';
 import { useSelector } from 'react-redux';
+import VoiceInputButton from 'components/common/voice-input-button';
 import { useResetShortcutsOnUnmount } from 'utils/hooks';
 
 interface InputElementParameters {
@@ -217,6 +218,12 @@ function renderInputElement(parameters: InputElementParameters): JSX.Element {
                                 onClick={() => setTextDirection('rtl')}
                             />
                         </Tooltip>
+                        <VoiceInputButton
+                            onText={(spoken: string) => {
+                                const prefix = localAttrValue ? `${localAttrValue} ` : '';
+                                setAttributeValue(`${prefix}${spoken}`);
+                            }}
+                        />
                     </Space>
                 </div>
             </div>

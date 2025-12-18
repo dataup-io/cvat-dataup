@@ -6,15 +6,41 @@ import django_rq
 import rq
 from abc import ABC, abstractmethod
 from datetime import timedelta
-from typing import Optional, Dict, Any
-
-from cvat.apps.dataup.agents.rq import AgentRQMeta
+from typing import Dict, Any
 from cvat.apps.dataup.dataup_api.client import DataUpAPIClient
+from cvat.apps.dataup.agents.rq import AgentRQMeta
 from cvat.apps.engine.log import ServerLogManager
 from django.core.exceptions import ValidationError
-from rest_framework import status
+from rest_framework import status, viewsets
+from rest_framework.response import Response
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from rest_framework.permissions import IsAuthenticated
+from cvat.apps.dataup.iam.context import get_dataup_iam_context
+from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
+from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
+from asgiref.sync import async_to_sync
+from .serializers import AgentJobSerializer
+import asyncio
+import httpx
+
 
 slogger = ServerLogManager(__name__)
+
+MAX_CONCURRENCY = 5
+MAX_TIMEOUT = 300
+
+
+LIMITS = httpx.Limits(
+    max_connections=MAX_CONCURRENCY,
+    max_keepalive_connections=MAX_CONCURRENCY,
+)
+
+TIMEOUT = httpx.Timeout(
+    connect=10.0,          # or something reasonable
+    read=MAX_TIMEOUT,      # keep your existing total read timeout
+    write=None,
+    pool=None,
+)
 
 
 class BaseAgentQueue(ABC):
@@ -23,8 +49,6 @@ class BaseAgentQueue(ABC):
     RESULT_TTL = timedelta(minutes=30)
     FAILED_TTL = timedelta(hours=3)
 
-    def __init__(self, dataup_client: DataUpAPIClient):
-        self.dataup_client = dataup_client
 
     @abstractmethod
     def _get_queue(self):
@@ -83,9 +107,12 @@ class BaseAgentJob(ABC):
         """Delete the job."""
         self.job.delete()
 
+    def cancel(self):
+        self.job.cancel()
+
     @property
     def organization_uuid(self) -> str | None:
-        return self.job.kwargs.get("organization_id")
+        return self.job.kwargs.get("organization_id", "dataup_unknown_org")
 
     @property
     def user_id(self) -> str | None:
@@ -131,3 +158,183 @@ class BaseAgentJob(ABC):
     def to_dict(self) -> Dict[str, Any]:
         """Convert job to dictionary representation."""
         pass
+
+
+    @abstractmethod
+    def prepare(self, *args, **kwargs) -> None:
+        pass
+
+    @abstractmethod
+    async def postprocess(self, result: dict[str, Any]) -> None:
+        pass
+
+    @abstractmethod
+    async def _fetch(self, batch: list[int], hc: httpx.AsyncClient, dc: DataUpAPIClient) -> dict:
+        pass
+
+    async def finalize(self):
+        pass
+
+
+    async def run(self, batches: list[int], dc: DataUpAPIClient) -> None:
+        sem = asyncio.Semaphore(MAX_CONCURRENCY)
+        async with httpx.AsyncClient(timeout=TIMEOUT, http2=True, limits=LIMITS) as hc:
+            async def wrapped_fetch(batch: list[int]):
+                async with sem:
+                    return await self._fetch(batch, hc, dc)
+
+            tasks = {asyncio.create_task(wrapped_fetch(b)) for b in batches}
+            pending = set(tasks)
+            while pending:
+                done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+                if self.get_status() == rq.job.JobStatus.CANCELED:
+                    slogger.glob.info(f"RQ job {getattr(self.job, 'id', None)} cancelled; stopping early.")
+                    for t in pending:
+                        t.cancel()
+                    await asyncio.gather(*pending, return_exceptions=True)
+                    break
+                for d in done:
+                    try:
+                        result = await d
+                        await self.postprocess(result)
+                    except Exception as e:
+                        slogger.glob.error(f"Batched execution failed {e} ")
+                        raise
+            await self.finalize()
+
+
+
+
+class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
+    """Base class for agent job viewsets with common functionality"""
+
+    permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+    iam_context_factory = staticmethod(get_dataup_iam_context)
+    iam_organization_field = "organization"
+
+
+
+    def _get_queue(self):
+        raise NotImplementedError("Subclasses must implement _get_queue method")
+
+    def _get_queue_class(self):
+        """Return the appropriate queue class. Must be implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement _get_queue_class method")
+
+    def _get_job_type_name(self):
+        """Return the job type name for documentation. Must be implemented by subclasses."""
+        raise NotImplementedError("Subclasses must implement _get_job_type_name method")
+
+    @extend_schema(
+        summary="List all agent jobs",
+        description="Returns a list of all agent jobs",
+        responses={
+            200: AgentJobSerializer(many=True),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+
+
+    def list(self, request):
+        iam_context = self.iam_context_factory(request, None)
+        return async_to_sync(self._alist)(request, iam_context)
+
+    async def _alist(self, request, iam_context, *args, **kwargs):
+        try:
+            agent_queue = self._get_queue()
+            organization_uuid = iam_context.get("org_id")
+            user_id = iam_context.get("user_id")
+            if organization_uuid:
+                jobs = [job for job in agent_queue.get_jobs() if job.organization_uuid == organization_uuid]
+            elif user_id:
+                jobs = [job for job in agent_queue.get_jobs() if job.user_id == user_id]
+            else:
+                raise ValidationError("User or organization must be specified")
+
+            job_data = []
+            for job in jobs:
+                job_data.append(job.to_dict())
+
+            serializer = AgentJobSerializer(job_data, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @extend_schema(
+        summary="Retrieve a specific agent job",
+        description="GET: Retrieve a specific agent job by ID",
+        responses={
+            200: AgentJobSerializer,
+            404: OpenApiResponse(description="Job not found"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+    def retrieve(self, request, pk=None):
+        agent_queue = self._get_queue()
+        job = agent_queue.fetch_job(pk)
+        return async_to_sync(self._aretrieve)(job)
+
+    async def _aretrieve(self, job, *args, **kwargs):
+        """Retrieve a specific agent job by ID"""
+        try:
+            serializer = AgentJobSerializer(job.to_dict())
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except ValidationError as e:
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+
+    @extend_schema(
+        summary="Cancel a specific agent job",
+        description="DELETE: Cancel a specific agent job by ID",
+        responses={
+            204: OpenApiResponse(description="Job cancelled successfully"),
+            404: OpenApiResponse(description="Job not found"),
+            500: OpenApiResponse(description="Internal server error"),
+        },
+        parameters=[
+            OpenApiParameter(
+                "X-Organization",
+                description="Organization slug for multi-tenant context",
+                required=False,
+                type=str,
+                location=OpenApiParameter.HEADER,
+            ),
+        ],
+    )
+
+    def destroy(self, request, pk):
+        return async_to_sync(self._adestroy)(request, pk)
+
+
+    async def _adestroy(self, request, pk, *args, **kwargs):
+        try:
+            queue = self._get_queue()
+            rq_job = queue.fetch_job(pk)
+            rq_job.cancel()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_404_NOT_FOUND)

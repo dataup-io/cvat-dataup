@@ -2,7 +2,6 @@ import django_rq
 from datetime import timedelta
 from cvat.apps.dataup.agents.rq import AgentRQMeta
 from cvat.apps.dataup.dataup_api.client import DataUpAPIClient
-from cvat.apps.dataup.dataup_api.exceptions import ErrorKind, DataUpAPIError
 from cvat.apps.dataup.utils.converters import DataUpAgentResultConverter
 import rq
 from cvat.apps.engine.utils import get_rq_lock_by_user, get_rq_lock_for_job, take_by
@@ -19,7 +18,6 @@ from cvat.apps.dataup.agents.payload import build_infer_payload
 from cvat.apps.engine.log import ServerLogManager
 from django.core.exceptions import ValidationError
 from rest_framework import status
-from django.conf import settings
 
 # Import shared utilities
 from .utils import (
@@ -36,9 +34,6 @@ from .base import BaseAgentQueue, BaseAgentJob
 import asyncio
 import httpx
 
-
-MAX_CONCURRENCY = 5
-MAX_TIMEOUT = 60
 
 slogger = ServerLogManager(__name__)
 
@@ -63,9 +58,11 @@ class AgentAutoAnnotateQueue(BaseAgentQueue):
         conv_mask_to_poly,
         max_distance,
         request,
+        dataup_client_cfg: dict,
         *,
         job_id: Optional[int] = None,
         frame_ids: Optional[list[int]] = None,
+        organization_id: Optional[str] = None,
     ) -> "AgentAutoAnnotateJob":
         queue = self._get_queue()
         rq_id = RequestId(
@@ -107,7 +104,8 @@ class AgentAutoAnnotateQueue(BaseAgentQueue):
                         "conv_mask_to_poly": conv_mask_to_poly,
                         "mapping": mapping,
                         "max_distance": max_distance,
-                        "dataup_client_cfg": self.dataup_client.cfg(),
+                        "dataup_client_cfg": dataup_client_cfg,
+                        "organization_id": organization_id,
                         "frame_ids": frame_ids,
                     },
                     depends_on=define_dependent_job(queue, user_id),
@@ -152,78 +150,65 @@ class AgentAutoAnnotateJob(BaseAgentJob):
 
         return dict_
 
+    def prepare(self, agent_id: str, task_id: int, cleanup: bool, **kwargs):
+        self.agent_id = agent_id
+        self.task_id = task_id
+        self.job_id = kwargs.get("job_id")
+        self.db_task, self.db_job = get_task_job_from_ids(task_id, self.job_id, cleanup)
+        dataup_client_cfg = kwargs.pop("dataup_client_cfg")
+        self.dc = DataUpAPIClient.from_cfg(dataup_client_cfg)
+        frame_ids = kwargs.get("frame_ids") or get_frame_ids_from_task_or_job(self.db_task, self.db_job)
+        label_mapping = kwargs.get("mapping", {})
+        self.converter = DataUpAgentResultConverter(task_id, label_mapping=label_mapping)
+        threshold = kwargs.get("threshold", 0.5)
+        self.params = {"threshold": threshold}
+        self.batches = list(take_by(frame_ids, MAX_BATCH_SIZE))
+        self.total_frames = len(frame_ids)
+        self.rq_job_meta = AgentRQMeta.for_job(self.job) if self.job else None
+        self.batched_output = []
+        self.successful_frames = []
+        self.processed_frames = 0
+
+    async def postprocess(self, result: dict):
+        frames = result.get("frames", [])
+        data = result.get("data", [])
+        if not data:
+            slogger.glob.warning(f"No data returned for frames {frames}. Skipping.")
+            return
+
+        self.successful_frames.extend(frames)
+        self.batched_output.extend(data)
+        self.processed_frames += len(frames)
+        await asyncio.to_thread(update_progress, self.rq_job_meta, self.processed_frames, self.total_frames)
+
+        if SAVE_EVERY_FRAMES and self.processed_frames % SAVE_EVERY_FRAMES == 0:
+            await asyncio.to_thread(batch_save_agent_results, self.converter, self.db_task, self.db_job, self.successful_frames, self.batched_output)
+            self.batched_output.clear()
+            self.successful_frames.clear()
+
+    async def finalize(self) -> None:
+        if self.successful_frames:
+            await asyncio.to_thread(
+                batch_save_agent_results,
+                self.converter,
+                self.db_task,
+                self.db_job,
+                self.successful_frames,
+                self.batched_output,
+            )
+            self.batched_output.clear()
+            self.successful_frames.clear()
+
+
+    async def _fetch(self, batch, hc: httpx.AsyncClient, dc: DataUpAPIClient) -> dict:
+        payload = await asyncio.to_thread(build_infer_payload, self.organization_uuid, self.task_id, batch, self.params, task_type="annotate_frame")
+        resp = await dc.make_request("POST", f"agents/{self.agent_id}/infer", data=payload, _client=hc)
+        body = resp.json() if getattr(resp, "content", None) else {}
+        return {"frames": batch, "data": body.get("data", [])}
+
     @classmethod
     def __call__(cls, agent_id: str, task_id: int, cleanup: bool, **kwargs):
-        # ---- sync setup (safe for ORM) ----
-        dataup_client_cfg = kwargs.pop("dataup_client_cfg")
-        dataup_client = DataUpAPIClient.from_cfg(dataup_client_cfg)
-
-        job_id = kwargs.get("job_id")
-        organization_uuid = kwargs.get("organization_uuid", "dataup_org")
-        db_task, db_job = get_task_job_from_ids(task_id, job_id, cleanup)
-
-        frame_ids = kwargs.get("frame_ids") or get_frame_ids_from_task_or_job(db_task, db_job)
-        label_mapping = kwargs.get("mapping", {})
-        converter = DataUpAgentResultConverter(task_id, label_mapping=label_mapping)
-        threshold = kwargs.get("threshold", 0.5)
-        params = {"threshold": threshold}
-        batches = list(take_by(frame_ids, MAX_BATCH_SIZE))
         curr_job = rq.get_current_job()
-        rq_job_meta = AgentRQMeta.for_job(curr_job) if curr_job else None
-
-        async def run():
-            sem = asyncio.Semaphore(MAX_CONCURRENCY)
-            batched_output, successful_frames = [], []
-            processed_frames = 0
-
-            async with httpx.AsyncClient(timeout=MAX_TIMEOUT, http2=True) as hc:
-
-                async def fetch(batch):
-                    payload = await asyncio.to_thread(build_infer_payload, organization_uuid, task_id, batch, params, task_type="annotate_frame")
-                    async with sem:
-                        resp = await dataup_client.make_request("POST", f"agents/{agent_id}/infer", data=payload, _client=hc)
-                        body = resp.json() if getattr(resp, "content", None) else {}
-                        return batch, body.get("data", [])
-
-                tasks = [asyncio.create_task(fetch(b)) for b in batches]
-                for coro in asyncio.as_completed(tasks):
-                    try:
-                        frame_ids_batch, data = await coro
-                        if not data:
-                            slogger.glob.warning(f"No data returned for frames {frame_ids_batch}. Skipping.")
-                            continue
-
-                        successful_frames.extend(frame_ids_batch)
-                        batched_output.extend(data)
-                        processed_frames += len(frame_ids_batch)
-
-                        # ORM work -> off the loop
-                        await asyncio.to_thread(update_progress, rq_job_meta, processed_frames, len(frame_ids))
-
-                        if SAVE_EVERY_FRAMES and processed_frames % SAVE_EVERY_FRAMES == 0:
-                            await asyncio.to_thread(batch_save_agent_results, converter, db_task, db_job, successful_frames, batched_output)
-                            batched_output.clear()
-                            successful_frames.clear()
-
-                    except DataUpAPIError as e:
-                        if getattr(e, "kind", None) == ErrorKind.INFERENCE:
-                            slogger.glob.warning(
-                                f"Inference error for frames {frame_ids_batch}; skipping. "
-                                f"Details: {e.message} (status={e.status_code}"
-                                f"{f', code={e.error_code}' if getattr(e, 'error_code', None) else ''})"
-                            )
-                            continue
-                        # fatal
-                        slogger.glob.error(
-                            f"{getattr(e, 'kind', 'API').capitalize()} error; aborting. "
-                            f"Details: {e.message} (status={e.status_code}"
-                            f"{f', code={e.error_code}' if getattr(e, 'error_code', None) else ''})"
-                        )
-                        if batched_output:
-                            await asyncio.to_thread(batch_save_agent_results, converter, db_task, db_job, successful_frames, batched_output)
-                        raise
-
-            if batched_output:
-                await asyncio.to_thread(batch_save_agent_results, converter, db_task, db_job, successful_frames, batched_output)
-
-        asyncio.run(run())
+        self = cls(job=curr_job)
+        self.prepare(agent_id=agent_id, task_id=task_id, cleanup=cleanup, **kwargs)
+        return asyncio.run(self.run(self.batches, self.dc))

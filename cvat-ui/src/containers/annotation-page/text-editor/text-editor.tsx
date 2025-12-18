@@ -25,13 +25,31 @@ function mapStateToProps(state: CombinedState): StateToProps {
             textEditor: {
                 visible, attrID, attrValue, attrName, attrInputType, attrValues, originalStateID,
             },
+            annotations,
         },
     } = state;
+
+    // Derive the current attribute value directly from the underlying object state
+    // to avoid situations where a stale value is kept in textEditor.attrValue.
+    let derivedAttrValue = attrValue;
+    if (visible && attrID !== null && originalStateID !== null) {
+        const objectState = annotations.states?.find((s: any) => s.clientID === originalStateID);
+        if (objectState && objectState.attributes) {
+            const raw = objectState.attributes[attrID];
+            if (typeof raw === 'string') {
+                derivedAttrValue = raw;
+            } else if (raw !== undefined && raw !== null) {
+                derivedAttrValue = String(raw);
+            } else {
+                derivedAttrValue = '';
+            }
+        }
+    }
 
     return {
         visible,
         attrID,
-        attrValue,
+        attrValue: derivedAttrValue,
         attrName,
         attrInputType,
         attrValues,
@@ -50,12 +68,17 @@ function mapDispatchToProps(dispatch: any): DispatchToProps {
             // Use the original state ID that was stored when the editor was opened
             // instead of the currently activated state ID
             const originalStateID = state.annotation.textEditor.originalStateID;
-            const objectState = annotation.annotations.states?.find((s: any) => s.clientID === originalStateID);
+            const objectState = annotation.annotations.states?.find(
+                (s: any) => s.clientID === originalStateID,
+            );
 
             if (typeof attrID === 'number' && typeof value === 'string' && objectState) {
-                const attr: Record<number, string> = {};
-                attr[attrID] = value;
-                objectState.attributes = attr;
+                const currentAttributes = objectState.attributes || {};
+                const updatedAttributes: Record<number, string> = {
+                    ...currentAttributes,
+                    [attrID]: value,
+                };
+                objectState.attributes = updatedAttributes;
 
                 dispatch(updateAnnotationsAsync([objectState]));
             }

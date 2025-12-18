@@ -18,6 +18,7 @@ import {
     Spin,
     Collapse,
     Tooltip,
+    message,
 } from 'antd';
 import {
     ArrowLeftOutlined,
@@ -27,11 +28,13 @@ import {
     InfoCircleOutlined,
     TagsOutlined,
     EyeOutlined,
+    SendOutlined,
+    SearchOutlined,
 } from '@ant-design/icons';
 import { CombinedState } from 'reducers';
-import { getCore } from 'cvat-core-wrapper';
+import { getCore, Task } from 'cvat-core-wrapper';
 import { getAgentsAsync } from 'actions/agent-actions';
-
+import LensChat from '../lens-chat/lens-chat';
 
 import './agent-benchmark-results-styles.scss';
 
@@ -79,13 +82,18 @@ interface EvaluationResult {
     agent_name: string;
     agent_version: string;
     task_type: string;
-    dataset_name: string;
+    dataset_id?: number;
     processed_frames: number;
-    evaluation_time_sec: number;
     global_metrics: GlobalMetrics;
     per_class_metrics: PerClassMetric[];
     job_metrics: JobMetric[];
     attribute_metrics?: Array<{[key: string]: any}>;
+    predictions?: Array<{
+        frame_id: number;
+        label: string;
+        xyxy: [number, number, number, number];
+        confidence?: number;
+    }>;
 }
 
 interface BenchmarkResult {
@@ -114,16 +122,16 @@ function AgentBenchmarkResults(): JSX.Element {
     const location = useLocation();
     const [benchmarkResult, setBenchmarkResult] = useState<BenchmarkResult | null>(null);
     const [agent, setAgent] = useState<any>(null);
-    const [task, setTask] = useState<any>(null);
+    const [task, setTask] = useState<Task | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [submitted, setSubmitted] = useState(false);
+    const [activeTab, setActiveTab] = useState<string>('overview');
 
     const agents = useSelector((state: CombinedState) => state.agents.current);
     const dispatch = useDispatch();
     const core = getCore();
 
-    // Debug logging
-    console.log('AgentBenchmarkResults component rendered!', { agentId, location: location.pathname + location.search });
 
 
 
@@ -148,38 +156,93 @@ function AgentBenchmarkResults(): JSX.Element {
                     return;
                 }
 
-                // The resultId is the job ID in the format: action=evaluate&target=task&target_id=X
-                // Use it directly with the evaluateJobs.get API
-                const benchmarkJob = await core.agents.evaluateJobs.get(resultId);
-
-                if (!benchmarkJob) {
-                    setError('Benchmark result not found');
-                    setLoading(false);
-                    return;
+                // Try fetching as a submitted benchmark first, then fall back to evaluate job
+                let fetchedType: 'submitted' | 'job' = 'submitted';
+                let benchmarkData: any = null;
+                try {
+                    benchmarkData = await core.agents.benchmarks.get(resultId);
+                    fetchedType = 'submitted';
+                } catch (e) {
+                    // Fallback to job if submitted benchmark not found
+                    try {
+                        benchmarkData = await core.agents.evaluateJobs.get(resultId);
+                        fetchedType = 'job';
+                    } catch (e2) {
+                        setError('Benchmark result not found');
+                        setLoading(false);
+                        return;
+                    }
                 }
 
-                // Transform API response to match our BenchmarkResult interface
-                const transformedResult: BenchmarkResult = {
-                    id: benchmarkJob.id,
-                    status: benchmarkJob.status,
-                    progress: benchmarkJob.progress || 0,
-                    created_date: benchmarkJob.created_date,
-                    started_date: benchmarkJob.started_at,
-                    finished_date: benchmarkJob.finished_at || benchmarkJob.ended_at,
-                    exc_info: benchmarkJob.exc_info,
-                    result: benchmarkJob.result,
-                    meta: {
-                        task_id: benchmarkJob.meta?.task || benchmarkJob.meta?.task_id || 0,
-                        job_id: benchmarkJob.meta?.job_id || benchmarkJob.id,
-                        agent_id: benchmarkJob.meta?.id || benchmarkJob.meta?.agent_id || agentId || 'unknown',
-                        user: {
-                            id: benchmarkJob.meta?.user?.id || 1,
-                            username: benchmarkJob.meta?.user?.username || 'unknown'
-                        }
-                    }
-                };
+                // Normalize response into BenchmarkResult shape
+                let transformedResult: BenchmarkResult;
+                if (fetchedType === 'submitted') {
+                    const resultPayload = benchmarkData.result || {
+                        agent_name: benchmarkData.agent_name || '',
+                        agent_version: benchmarkData.agent_version,
+                        task_type: benchmarkData.task_type,
+                        dataset_id: benchmarkData.dataset_id,
+                        processed_frames: benchmarkData.processed_frames,
+                        global_metrics: benchmarkData.global_metrics,
+                        job_metrics: benchmarkData.job_metrics,
+                        per_class_metrics: benchmarkData.per_class_metrics,
+                        attribute_metrics: benchmarkData.attribute_metrics || [],
+                    };
 
-                // attribute_metrics will be provided directly from the API response
+                    transformedResult = {
+                        id: benchmarkData.id,
+                        status: benchmarkData.status || 'finished',
+                        progress: benchmarkData.progress ?? 100,
+                        created_date: benchmarkData.created_at || benchmarkData.created_date || null,
+                        started_date: benchmarkData.started_at || null,
+                        finished_date: benchmarkData.finished_at || benchmarkData.ended_at || null,
+                        exc_info: benchmarkData.exc_info || null,
+                        result: resultPayload,
+                        meta: {
+                            task_id: (benchmarkData.dataset_id ?? resultPayload?.dataset_id ?? 0),
+                            job_id: benchmarkData.meta?.job_id || benchmarkData.id,
+                            agent_id: benchmarkData.agent_id || benchmarkData.meta?.agent_id || (resultPayload as any)?.agent_id || agentId || 'unknown',
+                            user: {
+                                id: benchmarkData.meta?.user?.id || 0,
+                                username: benchmarkData.meta?.user?.username || 'unknown',
+                            },
+                        },
+                    };
+                    setSubmitted(true);
+                } else {
+                    transformedResult = {
+                        id: benchmarkData.id,
+                        status: benchmarkData.status,
+                        progress: benchmarkData.progress || 0,
+                        created_date: benchmarkData.created_date,
+                        started_date: benchmarkData.started_at,
+                        finished_date: benchmarkData.finished_at || benchmarkData.ended_at,
+                        exc_info: benchmarkData.exc_info,
+                        result: benchmarkData.result,
+                        meta: {
+                            task_id: benchmarkData.meta?.task || benchmarkData.meta?.task_id || 0,
+                            job_id: benchmarkData.meta?.job_id || benchmarkData.id,
+                            agent_id: benchmarkData.meta?.id || benchmarkData.meta?.agent_id || agentId || 'unknown',
+                            user: {
+                                id: benchmarkData.meta?.user?.id || 1,
+                                username: benchmarkData.meta?.user?.username || 'unknown',
+                            },
+                        },
+                    };
+
+                    // Determine submitted status by checking saved benchmarks list
+                    try {
+                        const saved = await core.agents.benchmarks.list();
+                        const isSubmitted = Array.isArray(saved) && saved.some((bm: any) => {
+                            const bmJobId = bm?.meta?.job_id ?? bm?.id;
+                            return String(bmJobId) === String(transformedResult.meta.job_id)
+                                || String(bm.id) === String(transformedResult.id);
+                        });
+                        setSubmitted(Boolean(isSubmitted));
+                    } catch (listError) {
+                        console.warn('Failed to load saved benchmarks list:', listError);
+                    }
+                }
 
                 setBenchmarkResult(transformedResult);
 
@@ -187,33 +250,39 @@ function AgentBenchmarkResults(): JSX.Element {
                 const agentInfo = agents.find(a => a.id === transformedResult.meta.agent_id);
                 setAgent({
                     id: transformedResult.meta.agent_id,
-                    name: agentInfo?.name || transformedResult.result?.agent_name || 'Unknown Agent',
+                    name: agentInfo?.name || transformedResult.result?.agent_name || transformedResult.meta.agent_id || 'Unknown Agent',
                     version: agentInfo?.version || transformedResult.result?.agent_version || '1.0.0'
                 });
 
-                // Fetch basic task information for display purposes only
+                // Fetch task information for display and Lens
                 try {
-                    if (transformedResult.meta.task_id) {
-                        const [taskInfo] = await core.tasks.get({ id: transformedResult.meta.task_id });
+                    const taskId = transformedResult.meta.task_id || transformedResult.result?.dataset_id || 0;
+                    if (taskId) {
+                        const [taskInfo] = await core.tasks.get({ id: taskId });
+                        if (taskInfo) {
+                            setTask(taskInfo);
+                        } else {
+                            // Fallback to basic task object if full task not available
                         setTask({
-                            id: transformedResult.meta.task_id,
-                            name: taskInfo?.name || transformedResult.result?.dataset_name || 'Unknown Task',
-                            labels: [] // Not needed for attribute metrics
-                        });
+                            id: taskId,
+                                name: `Task #${taskId}`,
+                            } as Task);
+                        }
                     } else {
-                        setTask({
-                            id: 0,
-                            name: transformedResult.result?.dataset_name || 'Unknown Task',
-                            labels: []
-                        });
+                        setTask(null);
                     }
                 } catch (taskError) {
                     console.warn('Could not fetch task information:', taskError);
+                    const taskId = transformedResult.meta.task_id || transformedResult.result?.dataset_id || 0;
+                    if (taskId) {
+                        // Fallback to basic task object
                     setTask({
-                        id: transformedResult.meta.task_id || 0,
-                        name: transformedResult.result?.dataset_name || 'Unknown Task',
-                        labels: []
-                    });
+                        id: taskId,
+                            name: `Task #${taskId}`,
+                        } as Task);
+                    } else {
+                        setTask(null);
+                    }
                 }
 
             } catch (err) {
@@ -262,16 +331,6 @@ function AgentBenchmarkResults(): JSX.Element {
 
     const formatMetric = (value: number | undefined) => {
         return value ? (value * 100).toFixed(1) : '0.0';
-    };
-
-    const formatDuration = (seconds: number | undefined) => {
-        if (!seconds) return '0s';
-        if (seconds < 60) {
-            return `${seconds.toFixed(1)}s`;
-        }
-        const minutes = Math.floor(seconds / 60);
-        const remainingSeconds = seconds % 60;
-        return `${minutes}m ${remainingSeconds.toFixed(1)}s`;
     };
 
     const renderMetrics = () => {
@@ -353,12 +412,6 @@ function AgentBenchmarkResults(): JSX.Element {
                                 </Col>
                                 <Col span={12}>
                                     <Statistic
-                                        title="Evaluation Time"
-                                        value={formatDuration(benchmarkResult.result.evaluation_time_sec)}
-                                    />
-                                </Col>
-                                <Col span={12}>
-                                    <Statistic
                                         title="Task Type"
                                         value={benchmarkResult.result.task_type}
                                     />
@@ -366,7 +419,7 @@ function AgentBenchmarkResults(): JSX.Element {
                                 <Col span={12}>
                                     <Statistic
                                         title="Dataset"
-                                        value={task?.name || benchmarkResult.result.dataset_name || 'Unknown Dataset'}
+                                        value={task?.name || (benchmarkResult.result.dataset_id ? `Task #${benchmarkResult.result.dataset_id}` : 'Unknown Dataset')}
                                     />
                                 </Col>
                             </Row>
@@ -522,14 +575,16 @@ function AgentBenchmarkResults(): JSX.Element {
             key: 'view',
             width: 80,
             render: (_: any, record: JobMetric) => (
-                <Tooltip title="Open job">
+                <Tooltip title="View visual comparison for this job">
                     <Button
                         type="link"
                         icon={<EyeOutlined />}
                         onClick={() => {
-                            if (benchmarkResult?.meta?.task_id && record?.job_id) {
-                                const url = `/tasks/${benchmarkResult.meta.task_id}/jobs/${record.job_id}`;
-                                window.open(url, '_blank');
+                            if (record?.job_id && benchmarkResult?.id) {
+                                // Use agentId from route params, or fall back to benchmarkResult.meta.agent_id
+                                const effectiveAgentId = agentId || benchmarkResult?.meta?.agent_id || 'unknown';
+                                const url = `/agents/benchmarks/${effectiveAgentId}/visual/${benchmarkResult.id}/${record.job_id}`;
+                                window.open(url, '_blank', 'noopener,noreferrer');
                             }
                         }}
                     />
@@ -654,7 +709,7 @@ function AgentBenchmarkResults(): JSX.Element {
                             </Button>
                         }
                     >
-                        <Tabs defaultActiveKey="overview">
+                        <Tabs activeKey={activeTab} onChange={setActiveTab}>
                             <TabPane tab="Overview" key="overview">
                                 {renderMetrics()}
                             </TabPane>
@@ -710,6 +765,20 @@ function AgentBenchmarkResults(): JSX.Element {
                                     </Text>
                                 </div>
                             </TabPane>
+
+                            {task && (
+                                <TabPane
+                                    tab={
+                                        <Space>
+                                            <SearchOutlined />
+                                            Lens
+                                        </Space>
+                                    }
+                                    key="lens"
+                                >
+                                    <LensChat task={task} />
+                                </TabPane>
+                            )}
                         </Tabs>
                     </Card>
                 </Col>

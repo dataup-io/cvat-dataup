@@ -6,7 +6,7 @@ import datetime
 import json
 
 from rest_framework import serializers
-
+from cvat.apps.dataup.iam.context import get_dataup_iam_context
 from .const import USER_ACTIVITY_SCOPE
 
 

@@ -9,6 +9,7 @@ import TextArea from 'antd/lib/input/TextArea';
 import Draggable from 'react-draggable';
 
 import './styles.scss';
+import VoiceInputButton from 'components/common/voice-input-button';
 
 const { Text } = Typography;
 
@@ -103,6 +104,13 @@ function TextEditorComponent(props: Props): JSX.Element | null {
                                         onClick={() => setTextDirection('rtl')}
                                     />
                                 </Tooltip>
+                                <VoiceInputButton
+                                    onText={(spoken: string) => {
+                                        // Append spoken text with a space if needed
+                                        const prefix = localAttrValue ? `${localAttrValue} ` : '';
+                                        setLocalAttrValue(`${prefix}${spoken}`);
+                                    }}
+                                />
                             </Space>
                             <Space>
                                 <Button

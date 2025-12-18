@@ -5,7 +5,7 @@ from rest_framework import status, viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from cvat.apps.dataup.api_keys.models import DataUpAPIKey
+from cvat.apps.dataup.models import DataUpAPIKey
 from cvat.apps.engine.log import ServerLogManager
 
 slogger = ServerLogManager(__name__)

@@ -1,18 +1,18 @@
 import React, { useMemo, useCallback } from 'react';
 import { useHistory, useParams } from 'react-router-dom';
-import { PieChartOutlined, TagsOutlined, LineChartOutlined } from '@ant-design/icons';
+import { PieChartOutlined, TagsOutlined, LineChartOutlined, SearchOutlined } from '@ant-design/icons';
 import AnalyticsReportPage from 'components/analytics-report/analytics-report-page';
 import TaskMenuNavComponent, { MenuItem } from './task-nav-menu';
 import TaskPageComponent from './task-page';
 
 interface Params {
     tid: string;
-    tab?: 'overview' | 'jobs' | 'analytics';
+    tab?: 'overview' | 'jobs' | 'analytics' | 'lens';
 }
 
 function NavTaskPageComponent(): JSX.Element {
     const history = useHistory();
-    const { tid, tab = 'overview' } = useParams<{ tid: string; tab?: 'overview' | 'jobs' | 'analytics' }>();
+    const { tid, tab = 'overview' } = useParams<{ tid: string; tab?: 'overview' | 'jobs' | 'analytics' | 'lens' }>();
     const baseUrl = `/tasks/${tid}`;
 
     const handleNavigation = useCallback((newTab: Params['tab']) => {
@@ -38,9 +38,15 @@ function NavTaskPageComponent(): JSX.Element {
             icon: React.createElement(LineChartOutlined),
             onClick: () => handleNavigation('analytics'),
         },
+        {
+            label: 'Lens',
+            key: 'lens',
+            icon: React.createElement(SearchOutlined),
+            onClick: () => handleNavigation('lens'),
+        },
     ], [handleNavigation]);
-    return React.createElement('div', { className: 'cvat-task-page' }, 
-        React.createElement(TaskMenuNavComponent, { items: navItems, selectedKeys: [tab] }), 
+    return React.createElement('div', { className: 'cvat-task-page' },
+        React.createElement(TaskMenuNavComponent, { items: navItems }),
         tab === 'analytics' ? React.createElement(AnalyticsReportPage) : React.createElement(TaskPageComponent, { tab }),
     );
     // return React.createElement('div', { className: 'cvat-task-page' },

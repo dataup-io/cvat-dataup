@@ -108,6 +108,42 @@ class AgentManager {
         return await serverProxy.agentAnnotateJobs.create(jobData);
     }
 
+    // Agent Benchmarks methods
+    public async listBenchmarks(filter = {}): Promise<any> {
+        return await serverProxy.agentBenchmarks.get(filter);
+    }
+
+    public async getBenchmark(id: string | number): Promise<any> {
+        return await serverProxy.agentBenchmarks.getOne(id);
+    }
+
+    public async createBenchmark(data: any): Promise<any> {
+        return await serverProxy.agentBenchmarks.create(data);
+    }
+
+    public async deleteBenchmark(id: string | number): Promise<void> {
+        return await serverProxy.agentBenchmarks.delete(id);
+    }
+
+    public async fetchBenchmarkPredictions(id: string | number, jobId?: number): Promise<any> {
+        return await serverProxy.agentBenchmarks.fetchPredictions(id, jobId);
+    }
+
+    // Lens assistant chat
+    public async lensChat(payload: { task_id?: number; job_id?: number; message: string }): Promise<any> {
+        return await serverProxy.agents.lens.chat(payload);
+    }
+
+    // Lens sync snapshots
+    public async lensSync(payload: { task_id: number }): Promise<any> {
+        return await serverProxy.agents.lens.sync(payload);
+    }
+
+    // Lens retrieve job status
+    public async lensRetrieve(id: string | number): Promise<any> {
+        return await serverProxy.agents.lens.retrieve(id);
+    }
+
     private convertAgentToMLModel(agent: Agent): MLModel {
         // Map agent_type to ModelKind
         let kind: ModelKind;

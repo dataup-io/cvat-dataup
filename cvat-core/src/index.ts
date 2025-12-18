@@ -76,6 +76,11 @@ export default interface CVATCore {
         create: typeof agentManager.create;
         update: typeof agentManager.update;
         delete: typeof agentManager.delete;
+        lens: {
+            chat: typeof agentManager.lensChat;
+            sync: typeof agentManager.lensSync;
+            retrieve: typeof agentManager.lensRetrieve;
+        };
         annotateJobs: {
             list: typeof agentManager.listAnnotateJobs;
             get: typeof agentManager.getAnnotateJob;
@@ -88,6 +93,13 @@ export default interface CVATCore {
             create: typeof agentManager.createEvaluateJob;
             cancel: typeof agentManager.cancelEvaluateJob;
             results: typeof agentManager.getEvaluateJobResults;
+        };
+        benchmarks: {
+            list: typeof agentManager.listBenchmarks;
+            get: typeof agentManager.getBenchmark;
+            create: typeof agentManager.createBenchmark;
+            delete: typeof agentManager.deleteBenchmark;
+            fetchPredictions: typeof agentManager.fetchBenchmarkPredictions;
         };
     };
 

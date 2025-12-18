@@ -8,6 +8,7 @@ class AgentJobSerializer(serializers.Serializer):
     started_at = serializers.DateTimeField(read_only=True, allow_null=True)
     finished_at = serializers.DateTimeField(read_only=True, allow_null=True)
     result = serializers.JSONField(read_only=True, allow_null=True)
+    # result = AgentBenchmarkReadSerializer()
     exc_info = serializers.CharField(read_only=True, allow_null=True)
     meta = serializers.JSONField(read_only=True, allow_null=True)
     progress = serializers.IntegerField(read_only=True, allow_null=True)

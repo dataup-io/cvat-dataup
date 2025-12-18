@@ -9,6 +9,7 @@ from cvat.apps.dataup.utils.converters import DataUpAgentResultConverter
 from cvat.apps.engine.serializers import LabeledDataSerializer
 from cvat.apps.dataset_manager.task import PatchAction
 import cvat.apps.dataset_manager as dm
+from cvat.apps.dataup.agents.rq import AgentRQMeta
 from cvat.apps.engine.log import ServerLogManager
 
 
@@ -127,7 +128,7 @@ def batch_save_agent_results(
         dm.task.patch_task_data(db_task.id, serialized_output.validated_data, PatchAction.CREATE)
 
 
-def update_progress(rq_job_meta, processed_frames: int, total_frames: int):
+def update_progress(rq_job_meta: AgentRQMeta, processed_frames: int, total_frames: int):
     """
     Update job progress.
 
@@ -142,75 +143,6 @@ def update_progress(rq_job_meta, processed_frames: int, total_frames: int):
         rq_job_meta.progress = progress_percent
         rq_job_meta.save()
         slogger.glob.info(f"Progress: {progress_percent}% ({processed_frames}/{total_frames} frames)")
-
-
-
-
-def validate_agent_parameters(agent_id: str, task_id: int, **kwargs):
-    """
-    Validate common agent parameters.
-
-    Args:
-        agent_id: The agent ID
-        task_id: The task ID
-        **kwargs: Additional parameters to validate
-
-    Raises:
-        ValueError: If validation fails
-    """
-    if not agent_id:
-        raise ValueError("Agent ID is required")
-
-    if not task_id or task_id <= 0:
-        raise ValueError("Valid task ID is required")
-
-    # Add more validation as needed
-    slogger.glob.info(f"Validated parameters for agent {agent_id} on task {task_id}")
-
-
-def get_agent_queue_name(agent_type: str) -> str:
-    """
-    Get the queue name for a specific agent type.
-
-    Args:
-        agent_type: The type of agent (e.g., 'auto_annotate', 'evaluate')
-
-    Returns:
-        Queue name string
-    """
-    return f"agent_{agent_type}_queue"
-
-
-def log_agent_job_start(agent_id: str, task_id: int, job_id: Optional[int], job_type: str):
-    """
-    Log the start of an agent job.
-
-    Args:
-        agent_id: The agent ID
-        task_id: The task ID
-        job_id: The job ID (optional)
-        job_type: The type of job (e.g., 'auto_annotate', 'evaluate')
-    """
-    target = f"job {job_id}" if job_id else f"task {task_id}"
-    slogger.glob.info(f"Starting {job_type} job for agent {agent_id} on {target}")
-
-
-def log_agent_job_completion(agent_id: str, task_id: int, job_id: Optional[int], job_type: str, success: bool):
-    """
-    Log the completion of an agent job.
-
-    Args:
-        agent_id: The agent ID
-        task_id: The task ID
-        job_id: The job ID (optional)
-        job_type: The type of job (e.g., 'auto_annotate', 'evaluate')
-        success: Whether the job completed successfully
-    """
-    target = f"job {job_id}" if job_id else f"task {task_id}"
-    status = "completed successfully" if success else "failed"
-    slogger.glob.info(f"{job_type.capitalize()} job for agent {agent_id} on {target} {status}")
-
-
 def get_bbox_from_shape(shape: LabeledShape) -> list[int]:
     """
     Calculate bounding box from shape points.
@@ -248,14 +180,15 @@ def get_dataup_agent_predictions(frame_ids: list[int], predictions: list[dict], 
                 int(pred["bbox"]["x"] + pred["bbox"]["width"]),
                 int(pred["bbox"]["y"] + pred["bbox"]["height"]),
             ]
-            standardized_pred = {
+            expanded_pred = {
                 "frame_id": frame_id,
                 "label": pred["label"] if pred["label"] in eval_classes else "ignore",
-                "bbox": bbox_xyxy,
-                "confidence": pred.get("score", 0.0),
+                "xyxy": bbox_xyxy,
+                "bbox": pred["bbox"],
+                "score": pred.get("score", 0.0),
                 "attributes": pred.get("attributes", []),
             }
-            batch_frame_predictions[frame_id].append(standardized_pred)
+            batch_frame_predictions[frame_id].append(expanded_pred)
     return batch_frame_predictions
 
 
@@ -292,7 +225,7 @@ def get_ground_truth_from_task(task_id: int, label_mapping: dict[str, dict]) -> 
         results[frame_id].append(
             {
                 "type": shape.type,
-                "bbox": get_bbox_from_shape(shape),
+                "xyxy": get_bbox_from_shape(shape),
                 "label": label_name,
                 "db_label": shape.label.name,
                 "frame_id": shape.frame,

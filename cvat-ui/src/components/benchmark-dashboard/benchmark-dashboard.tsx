@@ -37,6 +37,8 @@ import { getTasksAsync } from 'actions/tasks-actions';
 import { getCore } from 'cvat-core-wrapper';
 import LabelsMapperComponent, { FullMapping, LabelInterface } from 'components/model-runner-modal/labels-mapper';
 import './styles.scss';
+import Badge from 'antd/lib/badge';
+import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons';
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -81,12 +83,13 @@ interface EvaluationResult {
     agent_name: string;
     agent_version: string;
     task_type: string;
-    dataset_name: string;
+    dataset_id?: number;
     processed_frames: number;
-    evaluation_time_sec: number;
     global_metrics: GlobalMetrics;
     per_class_metrics: PerClassMetric[];
     job_metrics: JobMetric[];
+    // Optional attribute metrics per attribute key
+    attribute_metrics?: Array<{ [key: string]: any }>;
 }
 
 interface BenchmarkResult {
@@ -98,6 +101,7 @@ interface BenchmarkResult {
     finished_date: string | null;
     exc_info: string | null;
     result: EvaluationResult | null;
+    submitted?: boolean; // whether saved to external benchmark service
     meta: {
         task_id: number;
         job_id: number;
@@ -306,7 +310,19 @@ function BenchmarkDashboard(): JSX.Element {
         const loadBenchmarkResults = async () => {
             try {
                 const core = getCore();
+                // Load evaluate jobs (runtime results)
                 const benchmarkJobs = await core.agents.evaluateJobs.list();
+                // Load saved benchmarks (submitted)
+                let savedBenchmarks: any[] = [];
+                try {
+                    const res = await core.agents.benchmarks.list();
+                    if (Array.isArray(res)) {
+                        savedBenchmarks = res;
+                    }
+                } catch (e) {
+                    // Non-blocking: if listing saved benchmarks fails, continue with jobs only
+                    console.warn('Failed to load saved benchmarks list:', e);
+                }
 
                 if (benchmarkJobs && Array.isArray(benchmarkJobs)) {
                     // Transform API response to match our BenchmarkResult interface
@@ -327,10 +343,57 @@ function BenchmarkDashboard(): JSX.Element {
                                 id: job.meta?.user?.id || 1,
                                 username: job.meta?.user?.username || 'unknown'
                             }
-                        }
+                        },
+                        submitted: false,
                     }));
 
-                    setResults(transformedResults);
+                    // Merge in saved benchmarks. Saved benchmarks may have different shape; normalize.
+                    const savedTransformed: BenchmarkResult[] = savedBenchmarks.map((bm: any) => {
+                        const resultPayload = bm.result || {
+                            agent_name: bm.agent_name || '',
+                            agent_version: bm.agent_version,
+                            task_type: bm.task_type,
+                            dataset_id: bm.dataset_id,
+                            processed_frames: bm.processed_frames,
+                            global_metrics: bm.global_metrics,
+                            job_metrics: bm.job_metrics,
+                            per_class_metrics: bm.per_class_metrics,
+                            attribute_metrics: bm.attribute_metrics || [],
+                        };
+
+                        return {
+                            id: bm.id,
+                            status: bm.status || 'finished',
+                            progress: bm.progress ?? 100,
+                            created_date: bm.created_at || bm.created_date || null,
+                            started_date: bm.started_at || null,
+                            finished_date: bm.finished_at || bm.ended_at || null,
+                            exc_info: bm.exc_info || null,
+                            result: resultPayload,
+                            meta: {
+                                task_id: (bm.dataset_id ?? resultPayload?.dataset_id ?? 0),
+                                job_id: bm.meta?.job_id || bm.id,
+                                agent_id: bm.agent_id || bm.meta?.agent_id || resultPayload?.agent_id || 'unknown',
+                                user: {
+                                    id: 0,
+                                    username: 'unknown',
+                                },
+                            },
+                            submitted: true,
+                        };
+                    });
+
+                    // Combine by id: prefer job record, mark submitted true if exists in saved list
+                    const savedIds = new Set(savedTransformed.map((r) => String(r.id)));
+                    const merged = transformedResults.map((r) => ({
+                        ...r,
+                        submitted: savedIds.has(String(r.id)) || r.submitted,
+                    }));
+
+                    // Include saved entries that might not have corresponding runtime job (historical)
+                    const missingSaved = savedTransformed.filter((r) => !merged.find((m) => String(m.id) === String(r.id)));
+
+                    setResults([...merged, ...missingSaved]);
 
                     // Start polling for any running jobs
                     transformedResults.forEach(result => {
@@ -370,10 +433,17 @@ function BenchmarkDashboard(): JSX.Element {
         if (searchText) {
             filtered = filtered.filter(result => {
                 const task = tasks.find((t: any) => t.id === result.meta.task_id);
-                const taskName = task?.name || '';
-                return (result.result?.agent_name || '').toLowerCase().includes(searchText.toLowerCase()) ||
-                       (result.result?.dataset_name || '').toLowerCase().includes(searchText.toLowerCase()) ||
-                       taskName.toLowerCase().includes(searchText.toLowerCase());
+                const datasetText = (task?.name
+                    || (result.result?.dataset_id ? `Task #${result.result.dataset_id}` : (result.meta?.task_id ? `Task #${result.meta.task_id}` : ''))
+                    || '').toLowerCase();
+                const agentText = (
+                    (agents.find((a: any) => a.id === result.meta.agent_id)?.name)
+                    || result.result?.agent_name
+                    || result.meta.agent_id
+                    || ''
+                ).toLowerCase();
+                const query = searchText.toLowerCase();
+                return agentText.includes(query) || datasetText.includes(query);
             });
         }
 
@@ -418,7 +488,7 @@ function BenchmarkDashboard(): JSX.Element {
      };
 
     // Handle running benchmark
-    const handleRunBenchmark = async (values: { agentId: string; taskId: number; threshold?: number }) => {
+    const handleRunBenchmark = async (values: { agentId: string; taskId: number; threshold?: number; prompt?: string }) => {
         setIsStartingBenchmark(true);
         try {
             const core = getCore();
@@ -426,12 +496,18 @@ function BenchmarkDashboard(): JSX.Element {
             // Prepare the body with label mapping if available
             const body: any = {
                 agent_id: values.agentId,
-                task_id: values.taskId
+                task_id: values.taskId,
             };
 
-            // Add threshold if provided
+            // Add threshold if provided (from local state to keep in sync with UI)
             if (threshold !== undefined) {
                 body.threshold = threshold;
+            }
+
+            // Add prompt if provided
+            const trimmedPrompt = (values.prompt || '').trim();
+            if (trimmedPrompt) {
+                body.prompt = trimmedPrompt;
             }
 
             // Add label mapping if it exists
@@ -506,10 +582,17 @@ function BenchmarkDashboard(): JSX.Element {
             cancelText: 'Cancel',
             onOk: async () => {
                 try {
-                    // TODO: Implement API call to delete benchmark result
-                    console.log('Deleting benchmark result:', record.id);
-                    message.success('Benchmark result deleted successfully');
-                    // TODO: Refresh the results list after deletion
+                    const core = getCore();
+                    // Delete only from saved benchmarks if it is submitted; runtime job cancellation uses agentEvaluateJobs.cancel
+                    if (record.submitted) {
+                        await core.agents.benchmarks.delete(record.id);
+                        message.success('Saved benchmark deleted successfully');
+                        setResults((prev) => prev.filter((r) => String(r.id) !== String(record.id)));
+                    } else {
+                        await core.agents.evaluateJobs.cancel(record.id);
+                        message.success('Benchmark job canceled');
+                        setResults((prev) => prev.map((r) => (String(r.id) === String(record.id) ? { ...r, status: 'canceled' } : r)));
+                    }
                 } catch (error) {
                     console.error('Failed to delete benchmark result:', error);
                     message.error('Failed to delete benchmark result');
@@ -520,14 +603,30 @@ function BenchmarkDashboard(): JSX.Element {
 
     const handleSubmitBenchmark = async (record: BenchmarkResult) => {
         try {
-            // TODO: Implement API call to submit benchmark result to external service
-            console.log('Submitting benchmark result to external service:', record.id);
-            message.loading('Submitting benchmark result...', 2);
+            const core = getCore();
+            if (record.submitted) {
+                message.info('Benchmark already submitted');
+                return;
+            }
 
-            // Simulate API call
-            setTimeout(() => {
-                message.success('Benchmark result submitted successfully');
-            }, 2000);
+            if (record.status !== 'finished' || !record.result) {
+                message.warning('Only finished benchmarks with results can be submitted');
+                return;
+            }
+
+            // Backend now builds the payload from RQ results, we only need to send evaluate_job_id and agent_id
+            const payload = {
+                evaluate_job_id: record.id,
+                agent_id: record.meta.agent_id,
+            };
+
+            const created = await core.agents.benchmarks.create(payload);
+            if (created && created.id) {
+                message.success('Benchmark submitted successfully');
+                setResults((prev) => prev.map((r) => (String(r.id) === String(record.id) ? { ...r, submitted: true } : r)));
+            } else {
+                message.warning('Submission completed but returned unexpected response');
+            }
         } catch (error) {
             console.error('Failed to submit benchmark result:', error);
             message.error('Failed to submit benchmark result');
@@ -540,13 +639,13 @@ function BenchmarkDashboard(): JSX.Element {
             key: 'agentName',
             render: (record: BenchmarkResult) => {
                 const agent = agents.find(a => a.id === record.meta.agent_id);
-                return agent?.name || record.meta.agent_id || 'N/A';
+                return agent?.name || record.result?.agent_name || record.meta.agent_id || 'N/A';
             },
             sorter: (a: BenchmarkResult, b: BenchmarkResult) => {
                 const agentA = agents.find(agent => agent.id === a.meta.agent_id);
                 const agentB = agents.find(agent => agent.id === b.meta.agent_id);
-                const nameA = agentA?.name || a.meta.agent_id || '';
-                const nameB = agentB?.name || b.meta.agent_id || '';
+                const nameA = agentA?.name || a.result?.agent_name || a.meta.agent_id || '';
+                const nameB = agentB?.name || b.result?.agent_name || b.meta.agent_id || '';
                 return nameA.localeCompare(nameB);
             },
         },
@@ -555,13 +654,16 @@ function BenchmarkDashboard(): JSX.Element {
             key: 'dataset',
             render: (record: BenchmarkResult) => {
                 const task = tasks.find((t: any) => t.id === record.meta.task_id);
-                return task?.name || record.result?.dataset_name || 'N/A';
+                if (task?.name) return task.name;
+                if (record.result?.dataset_id) return `Task #${record.result.dataset_id}`;
+                if (record.meta?.task_id) return `Task #${record.meta.task_id}`;
+                return 'N/A';
             },
             sorter: (a: BenchmarkResult, b: BenchmarkResult) => {
                 const taskA = tasks.find((t: any) => t.id === a.meta.task_id);
                 const taskB = tasks.find((t: any) => t.id === b.meta.task_id);
-                const nameA = taskA?.name || a.result?.dataset_name || '';
-                const nameB = taskB?.name || b.result?.dataset_name || '';
+                const nameA = taskA?.name || (a.result?.dataset_id ? `Task #${a.result.dataset_id}` : (a.meta?.task_id ? `Task #${a.meta.task_id}` : ''));
+                const nameB = taskB?.name || (b.result?.dataset_id ? `Task #${b.result.dataset_id}` : (b.meta?.task_id ? `Task #${b.meta.task_id}` : ''));
                 return nameA.localeCompare(nameB);
             },
         },
@@ -612,6 +714,22 @@ function BenchmarkDashboard(): JSX.Element {
                 { text: 'Canceled', value: 'canceled' },
             ],
             onFilter: (value: any, record: BenchmarkResult) => record.status === value,
+        },
+        {
+            title: 'Submitted',
+            key: 'submitted',
+            render: (record: BenchmarkResult) => (
+                record.submitted ? (
+                    <CustomCheckIcon />
+                ) : (
+                    <CustomCrossIcon />
+                )
+            ),
+            filters: [
+                { text: 'Submitted', value: true },
+                { text: 'Not Submitted', value: false },
+            ],
+            onFilter: (value: any, record: BenchmarkResult) => Boolean(record.submitted) === Boolean(value),
         },
         {
             title: 'Progress',
@@ -894,6 +1012,18 @@ function BenchmarkDashboard(): JSX.Element {
                         />
                     </Form.Item>
 
+                    <Form.Item
+                        name="prompt"
+                        label="Prompt (optional)"
+                        tooltip="Optional text prompt sent to the detector during benchmarking (if supported by the model)"
+                        style={{ marginBottom: 16 }}
+                    >
+                        <Input.TextArea
+                            autoSize={{ minRows: 1, maxRows: 2 }}
+                            placeholder="Optional prompt for the detector (e.g. focus on small objects, ignore background, etc.)"
+                        />
+                    </Form.Item>
+
                     {/* Label Mapping Section */}
                     {selectedAgentData && selectedTaskData && (
                         <>
@@ -950,3 +1080,36 @@ function BenchmarkDashboard(): JSX.Element {
 }
 
 export default BenchmarkDashboard;
+
+
+const CustomCheckIcon = () => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="green"
+        width="1em"
+        height="1em"
+    >
+        <circle cx="12" cy="12" r="12" fill="green" />
+        <path
+            d="M9.5 16.5l-3.5-3.5 1.5-1.5 2 2 5-5 1.5 1.5z"
+            fill="white"
+        />
+    </svg>
+);
+
+const CustomCrossIcon = () => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 24 24"
+        fill="red"
+        width="1em"
+        height="1em"
+    >
+        <circle cx="12" cy="12" r="12" fill="red" />
+        <path
+            d="M15.5 8.5l-1-1-3.5 3.5-3.5-3.5-1 1 3.5 3.5-3.5 3.5 1 1 3.5-3.5 3.5 3.5 1-1-3.5-3.5z"
+            fill="white"
+        />
+    </svg>
+);

@@ -1,13 +1,9 @@
 from typing import Any, List, Dict
-from cvat.apps.engine.log import ServerLogManager
 from cvat.apps.dataup.agents.metrics.utils import (
     calculate_iou,
     match_predictions_to_ground_truth,
 )
 from collections import defaultdict
-from cvat.apps.dataup.agents.jobs.utils import get_frame_to_job_ids
-
-slogger = ServerLogManager(__name__)
 
 
 def _calculate_stats_per_frame(

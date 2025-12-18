@@ -40,4 +40,3 @@ def get_class_distribution(task_id=None, job_id=None, project_id=None):
         merged_counts["tag_counts"][label] = merged_counts.get(label, 0) + entry["count"]
 
     return merged_counts
-    # return [{"class": entry["label__name"], "count": entry["count"]} for entry in class_counts]

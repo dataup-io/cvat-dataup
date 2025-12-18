@@ -9,6 +9,7 @@ import { Row, Col } from 'antd/lib/grid';
 import Select from 'antd/lib/select';
 import Text from 'antd/lib/typography/Text';
 import InputNumber from 'antd/lib/input-number';
+import Input from 'antd/lib/input';
 import Button from 'antd/lib/button';
 import Switch from 'antd/lib/switch';
 import Tag from 'antd/lib/tag';
@@ -43,6 +44,8 @@ export interface AnnotateTaskRequestBody {
     cleanup: boolean;
     conv_mask_to_poly: boolean;
     threshold?: number;
+    // Optional free-form text prompt for prompt-able detectors
+    prompt?: string;
 }
 
 function convertMappingToServer(mapping: FullMapping): ServerMapping {
@@ -75,6 +78,7 @@ function DetectorRunner(props: Props): JSX.Element {
     const [mapping, setMapping] = useState<FullMapping>([]);
     const [convertMasksToPolygons, setConvertMasksToPolygons] = useState<boolean>(false);
     const [detectorThreshold, setDetectorThreshold] = useState<number | null>(null);
+    const [prompt, setPrompt] = useState<string>('');
     const [modelLabels, setModelLabels] = useState<LabelInterface[]>([]);
     const [taskLabels, setTaskLabels] = useState<LabelInterface[]>([]);
 
@@ -183,27 +187,49 @@ function DetectorRunner(props: Props): JSX.Element {
                 </div>
             )}
             {isDetector && (
-                <div className='cvat-detector-runner-threshold-wrapper'>
-                    <Row align='middle' justify='start'>
-                        <Col>
-                            <InputNumber
-                                min={0.01}
-                                step={0.01}
-                                max={1}
-                                value={detectorThreshold}
-                                onChange={(value: number | null) => {
-                                    setDetectorThreshold(value);
-                                }}
-                            />
-                        </Col>
-                        <Col>
-                            <Text>Threshold</Text>
-                            <CVATTooltip title='Minimum confidence threshold for detections. Leave empty to use the default value specified in the model settings'>
-                                <QuestionCircleOutlined className='cvat-info-circle-icon' />
-                            </CVATTooltip>
-                        </Col>
-                    </Row>
-                </div>
+                <>
+                    <div className='cvat-detector-runner-threshold-wrapper'>
+                        <Row align='middle' justify='start'>
+                            <Col>
+                                <InputNumber
+                                    min={0.01}
+                                    step={0.01}
+                                    max={1}
+                                    value={detectorThreshold}
+                                    onChange={(value: number | null) => {
+                                        setDetectorThreshold(value);
+                                    }}
+                                />
+                            </Col>
+                            <Col>
+                                <Text>Threshold</Text>
+                                <CVATTooltip title='Minimum confidence threshold for detections. Leave empty to use the default value specified in the model settings'>
+                                    <QuestionCircleOutlined className='cvat-info-circle-icon' />
+                                </CVATTooltip>
+                            </Col>
+                        </Row>
+                    </div>
+                    <div className='cvat-detector-runner-prompt-wrapper'>
+                        <Row align='top' justify='start' gutter={[8, 8]}>
+                            <Col span={24}>
+                                <Text>Prompt</Text>
+                                <CVATTooltip title='Optional text prompt sent to the detector (if supported by the model)'>
+                                    <QuestionCircleOutlined className='cvat-info-circle-icon' />
+                                </CVATTooltip>
+                            </Col>
+                            <Col span={24}>
+                                <Input.TextArea
+                                    autoSize={{ minRows: 1, maxRows: 1 }}
+                                    value={prompt}
+                                    onChange={(event: React.ChangeEvent<HTMLTextAreaElement>) => {
+                                        setPrompt(event.target.value);
+                                    }}
+                                    placeholder='Optional prompt for the AI detector (e.g. focus on small objects, ignore background, etc.)'
+                                />
+                            </Col>
+                        </Row>
+                    </div>
+                </>
             )}
             {isReId ? (
                 <div>
@@ -258,12 +284,14 @@ function DetectorRunner(props: Props): JSX.Element {
                             if (!model) return;
                             const serverMapping = convertMappingToServer(mapping);
                             if (model.kind === ModelKind.DETECTOR) {
+                                const trimmedPrompt = prompt.trim();
                                 const body: AnnotateTaskRequestBody = {
                                     type: 'annotate_task',
                                     mapping: serverMapping,
                                     cleanup,
                                     conv_mask_to_poly: convertMasksToPolygons,
                                     ...(detectorThreshold !== null ? { threshold: detectorThreshold } : {}),
+                                    ...(trimmedPrompt ? { prompt: trimmedPrompt } : {}),
                                 };
 
                                 runInference(model, body);

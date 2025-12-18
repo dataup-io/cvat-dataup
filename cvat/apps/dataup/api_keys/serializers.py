@@ -5,7 +5,7 @@
 from django.db.models import Field
 from rest_framework import serializers
 
-from cvat.apps.dataup.api_keys.models import DataUpAPIKey
+from cvat.apps.dataup.models import DataUpAPIKey
 from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
 from cvat.apps.organizations.models import Membership
 

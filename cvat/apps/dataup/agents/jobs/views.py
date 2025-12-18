@@ -5,11 +5,15 @@ from rest_framework.response import Response
 from .serializers import AgentJobSerializer, AgentJobCreateSerializer
 from .auto_annotate import AgentAutoAnnotateQueue
 from .evaluate import AgentEvaluateQueue
-from .base_views import BaseAgentJobsViewSet
+from .base import BaseAgentJobsViewSet
 
 
 class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
     """ViewSet for agent auto-annotation jobs"""
+
+    def _get_queue(self):
+        return AgentAutoAnnotateQueue()
+
 
     def _get_queue_class(self):
         return AgentAutoAnnotateQueue
@@ -28,6 +32,7 @@ class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
             "conv_mask_to_poly": request.data.get("conv_mask_to_poly", False),
             "max_distance": request.data.get("max_distance", 50),
             "frame_ids": request.data.get("frame_ids"),
+            "dataup_client_cfg": self.dataup_client.cfg()
         }
 
     @extend_schema(
@@ -56,15 +61,16 @@ class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            agent_queue = self._get_queue_class()(self.dataup_client)
+            agent_queue = self._get_queue()
             # Extract validated data
 
             job_kwargs = self._get_job_queue_kwargs(request)
-
+            iam_context = self.iam_context_factory(request, None)
             # Enqueue the auto-annotation job
             agent_job = agent_queue.enqueue(
                 **job_kwargs,
                 request=request,
+                organization_id=iam_context.get("org_id"),
             )
 
             # Return job details
@@ -86,8 +92,16 @@ class AgentAnnotateJobsViewSet(BaseAgentJobsViewSet):
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
+
+
+
 class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
     """ViewSet for agent evaluation jobs"""
+
+
+    def _get_queue(self):
+        return AgentEvaluateQueue()
+
 
     def _get_queue_class(self):
         return AgentEvaluateQueue
@@ -100,8 +114,11 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
             "agent_id": request.data.get("agent_id"),
             "task_id": request.data.get("task_id"),
             "job_id": request.data.get("job_id"),
+            # "threshold": request.data.get("threshold"),
+            # "prompt": request.data.get("prompt"),
             "mapping": request.data.get("mapping", {}),
             "frame_ids": request.data.get("frame_ids"),
+            "dataup_client_cfg": self.dataup_client.cfg()
         }
 
     @extend_schema(
@@ -123,6 +140,7 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
             ),
         ],
     )
+
     def create(self, request):
         """Create a new evaluation job"""
         serializer = AgentJobCreateSerializer(data=request.data)
@@ -130,7 +148,7 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            agent_queue = self._get_queue_class()(self.dataup_client)
+            agent_queue = self._get_queue()
             # Extract validated data
 
             job_kwargs = self._get_job_queue_kwargs(request)
@@ -160,3 +178,6 @@ class AgentEvaluateJobsViewSet(BaseAgentJobsViewSet):
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+

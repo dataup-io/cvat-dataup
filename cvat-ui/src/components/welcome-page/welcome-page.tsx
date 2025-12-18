@@ -35,7 +35,7 @@ const quickActions = [
         icon: <RobotOutlined />,
         title: 'Agents',
         description: 'Explore available AI agents and automation tools',
-        link: '/agents/apis',
+        link: '/agents/endpoints',
     },
     {
         icon: <NodeIndexOutlined />,

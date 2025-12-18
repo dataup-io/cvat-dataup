@@ -24,15 +24,17 @@ import JobAnalytics from 'components/task-page/job-analytics';
 import { updateTaskAsync } from 'actions/tasks-actions';
 import TopBarComponent from './top-bar';
 import DetailsComponent from './details';
+import LensChat from '../lens-chat/lens-chat';
 
 const core = getCore();
 
-function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' }): JSX.Element {
+function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' | 'lens' }): JSX.Element {
     const history = useHistory();
     const id = +useParams<{ tid: string }>().tid;
     const dispatch = useDispatch();
     const [taskInstance, setTaskInstance] = useState<Task | null>(null);
     const [fetchingTask, setFetchingTask] = useState(true);
+    const isLens = tab === 'lens';
 
     const {
         deletes,
@@ -83,6 +85,9 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' }):
         }
     }, [deletes]);
 
+    // Keep hook order stable across renders by declaring this effect
+    // before any conditional early returns.
+
     if (fetchingTask) {
         return <Spin size='large' className='cvat-spinner' />;
     }
@@ -101,6 +106,9 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' }):
         dispatch(updateJobAsync(job, data));
     };
 
+    // Lens chat moved into dedicated component
+
+
     return (
         <>
             {isTaskUpdating ? <CVATLoadingSpinner size='large' /> : null}
@@ -110,13 +118,15 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' }):
                 className='cvat-task-details-wrapper'
             >
                 <Col span={23}>
-                    <TopBarComponent taskInstance={taskInstance} />
-                    <DetailsComponent task={taskInstance} onUpdateTask={onUpdateTask} />
-                    <div style={{ marginTop: 24 }}>
+                    {!isLens && <TopBarComponent taskInstance={taskInstance} />}
+                    {!isLens && <DetailsComponent task={taskInstance} onUpdateTask={onUpdateTask} />}
+                    <div style={{ marginTop: isLens ? 0 : 24 }}>
                         {tab === 'overview' ? (
                             <JobAnalytics jobs={taskInstance.jobs} taskId={taskInstance.id} />
-                        ) : tab === 'jobs' && (
+                        ) : tab === 'jobs' ? (
                             <JobListComponent task={taskInstance} onJobUpdate={onJobUpdate} />
+                        ) : tab === 'lens' && (
+                            <LensChat task={taskInstance} />
                         )}
                     </div>
                 </Col>

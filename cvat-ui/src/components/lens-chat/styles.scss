@@ -1,0 +1,214 @@
+// Copyright (C) 2020-2022 Intel Corporation
+// Copyright (C) CVAT.ai Corporation
+//
+// SPDX-License-Identifier: MIT
+
+@import 'base';
+
+// Lens tab modern styles (moved from Task page)
+.cvat-task-lens-card {
+    .ant-card-head {
+        background: #f7f9fc;
+    }
+}
+
+.cvat-task-lens-messages {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 260px;
+    max-height: 60vh;
+    overflow-y: auto;
+    background: #fff;
+}
+
+.cvat-task-lens-empty {
+    opacity: 0.6;
+    text-align: center;
+    padding: 24px 0;
+}
+
+.cvat-task-lens-message {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    margin: 8px 0;
+
+    &.user {
+        justify-content: flex-end;
+
+        .avatar {
+            order: 2;
+        }
+        .bubble {
+            order: 1;
+            background: #e6f4ff;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+    }
+
+    &.agent {
+        justify-content: flex-start;
+
+        .bubble {
+            background: #f5f5f5;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+    }
+
+    .avatar {
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background: #fafafa;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        color: #666;
+        flex-shrink: 0;
+    }
+
+    .bubble {
+        padding: 6px 10px;
+        border-radius: 8px;
+        max-width: 80%;
+        word-break: break-word;
+        line-height: 1.5;
+
+        // Markdown refinements
+        p { margin: 0.25rem 0; }
+        ul, ol { margin: 0.25rem 0 0.25rem 1.25rem; }
+        h1, h2, h3, h4, h5, h6 { margin: 0.25rem 0; font-weight: 600; }
+
+        code {
+            background: #f6f8fa;
+            border: 1px solid rgba(0,0,0,0.06);
+            border-radius: 4px;
+            padding: 0 3px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 90%;
+        }
+
+        .cvat-code-block {
+            margin: 6px 0;
+            .cvat-code-toolbar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                background: #f0f3f6;
+                border: 1px solid rgba(0,0,0,0.06);
+                border-radius: 6px 6px 0 0;
+                padding: 4px 8px;
+            }
+            .cvat-code-lang {
+                font-size: 12px;
+                color: #667085;
+            }
+            .cvat-code-copy {
+                appearance: none;
+                border: 1px solid rgba(0,0,0,0.08);
+                background: #fff;
+                color: #333;
+                font-size: 12px;
+                padding: 2px 8px;
+                border-radius: 12px;
+                cursor: pointer;
+            }
+            .cvat-code-copy:hover { background: #f7f7f7; }
+            pre {
+                background: #f6f8fa;
+                border: 1px solid rgba(0,0,0,0.06);
+                border-top: none;
+                border-radius: 0 0 6px 6px;
+                padding: 8px 10px;
+                overflow: auto;
+                margin: 0;
+            }
+            pre code {
+                border: none;
+                background: transparent;
+                padding: 0;
+            }
+        }
+
+        .cvat-msg-timestamp {
+            font-size: 11px;
+            color: rgba(0,0,0,0.45);
+            margin-top: 4px;
+            text-align: right;
+            &.agent { text-align: left; }
+        }
+    }
+}
+
+.cvat-task-lens-input-bar {
+    margin-top: 12px;
+}
+
+.cvat-task-lens-hint {
+    display: block;
+    margin-top: 6px;
+}
+
+// New message toast
+.cvat-lens-newmsg-toast {
+    position: sticky;
+    bottom: 8px;
+    margin-top: 8px;
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    justify-content: center;
+    background: #f0f7ff;
+    color: #1f4d9b;
+    border: 1px solid rgba(31,77,155,0.25);
+    border-radius: 18px;
+    padding: 6px 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    button {
+        appearance: none;
+        border: 1px solid rgba(31,77,155,0.25);
+        background: #fff;
+        color: #1f4d9b;
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 12px;
+        cursor: pointer;
+    }
+    button:hover { background: #f7fbff; }
+}
+
+// Minimal highlight.js theme tweaks
+.hljs {
+    background: transparent;
+    color: #24292e;
+}
+.hljs-comment,
+.hljs-quote { color: #6a737d; }
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst { color: #d73a49; }
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag .hljs-attr { color: #005cc5; }
+.hljs-string,
+.hljs-doctag { color: #032f62; }
+.hljs-title,
+.hljs-section { color: #6f42c1; }
+.hljs-type,
+.hljs-class .hljs-title { color: #005cc5; }
+.hljs-tag,
+.hljs-name,
+.hljs-attribute { color: #22863a; }
+.hljs-regexp,
+.hljs-link { color: #032f62; }
+.hljs-symbol,
+.hljs-bullet { color: #e36209; }
+.hljs-built_in,
+.hljs-builtin-name { color: #e36209; }
+.hljs-meta { color: #6a737d; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 600; }

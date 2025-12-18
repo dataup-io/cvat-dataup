@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from cvat.apps.dataup.api_keys.models import DataUpAPIKey
+from cvat.apps.dataup.models import DataUpAPIKey
 from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
 
 

@@ -19,7 +19,6 @@ from .object_detection_metrics import (
 
 from .attribute_metrics import calculate_attribute_metrics
 
-# from .utils import match_predictions_to_ground_truth
 __all__ = [
     "calculate_iou",
     "match_predictions_to_ground_truth",

@@ -4,7 +4,7 @@ from __future__ import annotations
 from http import HTTPStatus
 from django.conf import settings
 from cvat.apps.dataup.iam.context import DataUpContext
-from cvat.apps.dataup.api_keys.models import DataUpAPIKey
+from cvat.apps.dataup.models import DataUpAPIKey
 from typing import Callable, Any, Dict
 from django.utils.functional import cached_property
 from cvat.apps.dataup.dataup_api.exceptions import DataUpAPIError
@@ -59,6 +59,15 @@ class DataUpAPIClient:
         base_url = cfg.get("base_url", "")
         return cls(api_key=api_key, base_url=base_url)
 
+    @classmethod
+    def build_for_obj(cls, obj) -> "DataUpAPIClient":
+        org_uuid = getattr(obj, "org_uuid", None)
+        user_uuid = getattr(obj, "user_uuid", None)
+        api_key = DataUpAPIKey.get_api_key(user_uuid=user_uuid, org_uuid=org_uuid)
+        if not api_key:
+            raise DataUpAPIError("API Key not found in build_for_obj")
+        base_url = f"{settings.DATAUP_BASE_URL}/api/v1"
+        return cls(api_key=api_key.key, base_url=base_url)
 
 def dataup_client_from_request(request) -> DataUpAPIClient:
     dataup_context = DataUpContext.from_request(request)

@@ -6,6 +6,7 @@ import React from 'react';
 import { shallowEqual, useSelector, useDispatch } from 'react-redux';
 import Icon from '@ant-design/icons';
 import Button from 'antd/lib/button';
+import notification from 'antd/lib/notification';
 
 import { CombinedState } from 'reducers';
 import { registerComponentShortcuts } from 'actions/shortcuts-actions';
@@ -35,12 +36,25 @@ function SaveAnnotationsButton() {
         normKeyMap: state.shortcuts.normalizedKeyMap,
     }), shallowEqual);
 
+    const triggerSave = () => {
+        if (isSaving) return;
+
+        (dispatch as any)(saveAnnotationsAsync())
+            .then(() => {
+                notification.success({
+                    message: 'Annotations saved',
+                    placement: 'topRight',
+                });
+            })
+            .catch(() => {
+                // Errors are handled by the global notifications system.
+            });
+    };
+
     const handlers: Record<keyof typeof componentShortcuts, (event?: KeyboardEvent) => void> = {
         SAVE_JOB: (event: KeyboardEvent | undefined) => {
             event?.preventDefault();
-            if (!isSaving) {
-                dispatch(saveAnnotationsAsync());
-            }
+            triggerSave();
         },
     };
 
@@ -50,7 +64,7 @@ function SaveAnnotationsButton() {
             <CVATTooltip overlay={`Save current changes ${normKeyMap.SAVE_JOB}`}>
                 <Button
                     type='link'
-                    onClick={isSaving ? undefined : () => dispatch(saveAnnotationsAsync())}
+                    onClick={isSaving ? undefined : triggerSave}
                     className={isSaving ? 'cvat-annotation-header-save-button cvat-annotation-disabled-header-button' :
                         'cvat-annotation-header-save-button cvat-annotation-header-button'}
                 >

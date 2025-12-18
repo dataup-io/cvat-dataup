@@ -292,6 +292,7 @@ class CVAT_QUEUES(Enum):
     CONSENSUS = "consensus"
     AGENT_AUTO_ANNOTATE = "agent_auto_annotate"
     AGENT_EVALUATE = "agent_evaluate"
+    LENS = "lens"
 
 redis_inmem_host = os.getenv("CVAT_REDIS_INMEM_HOST", "localhost")
 redis_inmem_port = os.getenv("CVAT_REDIS_INMEM_PORT", 6379)
@@ -363,6 +364,11 @@ RQ_QUEUES = {
         # custom fields
         "PARSED_JOB_ID_CLASS": "cvat.apps.consensus.rq.ConsensusRequestId",
     },
+
+    CVAT_QUEUES.LENS.value: {
+        **REDIS_INMEM_SETTINGS,
+        "DEFAULT_TIMEOUT": "5m",
+    },
 }
 
 NUCLIO = {
@@ -406,6 +412,20 @@ PERIODIC_RQ_JOBS = [
         # Run once a day
         "cron_string": "0 18 * * *",
     },
+    # {
+    #     "queue": CVAT_QUEUES.LENS.value,
+    #     "id": "recompute_job_overviews",
+    #     "func": "cvat.apps.dataup.lens.jobs.job_overview.recompute_job_overviews",
+    #     # Run every 5 minutes
+    #     "cron_string": "*/5 * * * *",
+    # },
+    # {
+    #     "queue": CVAT_QUEUES.LENS.value,
+    #     "id": "push_lens_rows",
+    #     "func": "cvat.apps.dataup.lens.jobs.push_job.push_lens_rows",
+    #     # Run every 5 minutes
+    #     "cron_string": "*/5 * * * *",
+    # },
 ]
 
 # JavaScript and CSS compression

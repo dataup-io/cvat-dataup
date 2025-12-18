@@ -619,6 +619,43 @@ def handle_function_call(
     )
 
 
+def handle_job_submit(
+    instance: Job,
+    from_stage: str,
+    to_stage: str,
+    **payload_fields,
+) -> None:
+    """
+    Record an event when a job is submitted for validation or acceptance.
+
+    Args:
+        instance: The Job instance being submitted
+        from_stage: The stage the job is transitioning from (e.g., "annotation", "validation")
+        to_stage: The stage the job is transitioning to (e.g., "validation", "acceptance")
+        **payload_fields: Additional fields to include in the event payload
+    """
+    record_server_event(
+        scope=event_scope("submit", "job"),
+        request_info=request_info(),
+        on_commit=True,
+        obj_id=job_id(instance),
+        obj_name=_get_object_name(instance),
+        org_id=organization_id(instance),
+        org_slug=organization_slug(instance),
+        project_id=project_id(instance),
+        task_id=task_id(instance),
+        job_id=job_id(instance),
+        user_id=user_id(instance),
+        user_name=user_name(instance),
+        user_email=user_email(instance),
+        payload={
+            "from_stage": from_stage,
+            "to_stage": to_stage,
+            **payload_fields,
+        },
+    )
+
+
 def handle_rq_exception(rq_job, exc_type, exc_value, tb):
     rq_job_meta = BaseRQMeta.for_job(rq_job)
     oid = rq_job_meta.org_id

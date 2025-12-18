@@ -582,14 +582,16 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
             if (user && user.isVerified) {
                 // Check if the current path is the annotation page
                 const isAnnotationPage = location.pathname.match(/\/tasks\/[0-9]+\/jobs\/[0-9]+$/i);
+                // Check if the current path is the visual comparison page
+                const isVisualComparisonPage = location.pathname.match(/\/agents\/benchmarks\/[^/]+\/visual\/[^/]+/i);
 
                 return (
                     <GlobalErrorBoundary>
                         <ShortcutsContextProvider>
                             <Layout style={{ height: '100%' }}>
-                                {!isAnnotationPage && <Sider />}
+                                {!isAnnotationPage && !isVisualComparisonPage && <Sider />}
                                 <Layout>
-                                    {!isAnnotationPage && <Header />}
+                                    {!isAnnotationPage && !isVisualComparisonPage && <Header />}
                                     <Layout.Content style={{ height: '100%' }}>
                                         <ShortcutsDialog />
                                         <Switch>
@@ -611,7 +613,7 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                                                     <Redirect to={`/tasks/${match.params.tid}/overview`} />
                                                 )}
                                             />
-                                            <Route exact path='/tasks/:tid/:tab(overview|jobs|analytics)' component={NavTaskPageComponent} />
+                                            <Route exact path='/tasks/:tid/:tab(overview|jobs|analytics|lens)' component={NavTaskPageComponent} />
                                             <Route exact path='/tasks/:tid/quality-control' component={QualityControlPage} />
                                             <Route exact path='/tasks/:tid/consensus' component={ConsensusManagementPage} />
                                             <Route exact path='/tasks/:tid/jobs/create' component={CreateJobPage} />

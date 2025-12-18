@@ -150,7 +150,14 @@ interface DispatchToProps {
     onCanvasErrorOccurred(error: Error): void;
     onStartIssue(position: number[]): void;
     onUpdateEditedObject(editedState: ObjectState | null): void;
-    showTextEditor(attrID: number, attrValue: string, attrName: string, attrInputType: string, attrValues: string[]): void;
+        showTextEditor(
+            attrID: number,
+            attrValue: string,
+            attrName: string,
+            attrInputType: string,
+            attrValues: string[],
+            stateID: number,
+        ): void;
 }
 
 function mapStateToProps(state: CombinedState): StateToProps {
@@ -360,8 +367,15 @@ function mapDispatchToProps(dispatch: any): DispatchToProps {
         onUpdateEditedObject(editedState: ObjectState | null): void {
             dispatch(updateEditedStateAsync(editedState));
         },
-        showTextEditor(attrID: number, attrValue: string, attrName: string, attrInputType: string, attrValues: string[]): void {
-            dispatch(showTextEditor(attrID, attrValue, attrName, attrInputType, attrValues));
+        showTextEditor(
+            attrID: number,
+            attrValue: string,
+            attrName: string,
+            attrInputType: string,
+            attrValues: string[],
+            stateID: number,
+        ): void {
+            dispatch(showTextEditor(attrID, attrValue, attrName, attrInputType, attrValues, stateID));
         },
     };
 }
@@ -851,7 +865,8 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
 
                 const { showTextEditor } = this.props;
                 if (showTextEditor && firstAttrID) {
-                    showTextEditor(firstAttrID, attrValue, attrName, attrInputType, attrValues);
+                    // Explicitly tie the text editor to this state.clientID
+                    showTextEditor(firstAttrID, attrValue, attrName, attrInputType, attrValues, state.clientID);
                 }
             }
         }

@@ -1,0 +1,16 @@
+@import 'base';
+
+.cvat-benchmark-visual-workspace.ant-layout {
+        height: 100%;
+
+    > .ant-layout-content {
+        overflow: hidden hidden;
+        }
+    }
+
+.benchmark-image-overlay-viewer {
+    canvas {
+        cursor: crosshair;
+    }
+}
+

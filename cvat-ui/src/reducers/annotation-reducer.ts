@@ -175,7 +175,7 @@ export default (state = defaultState, action: AnyAction): AnnotationState => {
     switch (action.type) {
         case AnnotationActionTypes.SHOW_TEXT_EDITOR: {
             const {
-                attrID, attrValue, attrName, attrInputType, attrValues,
+                attrID, attrValue, attrName, attrInputType, attrValues, stateID,
             } = action.payload;
             return {
                 ...state,
@@ -186,7 +186,7 @@ export default (state = defaultState, action: AnyAction): AnnotationState => {
                     attrName,
                     attrInputType,
                     attrValues,
-                    originalStateID: state.annotations.activatedStateID,
+                    originalStateID: stateID ?? state.annotations.activatedStateID,
                 },
             };
         }

@@ -89,7 +89,7 @@ function SiderComponent(props: Props): JSX.Element {
             ]),
             isModelsPluginActive && getItem('Agents', 'agents', undefined, <RobotOutlined />, [
                 getItem('Models', 'models', () => history.push('/agents/models'), <BulbOutlined />),
-                getItem('APIs', 'apis', () => history.push('/agents/apis'), <ApiOutlined />),
+                getItem('Endpoints', 'endpoints', () => history.push('/agents/endpoints'), <ApiOutlined />),
                 getItem('Benchmarks', 'benchmarks', () => history.push('/agents/benchmarks'), <BarChartOutlined />),
             ]),
             isModelsPluginActive && getItem('Pipelines', 'pipelines', undefined, <SubnodeOutlined />, [
@@ -120,7 +120,7 @@ function SiderComponent(props: Props): JSX.Element {
         '/cloudstorages': 'cloudstorages',
         '/requests': 'requests',
         '/agents/models': 'models',
-        '/agents/apis': 'apis',
+        '/agents/endpoints': 'endpoints',
         '/agents/benchmarks': 'benchmarks',
         '/analytics': 'analytics',
 

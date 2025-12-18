@@ -118,7 +118,8 @@
 
 .cvat-detector-runner-clean-previous-annotations-wrapper,
 .cvat-detector-runner-convert-masks-to-polygons-wrapper,
-.cvat-detector-runner-threshold-wrapper {
+.cvat-detector-runner-threshold-wrapper,
+.cvat-detector-runner-prompt-wrapper {
     .ant-typography {
         margin-left: $grid-unit-size;
     }

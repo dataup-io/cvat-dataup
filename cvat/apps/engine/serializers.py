@@ -1072,7 +1072,7 @@ class JobWriteSerializer(WriteOnceMixin, serializers.ModelSerializer):
         stage_changing = "stage" in validated_data and validated_data["stage"] != instance.stage
 
         # If stage is changing from annotation to validation or from validation to acceptance,
-        # remove the assignee
+        # remove the assignee and record the submission event
         if stage_changing:
             if (
                 instance.stage == models.StageChoice.ANNOTATION
@@ -1083,6 +1083,14 @@ class JobWriteSerializer(WriteOnceMixin, serializers.ModelSerializer):
             ):
                 validated_data["assignee_id"] = None
                 validated_data["assignee_updated_date"] = timezone.now()
+
+                # Record the job submission event
+                from cvat.apps.events.handlers import handle_job_submit
+                handle_job_submit(
+                    instance=instance,
+                    from_stage=instance.stage,
+                    to_stage=stage,
+                )
 
         if "stage" in validated_data or "state" in validated_data:
             if stage == models.StageChoice.ANNOTATION:

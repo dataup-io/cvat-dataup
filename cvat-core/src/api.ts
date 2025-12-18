@@ -306,6 +306,20 @@ function build(): CVATCore {
                 const result = await PluginRegistry.apiWrapper(cvat.agents.call, id, body);
                 return result;
             },
+            lens: {
+                async chat(payload) {
+                    const result = await PluginRegistry.apiWrapper((cvat as any).agents.lens.chat, payload);
+                    return result;
+                },
+                async sync(payload: { task_id: number }) {
+                    const result = await PluginRegistry.apiWrapper((cvat as any).agents.lens.sync, payload);
+                    return result;
+                },
+                async retrieve(id: string | number) {
+                    const result = await PluginRegistry.apiWrapper((cvat as any).agents.lens.retrieve, id);
+                    return result;
+                },
+            },
             annotateJobs: {
                 async list(filter) {
                     const result = await PluginRegistry.apiWrapper(cvat.agents.annotateJobs.list, filter);
@@ -343,6 +357,33 @@ function build(): CVATCore {
                 },
                 async results(jobId) {
                     const result = await PluginRegistry.apiWrapper(cvat.agents.evaluateJobs.results, jobId);
+                    return result;
+                },
+                async submit(jobData) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.evaluateJobs.submit, jobData);
+                    return result;
+                }
+            }
+            ,
+            benchmarks: {
+                async list(filter) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.benchmarks.list, filter);
+                    return result;
+                },
+                async get(id) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.benchmarks.get, id);
+                    return result;
+                },
+                async create(data) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.benchmarks.create, data);
+                    return result;
+                },
+                async delete(id) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.benchmarks.delete, id);
+                    return result;
+                },
+                async fetchPredictions(id, jobId) {
+                    const result = await PluginRegistry.apiWrapper(cvat.agents.benchmarks.fetchPredictions, id, jobId);
                     return result;
                 },
             }

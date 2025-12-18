@@ -6,25 +6,28 @@ from django.urls import include, path
 from rest_framework import routers
 
 from cvat.apps.dataup.agents.views import AgentViewSet
+from cvat.apps.dataup.agents.benchmarks.views import AgentBenchmarkViewSet
 from cvat.apps.dataup.agents.jobs.views import AgentAnnotateJobsViewSet, AgentEvaluateJobsViewSet
 from cvat.apps.dataup.api_keys.views import DataUpAPIKeyViewSet
 from cvat.apps.dataup.pipelines.execution_views import PipelineExecutionViewSet
 from cvat.apps.dataup.pipelines.registry_views import StepRegistryViewSet
 from cvat.apps.dataup.pipelines.step_views import PipelineStepViewSet
 from cvat.apps.dataup.pipelines.views import PipelineViewSet
+from cvat.apps.dataup.lens.views import LensViewSet
 
 # from cvat.apps.dataup.views.health import HealthViewSet
 
 router = routers.DefaultRouter(trailing_slash=False)
 router.register("agents", AgentViewSet, basename="agent")
+router.register("benchmarks", AgentBenchmarkViewSet, basename="benchmarks")
 router.register("agent-jobs/auto-annotate", AgentAnnotateJobsViewSet, basename="agent-jobs-auto-annotate")
 router.register("agent-jobs/evaluate", AgentEvaluateJobsViewSet, basename="agent-jobs-evaluate")
-router.register("pipelines", PipelineViewSet, basename="pipeline")
-router.register("pipeline-steps", PipelineStepViewSet, basename="pipeline-step")
-router.register("step-registry", StepRegistryViewSet, basename="step-registry")
-router.register("pipeline-executions", PipelineExecutionViewSet, basename="pipeline-execution")
+# router.register("pipelines", PipelineViewSet, basename="pipeline")
+# router.register("pipeline-steps", PipelineStepViewSet, basename="pipeline-step")
+# router.register("step-registry", StepRegistryViewSet, basename="step-registry")
+# router.register("pipeline-executions", PipelineExecutionViewSet, basename="pipeline-execution")
 router.register("api-keys", DataUpAPIKeyViewSet, basename="api-key")
-
+router.register("lens", LensViewSet, basename="lens")
 
 urlpatterns = [
     path("dataup/", include((router.urls, "dataup"), namespace="dataup")),

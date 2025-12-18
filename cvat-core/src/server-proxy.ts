@@ -2476,7 +2476,7 @@ async function getAgent(id: string | number): Promise<any> {
     const { backendAPI } = config;
 
     try {
-        const response = await Axios.get(`${backendAPI}/dataup/agents/${id}/`);
+        const response = await Axios.get(`${backendAPI}/dataup/agents/${id}`);
         return response.data;
     } catch (errorData) {
         throw generateError(errorData);
@@ -2502,7 +2502,7 @@ async function updateAgent(id: string | number, agentData: any): Promise<any> {
     const params = enableOrganization();
 
     try {
-        const response = await Axios.put(`${backendAPI}/dataup/agents/${id}/`, agentData, {
+        const response = await Axios.patch(`${backendAPI}/dataup/agents/${id}`, agentData, {
             params,
         });
         return response.data;
@@ -2662,6 +2662,122 @@ async function getAgentEvaluateJobResults(filter = {}): Promise<any> {
     }
 }
 
+async function getAgentBenchmarks(filter = {}): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/benchmarks`, {
+            params: { ...params, ...filter },
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function getAgentBenchmark(id: string | number): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/benchmarks/${id}`, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function createAgentBenchmark(data: any): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/benchmarks`, data, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function fetchAgentBenchmarkPredictions(id: string | number, jobId?: number): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const queryParams: any = { ...params };
+        if (jobId !== undefined) {
+            queryParams.job_id = jobId;
+        }
+
+        const response = await Axios.get(`${backendAPI}/dataup/benchmarks/${id}/fetch-predictions`, {
+            params: queryParams,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function deleteAgentBenchmark(id: string | number): Promise<void> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        await Axios.delete(`${backendAPI}/dataup/benchmarks/${id}`, {
+            params,
+        });
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+// Lens Assistant
+async function lensChat(data: { task_id?: number; job_id?: number; message: string }): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/lens/chat`, data, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function lensSync(data: { task_id: number }): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.post(`${backendAPI}/dataup/lens/sync`, data, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
+
+async function lensRetrieve(id: string | number): Promise<any> {
+    const { backendAPI } = config;
+    const params = enableOrganization();
+
+    try {
+        const response = await Axios.get(`${backendAPI}/dataup/lens/${id}`, {
+            params,
+        });
+        return response.data;
+    } catch (errorData) {
+        throw generateError(errorData);
+    }
+}
 
 
 async function getApiKeys(filter: { [key: string]: any } = {}): Promise<any> {
@@ -2829,6 +2945,11 @@ export default Object.freeze({
         update: updateAgent,
         delete: deleteAgent,
         call: callAgent,
+        lens: Object.freeze({
+            chat: lensChat,
+            sync: lensSync,
+            retrieve: lensRetrieve,
+        }),
     }),
 
     agentAnnotateJobs: Object.freeze({
@@ -2844,6 +2965,14 @@ export default Object.freeze({
         create: createAgentEvaluateJob,
         cancel: cancelAgentEvaluateJob,
         results: getAgentEvaluateJobResults,
+    }),
+
+    agentBenchmarks: Object.freeze({
+        get: getAgentBenchmarks,
+        getOne: getAgentBenchmark,
+        create: createAgentBenchmark,
+        delete: deleteAgentBenchmark,
+        fetchPredictions: fetchAgentBenchmarkPredictions,
     }),
 
     dataupApiKeys: Object.freeze({

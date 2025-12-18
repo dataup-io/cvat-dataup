@@ -64,6 +64,9 @@ class RQJobMetaField:
     AGENT = "agent"
     AGENT_ID = "agent_id"
 
+    # LENS Field
+    LENS = "lens"
+    LENS_TYPE = "lens_type"
 
 class WithMeta(Protocol):
     meta: dict[str, Any]

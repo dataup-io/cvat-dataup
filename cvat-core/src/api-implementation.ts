@@ -94,6 +94,17 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
     implementationMixin(cvat.agents.evaluateJobs.cancel, agentManager.cancelEvaluateJob.bind(agentManager));
     implementationMixin(cvat.agents.evaluateJobs.results, agentManager.getEvaluateJobResults.bind(agentManager));
 
+    implementationMixin(cvat.agents.benchmarks.list, agentManager.listBenchmarks.bind(agentManager));
+    implementationMixin(cvat.agents.benchmarks.get, agentManager.getBenchmark.bind(agentManager));
+    implementationMixin(cvat.agents.benchmarks.create, agentManager.createBenchmark.bind(agentManager));
+    implementationMixin(cvat.agents.benchmarks.delete, agentManager.deleteBenchmark.bind(agentManager));
+    implementationMixin(cvat.agents.benchmarks.fetchPredictions, agentManager.fetchBenchmarkPredictions.bind(agentManager));
+
+    // Lens assistant
+    implementationMixin(cvat.agents.lens.chat, agentManager.lensChat.bind(agentManager));
+    implementationMixin(cvat.agents.lens.sync, agentManager.lensSync.bind(agentManager));
+    implementationMixin(cvat.agents.lens.retrieve, agentManager.lensRetrieve.bind(agentManager));
+
     implementationMixin(cvat.dataupApiKeys.get, apiKeysManager.listApiKeys.bind(apiKeysManager));
     implementationMixin(cvat.dataupApiKeys.create, apiKeysManager.createApiKey.bind(apiKeysManager));
     implementationMixin(cvat.dataupApiKeys.update, apiKeysManager.updateApiKey.bind(apiKeysManager));

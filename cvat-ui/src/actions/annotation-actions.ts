@@ -200,6 +200,7 @@ export function showTextEditor(
     attrName: string,
     attrInputType: string,
     attrValues: string[],
+    stateID: number,
 ): AnyAction {
     return {
         type: AnnotationActionTypes.SHOW_TEXT_EDITOR,
@@ -209,6 +210,7 @@ export function showTextEditor(
             attrName,
             attrInputType,
             attrValues,
+            stateID,
         },
     };
 }

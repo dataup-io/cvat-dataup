@@ -10,6 +10,7 @@ const { Text } = Typography;
 
 interface Props {
     readonly: boolean;
+    clientID: number;
     attrInputType: string;
     attrValues: string[];
     attrValue: string;
@@ -33,6 +34,7 @@ function ItemAttributeComponent(props: Props): JSX.Element {
     const {
         attrInputType, attrValues, attrValue,
         attrName, attrID, readonly, changeAttribute,
+        clientID,
     } = props;
 
     const dispatch = useDispatch();
@@ -150,7 +152,8 @@ function ItemAttributeComponent(props: Props): JSX.Element {
                             localAttrValue,
                             attrName,
                             attrInputType,
-                            attrValues
+                            attrValues,
+                            clientID,
                         ));
                     }}
                     disabled={readonly}

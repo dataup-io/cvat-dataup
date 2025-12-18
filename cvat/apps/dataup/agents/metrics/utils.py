@@ -47,7 +47,7 @@ def _suppress_fp_over_ignored(
     remaining = []
     for pi in unmatched_pred_indices:
         p = predictions[pi]
-        p_bbox = p.get("bbox")
+        p_bbox = p.get("xyxy")
         p_frame = p.get("frame_id")
         if not p_bbox or len(p_bbox) != 4:
             # malformed -> keep as FP (conservative)
@@ -58,7 +58,7 @@ def _suppress_fp_over_ignored(
         for gi in gt_ignore:
             if gi.get("frame_id") != p_frame:
                 continue
-            iou = calculate_iou(p_bbox, gi.get("bbox", []))
+            iou = calculate_iou(p_bbox, gi.get("xyxy", []))
             if iou >= iou_ignore:
                 suppress = True
                 break
@@ -83,8 +83,8 @@ def match_predictions_to_ground_truth(
       are suppressed (not counted as FPs).
 
     Args:
-        predictions: list of prediction dicts with keys: 'frame_id', 'label', 'bbox', 'confidence', 'attributes'
-        ground_truth: list of GT dicts with keys: 'frame_id', 'label', 'bbox'
+        predictions: list of prediction dicts with keys: 'frame_id', 'label', 'xyxy', 'score', 'attributes'
+        ground_truth: list of GT dicts with keys: 'frame_id', 'label', 'xyxy'
         iou_threshold: IoU threshold for matching TPs
         iou_ignore: IoU threshold for suppressing FPs on ignored GT.
                     Defaults to iou_threshold if None.
@@ -115,9 +115,9 @@ def match_predictions_to_ground_truth(
         key = (gt["frame_id"], gt["label"])
         gts_by_key.setdefault(key, []).append(i)
 
-    # order predictions by confidence when present
+    # order predictions by score when present
     pred_indices = list(range(len(preds_f)))
-    pred_indices.sort(key=lambda i: preds_f[i].get("confidence", 0.0), reverse=True)
+    pred_indices.sort(key=lambda i: preds_f[i].get("score", 0.0), reverse=True)
 
     for pred_idx in pred_indices:
         if pred_idx in used_pred:  # prediction has been matched
@@ -125,7 +125,7 @@ def match_predictions_to_ground_truth(
 
         pred = preds_f[pred_idx]
         pred_key = (pred["frame_id"], pred["label"])
-        pred_bbox = pred["bbox"]
+        pred_bbox = pred["xyxy"]
 
         gt_candidates = [j for j in gts_by_key.get(pred_key, []) if j not in used_gt]
 
@@ -134,7 +134,7 @@ def match_predictions_to_ground_truth(
 
         for j in gt_candidates:
             gt_candidate = gts_f[j]
-            gt_bbox = gt_candidate.get("bbox", [])
+            gt_bbox = gt_candidate.get("xyxy", [])
             iou = calculate_iou(pred_bbox, gt_bbox)
             if iou > best_iou:
                 best_iou = iou
@@ -146,10 +146,10 @@ def match_predictions_to_ground_truth(
             # Map back to original indices
             matches.append((preds_eval_indices[pred_idx], gt_evals_indices[best_gt_idx], best_iou))
 
-    unmatched_ground_truth: list[int] = [j for j in range(len(gts_f)) if j not in used_gt]
+    unmatched_ground_truth: list[int] = [gt_evals_indices[j] for j in range(len(gts_f)) if j not in used_gt]
     unmatched_pred_filtered = [i for i in range(len(preds_f)) if i not in used_pred]
     unmatched_predictions: list[int] = _suppress_fp_over_ignored(unmatched_pred_filtered, preds_f, gt_ignore, iou_ignore)
-
+    unmatched_predictions = [preds_eval_indices[i] for i in unmatched_predictions]
     return matches, unmatched_predictions, unmatched_ground_truth
 
 

@@ -1,0 +1,209 @@
+@import 'base';
+
+.cvat-benchmark-visual-sidebar-wrapper {
+    position: relative;
+    height: 100%;
+}
+
+.cvat-benchmark-visual-sidebar {
+    height: 100%;
+    overflow: hidden auto;
+    background: $background-color-2;
+    border-right: 1px solid $border-color-1;
+    transition: width 0.2s;
+
+    > .ant-layout-sider-children {
+        display: flex;
+        flex-direction: column;
+    }
+
+    &.ant-layout-sider-collapsed {
+        overflow: initial;
+    }
+}
+
+.cvat-benchmark-visual-sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 4px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    background-color: transparent;
+    transition: background-color 0.2s;
+
+    &:hover {
+        background-color: rgba(24, 144, 255, 0.3);
+    }
+
+    &:active {
+        background-color: rgba(24, 144, 255, 0.5);
+    }
+}
+
+.cvat-benchmark-visual-sidebar-collapse-button-bottom {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: $grid-unit-size;
+    border-top: 1px solid $border-color-1;
+    background: $background-color-2;
+    flex-shrink: 0;
+
+    span {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 4px;
+        border-radius: $border-radius-base;
+        transition: background-color 0.2s;
+
+        &:hover {
+            background-color: rgba(0, 0, 0, 0.06);
+        }
+    }
+}
+
+.cvat-benchmark-visual-sidebar-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.cvat-benchmark-visual-sidebar-content {
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.cvat-benchmark-visual-sidebar-section {
+    width: 100%;
+}
+
+.cvat-benchmark-shapes-collapse.ant-collapse,
+.cvat-benchmark-frame-metrics-collapse.ant-collapse,
+.cvat-benchmark-appearance-collapse.ant-collapse {
+    width: 100%;
+    border-radius: 0;
+
+    > .ant-collapse-item {
+        border: none;
+
+        > .ant-collapse-header {
+            padding-top: 2.5px;
+            padding-bottom: 2.5px;
+            background: $header-color;
+            border-radius: 0;
+            height: 25px;
+
+            .ant-collapse-arrow {
+                padding: 0;
+                top: $grid-unit-size;
+            }
+        }
+
+        > .ant-collapse-content {
+            background: $background-color-2;
+            border-bottom: none;
+            padding-bottom: $grid-unit-size * 3;
+
+            > .ant-collapse-content-box {
+                padding: 10px;
+                padding-bottom: 0;
+            }
+        }
+    }
+}
+
+.cvat-benchmark-shapes-collapse.ant-collapse {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+
+    > .ant-collapse-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+
+        > .ant-collapse-content {
+            flex: 1;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+
+            > .ant-collapse-content-box {
+                flex: 1;
+                overflow-y: auto;
+            }
+        }
+    }
+}
+
+.cvat-benchmark-frame-metrics-collapse.ant-collapse {
+    flex-shrink: 0;
+    margin-top: 0;
+}
+
+.cvat-benchmark-appearance-collapse.ant-collapse {
+    flex-shrink: 0;
+    margin-top: 0;
+}
+
+.cvat-benchmark-shapes-collapse-header,
+.cvat-benchmark-frame-metrics-collapse-header,
+.cvat-benchmark-appearance-collapse-header {
+    font-size: 14px;
+}
+
+.cvat-benchmark-shapes-content {
+    padding: $grid-unit-size * 2;
+
+    > div {
+        width: 100%;
+    }
+}
+
+.cvat-benchmark-appearance-content {
+    > div {
+        width: 100%;
+        margin-bottom: $grid-unit-size * 2;
+
+        &:last-child {
+            margin-bottom: 0;
+        }
+    }
+
+    .ant-typography {
+        display: block;
+        margin-bottom: $grid-unit-size * 0.5;
+        font-size: 12px;
+    }
+
+    .ant-space {
+        width: 100%;
+        align-items: center;
+    }
+}
+
+.cvat-benchmark-opacity-slider {
+    margin-top: $grid-unit-size * 0.5;
+}
+
+.cvat-benchmark-frame-metrics-content {
+    padding: $grid-unit-size * 2;
+}
+
+.cvat-benchmark-metric-item {
+    margin-bottom: $grid-unit-size;
+    width: 100%;
+
+    &:last-child {
+        margin-bottom: 0;
+    }
+}

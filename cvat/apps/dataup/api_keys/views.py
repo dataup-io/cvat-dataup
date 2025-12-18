@@ -7,7 +7,7 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from cvat.apps.dataup.api_keys.models import DataUpAPIKey
+from cvat.apps.dataup.models import DataUpAPIKey
 from cvat.apps.dataup.api_keys.permissions import DataUpAPIKeyPerm, DataUpPolicyEnforcer
 from cvat.apps.dataup.api_keys.serializers import (
     DataUpAPIKeyReadSerializer,
