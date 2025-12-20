@@ -8,17 +8,18 @@ import shutil
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import transaction
-from django.db.models.signals import m2m_changed, post_delete, post_save
+from django.db.models.signals import m2m_changed, post_delete, post_save, pre_save
 from django.dispatch import receiver
+from rest_framework.exceptions import ValidationError
 
-from .models import Asset, CloudStorage, Data, Job, Profile, Project, StatusChoice, Task
+from .models import Asset, CloudStorage, Data, Job, JobType, Profile, Project, StatusChoice, Task
 
 # TODO: need to log any problems reported by shutil.rmtree when the new
 # analytics feature is available. Now the log system can write information
 # into a file inside removed directory.
 
 
-@receiver(post_save, sender=Job, dispatch_uid=__name__ + ".save_job_handler")
+@receiver(post_save, sender=Job)
 def __save_job_handler(instance, created, raw: bool, **kwargs):
     # no need to update task status for newly created jobs
     if created:
@@ -37,7 +38,27 @@ def __save_job_handler(instance, created, raw: bool, **kwargs):
         db_task.save(update_fields=["status", "updated_date"])
 
 
-@receiver(post_save, sender=User, dispatch_uid=__name__ + ".save_user_handler")
+@receiver(pre_save, sender=Job)
+def __enforce_job_limit(instance: Job, **kwargs):
+    # Only check on job creation, not on updates
+    if instance.pk is not None:
+        return
+
+    # Ground truth jobs are not counted towards the limit
+    if instance.type == JobType.GROUND_TRUTH:
+        return
+
+    task = instance.segment.task
+    current_job_count = Job.objects.filter(segment__task=task).count()
+
+    if current_job_count >= settings.MAX_JOBS_PER_TASK:
+        raise ValidationError(
+            f"Cannot create job: task #{task.id} has reached the maximum limit "
+            f"of {settings.MAX_JOBS_PER_TASK} jobs"
+        )
+
+
+@receiver(post_save, sender=User)
 def __save_user_handler(instance: User, created: bool, raw: bool, **kwargs):
     if created and raw:
         return
@@ -55,11 +76,7 @@ def __save_user_handler(instance: User, created: bool, raw: bool, **kwargs):
         instance.profile.save()
 
 
-@receiver(
-    m2m_changed,
-    sender=User.groups.through,
-    dispatch_uid=__name__ + ".m2m_user_groups_change_handler",
-)
+@receiver(m2m_changed, sender=User.groups.through)
 def __m2m_user_groups_change_handler(sender, instance: User, action: str, **kwargs):
     if action == "post_add":
         is_admin = instance.groups.filter(name=settings.IAM_ADMIN_ROLE).exists()
@@ -68,21 +85,21 @@ def __m2m_user_groups_change_handler(sender, instance: User, action: str, **kwar
             instance.profile.save()
 
 
-@receiver(post_delete, sender=Project, dispatch_uid=__name__ + ".delete_project_handler")
+@receiver(post_delete, sender=Project)
 def __delete_project_handler(instance, **kwargs):
     transaction.on_commit(
         functools.partial(shutil.rmtree, instance.get_dirname(), ignore_errors=True)
     )
 
 
-@receiver(post_delete, sender=Asset, dispatch_uid=__name__ + ".__delete_asset_handler")
+@receiver(post_delete, sender=Asset)
 def __delete_asset_handler(instance, **kwargs):
     transaction.on_commit(
         functools.partial(shutil.rmtree, instance.get_asset_dir(), ignore_errors=True)
     )
 
 
-@receiver(post_delete, sender=Task, dispatch_uid=__name__ + ".delete_task_handler")
+@receiver(post_delete, sender=Task)
 def __delete_task_handler(instance, **kwargs):
     transaction.on_commit(
         functools.partial(shutil.rmtree, instance.get_dirname(), ignore_errors=True)
@@ -98,21 +115,21 @@ def __delete_task_handler(instance, **kwargs):
         pass  # probably the project has been deleted
 
 
-@receiver(post_delete, sender=Job, dispatch_uid=__name__ + ".delete_job_handler")
+@receiver(post_delete, sender=Job)
 def __delete_job_handler(instance, **kwargs):
     transaction.on_commit(
         functools.partial(shutil.rmtree, instance.get_dirname(), ignore_errors=True)
     )
 
 
-@receiver(post_delete, sender=Data, dispatch_uid=__name__ + ".delete_data_handler")
+@receiver(post_delete, sender=Data)
 def __delete_data_handler(instance, **kwargs):
     transaction.on_commit(
         functools.partial(shutil.rmtree, instance.get_data_dirname(), ignore_errors=True)
     )
 
 
-@receiver(post_delete, sender=CloudStorage, dispatch_uid=__name__ + ".delete_cloudstorage_handler")
+@receiver(post_delete, sender=CloudStorage)
 def __delete_cloudstorage_handler(instance, **kwargs):
     transaction.on_commit(
         functools.partial(shutil.rmtree, instance.get_storage_dirname(), ignore_errors=True)

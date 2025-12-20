@@ -35,10 +35,10 @@
             -r /tmp/utils/dataset_manifest/requirements.txt \
             -w /tmp/wheelhouse
 
-    # --- build smokescreen --------------------------------------------------------
-    FROM golang:1.23 AS build-smokescreen
-    RUN git clone --filter=blob:none --no-checkout https://github.com/stripe/smokescreen.git
-    RUN cd smokescreen && git checkout eb1ac09 && go build -o /tmp/smokescreen
+FROM golang:1.25.5 AS build-smokescreen
+
+RUN git clone --filter=blob:none --no-checkout https://github.com/stripe/smokescreen.git
+RUN cd smokescreen && git checkout eb1ac09 && go build -o /tmp/smokescreen
 
     # --- final runtime image ------------------------------------------------------
     FROM ${BASE_IMAGE}
@@ -80,10 +80,10 @@
     # Install smokescreen
     COPY --from=build-smokescreen /tmp/smokescreen /usr/local/bin/smokescreen
 
-    # Non-root user
-    ENV USER=${USER}
-    ENV HOME=/home/${USER}
-    RUN adduser --shell /bin/bash --disabled-password --gecos "" ${USER}
+# Add a non-root user
+ENV USER=${USER}
+ENV HOME /home/${USER}
+RUN adduser --uid=1000 --shell /bin/bash --disabled-password --gecos "" ${USER}
 
     # Optional ClamAV
     ARG CLAM_AV="no"
@@ -119,13 +119,14 @@
     # Remove pip in final image (per your policy)
     RUN python -m pip uninstall -y pip
 
-    # App files
-    COPY cvat/nginx.conf /etc/nginx/nginx.conf
-    COPY --chown=${USER} supervisord/ ${HOME}/supervisord
-    COPY --chown=${USER} backend_entrypoint.d/ ${HOME}/backend_entrypoint.d
-    COPY --chown=${USER} manage.py rqscheduler.py backend_entrypoint.sh wait_for_deps.sh ${HOME}/
-    COPY --chown=${USER} utils/ ${HOME}/utils
-    COPY --chown=${USER} cvat/ ${HOME}/cvat
+# Install and initialize CVAT, copy all necessary files
+COPY cvat/nginx.conf /etc/nginx/nginx.conf
+COPY --chown=${USER} supervisord/ ${HOME}/supervisord
+COPY --chown=${USER} backend_entrypoint.d/ ${HOME}/backend_entrypoint.d
+COPY --chown=${USER} manage.py rqscheduler.py backend_entrypoint.sh wait_for_deps.sh ${HOME}/
+COPY --chown=${USER} utils/ ${HOME}/utils
+COPY --chown=${USER} cvat/ ${HOME}/cvat
+COPY --chown=${USER} components/analytics/clickhouse/init.py ${HOME}/components/analytics/clickhouse/init.py
 
     # Coverage hook (optional)
     ARG COVERAGE_PROCESS_START
@@ -133,8 +134,10 @@
             echo "import coverage; coverage.process_startup()" > /opt/venv/lib/python3.10/site-packages/coverage_subprocess.pth; \
         fi
 
-    USER ${USER}
-    WORKDIR ${HOME}
+# RUN all commands below as 'django' user.
+# Use numeric UID/GID so that the image is compatible with the Kubernetes runAsNonRoot setting.
+USER 1000:1000
+WORKDIR ${HOME}
 
     RUN mkdir -p data share keys logs /tmp/supervisord static
 

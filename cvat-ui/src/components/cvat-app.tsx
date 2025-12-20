@@ -29,6 +29,7 @@ import ExportBackupModal from 'components/export-backup/export-backup-modal';
 import ImportDatasetModal from 'components/import-dataset/import-dataset-modal';
 import ImportBackupModal from 'components/import-backup/import-backup-modal';
 import UploadFileStatusModal from 'components/common/upload-file-status-modal';
+import SelectCSUpdatingSchemeModal from 'components/update-linked-cs-modal/select-cs-updating-scheme-modal';
 
 import JobsPageComponent from 'components/jobs-page/jobs-page';
 
@@ -82,12 +83,14 @@ import AnalyticsReportPage from './analytics-report/analytics-report-page';
 import ConsensusManagementPage from './consensus-management-page/consensus-management-page';
 import InvitationWatcher from './invitation-watcher/invitation-watcher';
 import Sider from './sider/sider';
-import agentsPage from './agents-page/agents-page';
-import ModelsPageComponent from './models-page/models-page';
-import pipelinesPage from './pipelines-page/pipelines-page';
-import welcomePage from './welcome-page/welcome-page';
-import PlanUpgradePage from './plan-upgrade-page/plan-upgrade-page';
+import WelcomePage from './welcome-page/welcome-page';
+import ProfilePageComponent from './profile-page/profile-page';
 import ApiKeysPage from './api-keys-page/api-keys-page';
+import ModelsPageComponent from './models-page/models-page';
+import agentsPage from './agents-page/agents-page';
+import pipelinesPage from './pipelines-page/pipelines-page';
+import SelectOrganizationModal from './select-organization-modal/select-organization-modal';
+import BulkProgress from './bulk-progress';
 
 interface CVATAppProps {
     loadFormats: () => void;
@@ -427,7 +430,7 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
             return;
         }
 
-        if (user == null || !user.isVerified || !user.id) {
+        if (user == null || !user.isVerified || !user?.id) {
             return;
         }
 
@@ -478,7 +481,8 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                 description: notificationState?.description && (
                     <CVATMarkdown history={history}>{notificationState?.description}</CVATMarkdown>
                 ),
-                duration: notificationState.duration || null,
+                duration: notificationState.duration ?? null,
+                className: notificationState.className,
             });
         }
 
@@ -535,12 +539,11 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
             for (const what of Object.keys((notifications as any).errors[where])) {
                 const error = (notifications as any).errors[where][what] as ErrorState;
                 shown = shown || !!error;
-                if (error) {
+                if (error && !error.ignore) {
                     showError(error.message, error.reason, error.shouldLog, error.className);
                 }
             }
         }
-
         if (shown) {
             resetErrors();
         }
@@ -595,9 +598,8 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                                     <Layout.Content style={{ height: '100%' }}>
                                         <ShortcutsDialog />
                                         <Switch>
-                                            <Route exact path='/' component={welcomePage} />
-                                            <Route exact path='/home' component={welcomePage} />
-                                            <Route exact path='/plan-upgrade' component={PlanUpgradePage} />
+                                            <Route exact path='/' component={WelcomePage} />
+                                            <Route exact path='/home' component={WelcomePage} />
                                             <Route exact path='/auth/logout' component={LogoutComponent} />
                                             <Route exact path='/projects' component={ProjectsPageComponent} />
                                             <Route exact path='/projects/create' component={CreateProjectPageComponent} />
@@ -645,6 +647,7 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                                             <Route exact path='/invitations' component={InvitationsPage} />
                                             <Route exact path='/organization' component={OrganizationPage} />
                                             <Route exact path='/requests' component={RequestsPage} />
+                                            <Route exact path='/profile' component={ProfilePageComponent} />
                                             <Route exact path='/api-keys' component={ApiKeysPage} />
                                             {routesToRender}
                                             {isModelPluginActive &&
@@ -668,7 +671,7 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                                             <Redirect
                                                 push
                                                 to={{
-                                                    pathname: queryParams.get('next') || '/home',
+                                                    pathname: queryParams.get('next') ?? '/home',
                                                     search: authParams ? new URLSearchParams(authParams).toString() : '',
                                                 }}
                                             />
@@ -679,6 +682,9 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                                         <ImportBackupModal />
                                         <InvitationWatcher />
                                         <UploadFileStatusModal />
+                                        <SelectCSUpdatingSchemeModal />
+                                        <SelectOrganizationModal />
+                                        <BulkProgress />
                                         {/* eslint-disable-next-line */}
                                         <a id='downloadAnchor' target='_blank' style={{ display: 'none' }} download />
                                     </Layout.Content>

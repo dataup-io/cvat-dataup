@@ -8,12 +8,12 @@ import itertools
 import math
 from abc import ABCMeta
 from collections import Counter
-from collections.abc import Hashable, Sequence
+from collections.abc import Callable, Hashable, Sequence
 from contextlib import suppress
 from copy import deepcopy
 from functools import cached_property, lru_cache, partial
 from io import StringIO
-from typing import Any, Callable, ClassVar, TypeVar, Union, cast
+from typing import Any, ClassVar, TypeAlias, TypeVar, cast
 
 import datumaro as dm
 import datumaro.components.annotations.matcher
@@ -330,9 +330,17 @@ class ComparisonParameters(ReportNode):
             return super()._value_serializer(v)
 
     @classmethod
-    def from_dict(cls, d: dict):
+    def from_dict(cls, d: dict) -> ComparisonParameters:
         fields = fields_dict(cls)
         return cls(**{field_name: d[field_name] for field_name in fields if field_name in d})
+
+    @classmethod
+    def from_settings(
+        cls, settings: models.QualitySettings, *, inherited: bool
+    ) -> ComparisonParameters:
+        parameters = cls.from_dict(settings.to_dict())
+        parameters.inherited = inherited
+        return parameters
 
 
 @define(kw_only=True, init=False, slots=False)
@@ -926,9 +934,7 @@ class _MemoizingAnnotationConverterFactory:
     def _make_key(self, dm_ann: dm.Annotation) -> Hashable:
         return id(dm_ann)
 
-    def get_source_ann(
-        self, dm_ann: dm.Annotation
-    ) -> Union[CommonData.Tag, CommonData.LabeledShape]:
+    def get_source_ann(self, dm_ann: dm.Annotation) -> CommonData.Tag | CommonData.LabeledShape:
         return self._annotation_mapping[self._make_key(dm_ann)]
 
     def clear(self):
@@ -963,11 +969,11 @@ class _MemoizingAnnotationConverter(CvatToDmAnnotationConverter):
 
 _ShapeT1 = TypeVar("_ShapeT1")
 _ShapeT2 = TypeVar("_ShapeT2")
-ShapeSimilarityFunction = Callable[
+ShapeSimilarityFunction: TypeAlias = Callable[
     [_ShapeT1, _ShapeT2], float
 ]  # (shape1, shape2) -> [0; 1], returns 0 for mismatches, 1 for matches
-LabelEqualityFunction = Callable[[_ShapeT1, _ShapeT2], bool]
-SegmentMatchingResult = tuple[
+LabelEqualityFunction: TypeAlias = Callable[[_ShapeT1, _ShapeT2], bool]
+SegmentMatchingResult: TypeAlias = tuple[
     list[tuple[_ShapeT1, _ShapeT2]],  # matches
     list[tuple[_ShapeT1, _ShapeT2]],  # mismatches
     list[_ShapeT1],  # a unmatched
@@ -2648,6 +2654,19 @@ class QualityReportManager:
         return ProjectQualityCalculator().compute_report(project=project_id).id
 
 
+class QualitySettingsManager:
+    def get_project_settings(self, project: Project) -> models.QualitySettings:
+        return project.quality_settings
+
+    def get_task_settings(self, task: Task, *, inherit: bool = True) -> models.QualitySettings:
+        quality_settings = task.quality_settings
+
+        if inherit and quality_settings.inherit and task.project:
+            quality_settings = self.get_project_settings(task.project)
+
+        return quality_settings
+
+
 _DEFAULT_FETCH_CHUNK_SIZE = 1000
 
 
@@ -2687,7 +2706,7 @@ class TaskQualityCalculator:
             if not gt_job_id:
                 return None
 
-            quality_params = self._get_quality_params(task)
+            quality_params = self.get_quality_params(task)
 
             all_job_ids: set[int] = set(
                 Job.objects.filter(segment__task=task)
@@ -2953,18 +2972,13 @@ class TaskQualityCalculator:
 
         return db_task_report
 
-    def _get_quality_params(self, task: Task) -> ComparisonParameters:
-        quality_settings, _ = models.QualitySettings.objects.get_or_create(task=task)
-
-        inherited = False
-        if quality_settings.inherit and task.project:
-            quality_settings, _ = models.QualitySettings.objects.get_or_create(project=task.project)
-            inherited = True
-
-        parameters = ComparisonParameters.from_dict(quality_settings.to_dict())
-        parameters.inherited = inherited
-
-        return parameters
+    def get_quality_params(self, task: Task) -> ComparisonParameters:
+        quality_settings_manager = QualitySettingsManager()
+        task_own_settings = quality_settings_manager.get_task_settings(task, inherit=False)
+        task_effective_settings = quality_settings_manager.get_task_settings(task)
+        return ComparisonParameters.from_settings(
+            task_effective_settings, inherited=task_own_settings.id != task_effective_settings.id
+        )
 
 
 class ProjectQualityCalculator:
@@ -2972,9 +2986,7 @@ class ProjectQualityCalculator:
         assert quality_report.target == models.QualityReportTarget.TASK
 
         task = quality_report.task
-        quality_settings: models.QualitySettings = task.quality_settings
-        if quality_settings.inherit:
-            quality_settings = task.project.quality_settings
+        quality_settings = QualitySettingsManager().get_task_settings(task)
 
         return (quality_report.target_last_updated >= task.updated_date) and (
             quality_report.target_last_updated >= quality_settings.updated_date
@@ -2989,7 +3001,7 @@ class ProjectQualityCalculator:
             if isinstance(project, int):
                 project = Project.objects.get(id=project)
 
-            project_quality_params = self._get_quality_params(project)
+            project_quality_params = self.get_quality_params(project)
 
             # Tasks could be added or removed in the project after initial report fetching
             # Fix working the set of tasks by requesting ids first.
@@ -3206,9 +3218,9 @@ class ProjectQualityCalculator:
 
         return project_report
 
-    def _get_quality_params(self, project: Project) -> ComparisonParameters:
-        quality_params, _ = models.QualitySettings.objects.get_or_create(project_id=project.id)
-        return ComparisonParameters.from_dict(quality_params.to_dict())
+    def get_quality_params(self, project: Project) -> ComparisonParameters:
+        quality_settings = QualitySettingsManager().get_project_settings(project)
+        return ComparisonParameters.from_settings(quality_settings, inherited=False)
 
 
 def prepare_report_for_downloading(db_report: models.QualityReport, *, host: str) -> str:

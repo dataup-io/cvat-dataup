@@ -45,6 +45,7 @@ import data.organizations
 #         "assignee": { "id": <num> },
 #         "organization": { "id": <num> } or null,
 #         "rq_job": { "owner": { "id": <num> } } or null,
+#         "destination": <"local" | "cloud_storage"> or undefined,
 #     }
 # }
 
@@ -130,14 +131,14 @@ allow if {
 
 
 allow if {
-    input.scope in {utils.DELETE, utils.UPDATE_ORG, utils.UPDATE_ASSOCIATED_STORAGE}
+    input.scope in {utils.DELETE, utils.UPDATE_ASSOCIATED_STORAGE}
     utils.is_sandbox
     utils.has_perm(utils.WORKER)
     utils.is_resource_owner
 }
 
 allow if {
-    input.scope in {utils.DELETE, utils.UPDATE_ORG, utils.UPDATE_ASSOCIATED_STORAGE}
+    input.scope in {utils.DELETE, utils.UPDATE_ASSOCIATED_STORAGE}
     input.auth.organization.id == input.resource.organization.id
     utils.has_perm(utils.WORKER)
     organizations.is_member
@@ -145,7 +146,7 @@ allow if {
 }
 
 allow if {
-    input.scope in {utils.DELETE, utils.UPDATE_ORG, utils.UPDATE_ASSOCIATED_STORAGE}
+    input.scope in {utils.DELETE, utils.UPDATE_ASSOCIATED_STORAGE}
     input.auth.organization.id == input.resource.organization.id
     utils.has_perm(utils.USER)
     organizations.is_staff

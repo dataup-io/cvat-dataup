@@ -25,7 +25,8 @@ import {
 } from './common';
 
 import User from './user';
-import { AnnotationFormats } from './annotation-formats';
+import AnnotationFormats from './annotation-formats';
+import ApiToken from './api-token';
 import { Task, Job } from './session';
 import Project from './project';
 import CloudStorage from './cloud-storage';
@@ -34,7 +35,7 @@ import Webhook from './webhook';
 import { ArgumentError } from './exceptions';
 import {
     AnalyticsEventsFilter, ClassDistributionFilter, QualityConflictsFilter,
-    SerializedAsset, ConsensusSettingsFilter,
+    SerializedAsset, ConsensusSettingsFilter, SerializedOrganization,
 } from './server-response-types';
 import QualityReport from './quality-report';
 import AboutData from './about';
@@ -228,6 +229,29 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
         return users;
     });
 
+    implementationMixin(cvat.apiTokens.get, async (filter) => {
+        checkFilter(filter, {
+            id: isInteger,
+            page: isInteger,
+            page_size: isInteger,
+            filter: isString,
+            sort: isString,
+            search: isString,
+            name: isString,
+            owner: isInteger,
+            read_only: isBoolean,
+            created_date: isString,
+            updated_date: isString,
+            expiry_date: isString,
+            last_used_date: isString,
+        });
+
+        const result = await serverProxy.apiTokens.get(filter);
+        const tokens = result.map((tokenData) => new ApiToken(tokenData));
+        Object.assign(tokens, { count: result.count });
+        return tokens as PaginatedResource<ApiToken>;
+    });
+
     implementationMixin(cvat.jobs.get, async (
         query: Parameters<CVATCore['jobs']['get']>[0],
         aggregate: Parameters<CVATCore['jobs']['get']>[1],
@@ -371,15 +395,22 @@ export default function implementAPI(cvat: CVATCore): CVATCore {
         checkFilter(filter, {
             search: isString,
             filter: isString,
+            page: isInteger,
+            page_size: isInteger,
+            sort: isString,
         });
 
-        const organizationsData = await serverProxy.organizations.get(filter);
-        const organizations = organizationsData.map((organizationData) => new Organization(organizationData));
-        return organizations;
-    });
-    implementationMixin(cvat.organizations.activate, async (organization) => {
-        checkObjectType('organization', organization, null, Organization);
+        const organizationsPage = await serverProxy.organizations.get(filter);
+        const results = organizationsPage.results.map((org_) => new Organization(org_));
+        Object.assign(results, {
+            count: organizationsPage.count,
+            next: organizationsPage.next,
+        });
 
+        return results as PaginatedResource<SerializedOrganization>;
+    });
+    implementationMixin(cvat.organizations.activate, (organization) => {
+        checkObjectType('organization', organization, null, { cls: Organization, name: 'Organization' });
         config.organization = {
             organizationID: organization.id,
             organizationSlug: organization.slug,

@@ -12,19 +12,22 @@ import Spin from 'antd/lib/spin';
 import notification from 'antd/lib/notification';
 
 import { getInferenceStatusAsync } from 'actions/models-actions';
-import { updateJobAsync } from 'actions/jobs-actions';
-import { getCore, Task, Job } from 'cvat-core-wrapper';
+import { updateJobAsync, jobsActions } from 'actions/jobs-actions';
+import {
+    getCore, Task, Job, FramesMetaData,
+} from 'cvat-core-wrapper';
 import { TaskNotFoundComponent } from 'components/common/not-found';
 import JobListComponent from 'components/task-page/job-list';
 import ModelRunnerModal from 'components/model-runner-modal/model-runner-dialog';
 import CVATLoadingSpinner from 'components/common/loading-spinner';
 import MoveTaskModal from 'components/move-task-modal/move-task-modal';
-import { CombinedState } from 'reducers';
+import { CombinedState, CloudStorage } from 'reducers';
 import JobAnalytics from 'components/task-page/job-analytics';
-import { updateTaskAsync } from 'actions/tasks-actions';
+import { updateTaskAsync, updateTaskMetadataAsync } from 'actions/tasks-actions';
 import TopBarComponent from './top-bar';
 import DetailsComponent from './details';
 import LensChat from '../lens-chat/lens-chat';
+import { getCloudStorageById } from './cloud-storage-editor';
 
 const core = getCore();
 
@@ -33,6 +36,8 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' | '
     const id = +useParams<{ tid: string }>().tid;
     const dispatch = useDispatch();
     const [taskInstance, setTaskInstance] = useState<Task | null>(null);
+    const [taskMeta, setTaskMeta] = useState<FramesMetaData | null>(null);
+    const [cloudStorageInstance, setCloudStorageInstance] = useState<CloudStorage | null>(null);
     const [fetchingTask, setFetchingTask] = useState(true);
     const isLens = tab === 'lens';
 
@@ -40,36 +45,39 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' | '
         deletes,
         updates,
         jobsFetching,
+        bulkFetching,
     } = useSelector((state: CombinedState) => ({
         deletes: state.tasks.activities.deletes,
         updates: state.tasks.activities.updates,
         jobsFetching: state.jobs.fetching,
+        bulkFetching: state.bulkActions.fetching,
     }), shallowEqual);
-    const isTaskUpdating = updates[id] || jobsFetching;
+    const isTaskUpdating = (updates[id] || jobsFetching) && !bulkFetching;
 
-    const receiveTask = (): Promise<Task[]> => {
-        if (Number.isInteger(id)) {
-            const promise = core.tasks.get({ id });
-            promise.then(([task]: Task[]) => {
-                if (task) {
-                    setTaskInstance(task);
+    const receiveTask = async (): Promise<void> => {
+        try {
+            const [task]: Task[] = await core.tasks.get({ id });
+
+            if (task) {
+                setTaskInstance(task);
+                dispatch(jobsActions.getJobsSuccess(
+                    Object.assign([...task.jobs], { count: task.jobs.length })),
+                );
+
+                const meta = await task.meta.get();
+                setTaskMeta(meta);
+
+                if (meta.cloudStorageId) {
+                    const cloudStorage = await getCloudStorageById(meta.cloudStorageId);
+                    setCloudStorageInstance(cloudStorage);
                 }
-            }).catch((error: Error) => {
-                notification.error({
-                    message: 'Could not receive the requested task from the server',
-                    description: error.toString(),
-                });
+            }
+        } catch (error: any) {
+            notification.error({
+                message: 'Could not receive the requested task from the server',
+                description: error.toString(),
             });
-
-            return promise;
         }
-
-        notification.error({
-            message: 'Could not receive the requested task from the server',
-            description: `Requested task id "${id}" is not valid`,
-        });
-
-        return Promise.reject(new Error(`Requested task id "${id}" is not valid`));
     };
 
     useEffect(() => {
@@ -96,9 +104,23 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' | '
         return <TaskNotFoundComponent />;
     }
 
-    const onUpdateTask = (task: Task): Promise<void> => (
-        dispatch(updateTaskAsync(task, {})).then((updatedTask: Task) => {
+    const onUpdateTask = (task: Task): Promise<Task> => {
+        const promise = dispatch(updateTaskAsync(task, {}));
+        promise.then((updatedTask: Task) => {
             setTaskInstance(updatedTask);
+        });
+        return promise;
+    };
+
+    const onUpdateTaskMeta = (meta: FramesMetaData): Promise<void> => (
+        dispatch(updateTaskMetadataAsync(taskInstance, meta)).then((updatedMeta: FramesMetaData) => {
+            setTaskMeta(updatedMeta);
+            if (updatedMeta && updatedMeta.cloudStorageId) {
+                return getCloudStorageById(updatedMeta.cloudStorageId);
+            }
+            return null;
+        }).then((_cloudStorage) => {
+            setCloudStorageInstance(_cloudStorage);
         })
     );
 

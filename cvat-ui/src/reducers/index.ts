@@ -10,7 +10,8 @@ import {
     Webhook, MLModel, Organization, Job, Task, Project, Label, User,
     QualityConflict, FramesMetaData, RQStatus, Event, Invitation, SerializedAPISchema,
     Request, JobValidationLayout, QualitySettings, TaskValidationLayout, ObjectState,
-    ConsensusSettings, AboutData, ShapeType, ObjectType,
+    ConsensusSettings, AboutData, ShapeType, ObjectType, ApiToken,
+    Membership, AnnotationFormats,
 } from 'cvat-core-wrapper';
 import { IntelligentScissors } from 'utils/opencv-wrapper/intelligent-scissors';
 import { KeyMap, KeyMapItem } from 'utils/mousetrap-react';
@@ -23,6 +24,17 @@ export interface AuthState {
     user: User | null;
     showChangePasswordDialog: boolean;
     hasEmailVerificationBeenSent: boolean;
+    apiTokens: {
+        fetching: boolean;
+        current: ApiToken[];
+        count: number;
+    };
+}
+
+export interface ChangePasswordData {
+    oldPassword: string;
+    newPassword1: string;
+    newPassword2: string;
 }
 
 export interface ProjectsQuery {
@@ -52,6 +64,7 @@ export interface ProjectsState {
     fetching: boolean;
     count: number;
     current: Project[];
+    selected: number[];
     previews: {
         [index: number]: Preview;
     };
@@ -95,6 +108,7 @@ export interface JobsState {
     fetching: boolean;
     count: number;
     current: Job[];
+    selected: number[];
     previews: {
         [index: number]: Preview;
     };
@@ -116,6 +130,7 @@ export interface TasksState {
     gettingQuery: TasksQuery;
     count: number;
     current: Task[];
+    selected: number[];
     previews: {
         [index: number]: Preview;
     };
@@ -200,7 +215,7 @@ export interface ConsensusState {
 }
 
 export interface FormatsState {
-    annotationFormats: any;
+    annotationFormats: AnnotationFormats | null;
     fetching: boolean;
     initialized: boolean;
 }
@@ -255,6 +270,33 @@ export interface CloudStoragesState {
             error: string;
         };
     };
+    updateWorkspace: {
+        instances: Task[] | Project[] | null,
+        onUpdate: (() => void) | null;
+    }
+    selected: number[];
+}
+
+export interface BulkActionStatus {
+    message: string;
+    percent: number;
+}
+
+export enum SelectedResourceType {
+    PROJECTS = 'projects',
+    TASKS = 'tasks',
+    JOBS = 'jobs',
+    REQUESTS = 'requests',
+    MEMBERS = 'members',
+    WEBHOOKS = 'webhooks',
+    CLOUD_STORAGES = 'cloudStorages',
+    MODELS = 'models',
+}
+
+export interface BulkActionsState {
+    fetching: boolean;
+    status: BulkActionStatus | null;
+    cancelled: boolean;
 }
 
 export enum SupportedPlugins {
@@ -350,6 +392,14 @@ export interface PluginsState {
         loginPage: {
             loginForm: PluginComponent[];
         };
+        annotationPage: {
+            player: {
+                slider: PluginComponent[];
+            };
+            menuActions: {
+                items: PluginComponent[];
+            };
+        }
         modelsPage: {
             topBar: {
                 items: PluginComponent[];
@@ -386,6 +436,11 @@ export interface PluginsState {
         about: {
             links: {
                 items: PluginComponent[];
+            };
+        };
+        aiTools: {
+            interactors: {
+                extras: PluginComponent[];
             };
         };
         router: PluginComponent[];
@@ -489,6 +544,7 @@ export interface ModelsState {
     previews: {
         [index: string]: Preview;
     };
+    selected: (number | string)[];
 }
 
 export interface ErrorState {
@@ -496,12 +552,23 @@ export interface ErrorState {
     reason: Error;
     shouldLog?: boolean;
     className?: string;
+    ignore?: boolean;
 }
 
 export interface NotificationState {
     message: string;
     description?: string;
     duration?: number;
+    className?: string;
+}
+
+export interface BulkOperationsErrorState extends ErrorState {
+    remainingItemsCount: number;
+    retryPayload: {
+        items: any[];
+        operation: (item: any, idx: number, total: number) => Promise<void>;
+        statusMessage: (item: any, idx: number, total: number) => string;
+    };
 }
 
 export interface NotificationsState {
@@ -514,6 +581,11 @@ export interface NotificationsState {
             changePassword: null | ErrorState;
             requestPasswordReset: null | ErrorState;
             resetPassword: null | ErrorState;
+            updateUser: null | ErrorState;
+            getApiTokens: null | ErrorState;
+            createApiToken: null | ErrorState;
+            updateApiToken: null | ErrorState;
+            revokeApiToken: null | ErrorState;
         };
         serverAPI: {
             fetching: null | ErrorState;
@@ -661,6 +733,9 @@ export interface NotificationsState {
             updating: null | ErrorState;
             deleting: null | ErrorState;
             calling: null | ErrorState;
+        };
+        bulkOperation: {
+            processing: BulkOperationsErrorState | null;
         }
     };
     messages: {
@@ -746,6 +821,7 @@ export enum NavigationType {
     REGULAR = 'regular',
     FILTERED = 'filtered',
     EMPTY = 'empty',
+    CHAPTER = 'chapter',
 }
 
 export interface EditingState {
@@ -825,6 +901,7 @@ export interface AnnotationState {
         navigationBlocked: boolean;
         playing: boolean;
         frameAngles: number[];
+        hoveredChapter: number | null;
     };
     drawing: {
         activeInteractor?: MLModel | OpenCVTool;
@@ -938,7 +1015,7 @@ export interface PlayerSettingsState {
 export interface WorkspaceSettingsState {
     autoSave: boolean;
     autoSaveInterval: number; // in ms
-    aamZoomMargin: number;
+    focusedObjectPadding: number;
     automaticBordering: boolean;
     adaptiveZoom: boolean;
     showObjectsTextAlways: boolean;
@@ -1017,6 +1094,11 @@ export interface OrganizationMembersQuery {
     pageSize: number;
 }
 
+export interface OrganizationsQuery {
+    page: number;
+    search: string;
+}
+
 export interface OrganizationState {
     current?: Organization | null;
     initialized: boolean;
@@ -1026,6 +1108,22 @@ export interface OrganizationState {
     leaving: boolean;
     removingMember: boolean;
     updatingMember: boolean;
+    fetchingMembers: boolean;
+
+    gettingQuery: OrganizationsQuery;
+    currentArray: Organization[];
+    currentArrayFetching: boolean;
+    count: number;
+    nextPageUrl: string | null;
+
+    selectModal: {
+        visible: boolean;
+        onSelectCallback: ((org: Organization | null) => void) | null;
+    };
+
+    members: Membership[];
+    selectedMembers: number[];
+    membersQuery: OrganizationMembersQuery;
 }
 
 export interface WebhooksQuery {
@@ -1040,9 +1138,15 @@ export interface WebhooksQuery {
 
 export interface WebhooksState {
     current: Webhook[],
+    selected: number[];
     totalCount: number;
     fetching: boolean;
     query: WebhooksQuery;
+    activities: {
+        deletes: {
+            [webhookId: number]: boolean; // deleted (deleting if in dictionary)
+        };
+    }
 }
 
 export interface InvitationsQuery {
@@ -1067,7 +1171,8 @@ export interface RequestsState {
     fetching: boolean;
     initialized: boolean;
     requests: Record<string, Request>;
-    disabled: Record<string, boolean>;
+    cancelled: Record<string, boolean>;
+    selected: string[];
     query: RequestsQuery;
 }
 
@@ -1129,6 +1234,7 @@ export interface CombinedState {
     invitations: InvitationsState;
     webhooks: WebhooksState;
     requests: RequestsState;
+    bulkActions: BulkActionsState;
     serverAPI: ServerAPIState;
     navigation: NavigationState;
     agents: AgentsState;

@@ -2,7 +2,6 @@
 //
 // SPDX-License-Identifier: MIT
 
-import { Tensor } from 'onnxruntime-web';
 import { LRUCache } from 'lru-cache';
 import { CVATCore, MLModel, Job } from 'cvat-core-wrapper';
 import { PluginEntryPoint, APIWrapperEnterOptions, ComponentBuilder } from 'components/plugins-entrypoint';
@@ -63,8 +62,8 @@ interface SAMPlugin {
         jobs: Record<number, Job>;
         modelID: string;
         modelURL: string;
-        embeddings: LRUCache<string, Tensor>;
-        lowResMasks: LRUCache<string, Tensor>;
+        embeddings: LRUCache<string, Float32Array>;
+        lowResMasks: LRUCache<string, Float32Array>;
         lastClicks: ClickType[];
     };
     callbacks: {
@@ -78,6 +77,25 @@ interface ClickType {
     y: number;
 }
 
+function toMatImage(input: number[], width: number, height: number): number[][] {
+    const image = Array(height).fill(0);
+    for (let i = 0; i < image.length; i++) {
+        image[i] = Array(width).fill(0);
+    }
+
+    for (let i = 0; i < input.length; i++) {
+        const row = Math.floor(i / width);
+        const col = i % width;
+        image[row][col] = input[i] > 0 ? 255 : 0;
+    }
+
+    return image;
+}
+
+function onnxToImage(input: any, width: number, height: number): number[][] {
+    return toMatImage(input, width, height);
+}
+
 
 
 const samPlugin: SAMPlugin = {
@@ -89,7 +107,7 @@ const samPlugin: SAMPlugin = {
                 async leave(
                     plugin: SAMPlugin,
                     results: any[],
-                    query: { jobID?: number },
+                    query: { jobID?: number; },
                 ): Promise<any> {
                     if (typeof query.jobID === 'number') {
                         [plugin.data.jobs[query.jobID]] = results;
@@ -130,7 +148,7 @@ const samPlugin: SAMPlugin = {
                 },
                 async leave(
                     plugin: SAMPlugin,
-                    result: any,
+                    result: unknown,
                     taskID: number,
                     model: MLModel,
                     args: any,
@@ -173,7 +191,15 @@ const builder: ComponentBuilder = ({ core }) => {
 
     return {
         name: samPlugin.name,
-        destructor: () => {},
+        destructor: () => {
+            samPlugin.data.embeddings.clear();
+            samPlugin.data.lowResMasks.clear();
+            samPlugin.data.worker.terminate();
+            samPlugin.data.lastClicks = [];
+            samPlugin.data.jobs = {};
+            samPlugin.data.core = null;
+            samPlugin.data.initialized = false;
+        },
     };
 };
 

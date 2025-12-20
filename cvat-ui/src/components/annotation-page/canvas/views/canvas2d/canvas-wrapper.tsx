@@ -99,7 +99,7 @@ interface StateToProps {
     saturationLevel: number;
     resetZoom: boolean;
     smoothImage: boolean;
-    aamZoomMargin: number;
+    focusedObjectPadding: number;
     showObjectsTextAlways: boolean;
     textFontSize: number;
     controlPointsSize: number;
@@ -195,7 +195,7 @@ function mapStateToProps(state: CombinedState): StateToProps {
                 smoothImage,
             },
             workspace: {
-                aamZoomMargin,
+                focusedObjectPadding,
                 showObjectsTextAlways,
                 showAllInterpolationTracks,
                 showTagsOnFrame,
@@ -245,7 +245,7 @@ function mapStateToProps(state: CombinedState): StateToProps {
         saturationLevel: saturationLevel / 100,
         resetZoom,
         smoothImage,
-        aamZoomMargin,
+        focusedObjectPadding,
         showObjectsTextAlways,
         textFontSize,
         controlPointsSize,
@@ -407,6 +407,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
             outlineColor,
             showGroundTruth,
             resetZoom,
+            focusedObjectPadding,
         } = this.props;
         const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
@@ -434,6 +435,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
             textPosition,
             textContent,
             resetZoom,
+            focusedObjectPadding,
         });
 
         this.initialSetup();
@@ -477,6 +479,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
             showGroundTruth,
             highlightedConflict,
             imageFilters,
+            focusedObjectPadding,
         } = this.props;
         const { canvasInstance } = this.props as { canvasInstance: Canvas };
 
@@ -497,7 +500,8 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
             prevProps.outlineColor !== outlineColor ||
             prevProps.outlined !== outlined ||
             prevProps.showGroundTruth !== showGroundTruth ||
-            prevProps.resetZoom !== resetZoom
+            prevProps.resetZoom !== resetZoom ||
+            prevProps.focusedObjectPadding !== focusedObjectPadding
         ) {
             canvasInstance.configure({
                 undefinedAttrValue: config.UNDEFINED_ATTRIBUTE_VALUE,
@@ -517,6 +521,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
                 textContent,
                 showConflicts: showGroundTruth,
                 resetZoom,
+                focusedObjectPadding,
             });
         }
 
@@ -996,7 +1001,6 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
         const {
             activatedStateID,
             activatedAttributeID,
-            aamZoomMargin,
             workspace,
             annotations,
         } = this.props;
@@ -1006,7 +1010,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
             const [activatedState] = annotations.filter((state: any): boolean => state.clientID === activatedStateID);
             if (activatedState && workspace === Workspace.ATTRIBUTES) {
                 if (activatedState.objectType !== ObjectType.TAG) {
-                    canvasInstance.focus(activatedStateID, aamZoomMargin);
+                    canvasInstance.focus(activatedStateID);
                 } else {
                     canvasInstance.fit();
                 }
@@ -1047,7 +1051,7 @@ class CanvasWrapperComponent extends React.PureComponent<Props> {
 
                                     const offscreen = new OffscreenCanvas(renderWidth, renderHeight);
                                     const ctx = offscreen.getContext('2d') as OffscreenCanvasRenderingContext2D;
-                                    ctx.drawImage(imageBitmap, 0, 0);
+                                    ctx.drawImage(imageBitmap, 0, 0, renderWidth, renderHeight);
                                     const imageData = ctx.getImageData(0, 0, renderWidth, renderHeight);
 
                                     const newImageData = imageFilters

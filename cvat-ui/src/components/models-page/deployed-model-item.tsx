@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 import React, { useState } from 'react';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { Row, Col } from 'antd/lib/grid';
 import Tag from 'antd/lib/tag';
 import Text from 'antd/lib/typography/Text';
@@ -14,17 +14,18 @@ import Title from 'antd/lib/typography/Title';
 import Meta from 'antd/lib/card/Meta';
 import Divider from 'antd/lib/divider';
 import Card from 'antd/lib/card';
-import Dropdown from 'antd/lib/dropdown';
 import Button from 'antd/lib/button';
-import { MenuProps } from 'antd/lib/menu';
 
 import Preview from 'components/common/preview';
-import { useCardHeightHOC, usePlugins } from 'utils/hooks';
+import { useCardHeightHOC, useContextMenuClick, usePlugins } from 'utils/hooks';
 import { CombinedState } from 'reducers';
 import { MLModel, AgentProvider } from 'cvat-core-wrapper';
+import ModelActionsComponent from './actions-menu';
 
 interface Props {
     model: MLModel;
+    selected: boolean;
+    onClick: (event: React.MouseEvent) => boolean;
 }
 
 const useCardHeight = useCardHeightHOC({
@@ -35,14 +36,19 @@ const useCardHeight = useCardHeightHOC({
     numberOfRows: 3,
 });
 
-export default function DeployedModelItem(props: Props): JSX.Element {
-    const { model } = props;
+export default function DeployedModelItem(props: Readonly<Props>): JSX.Element {
+    const { model, selected, onClick } = props;
     const [isModalShown, setIsModalShown] = useState(false);
     const height = useCardHeight();
+    const { itemRef, handleContextMenuClick } = useContextMenuClick<HTMLDivElement>();
     const style: React.CSSProperties = { height };
 
-    const onOpenModel = (): void => {
-        setIsModalShown(true);
+    const systemModel = model.provider === ModelProviders.CVAT;
+    const onOpenModel = (event: React.MouseEvent): void => {
+        const cancel = !systemModel ? onClick(event) : false;
+        if (!cancel) {
+            setIsModalShown(true);
+        }
     };
     const onCloseModel = (): void => {
         setIsModalShown(false);
@@ -52,20 +58,11 @@ export default function DeployedModelItem(props: Props): JSX.Element {
     const modelDescription = model.provider !== AgentProvider.CVAT ?
         <Text type='secondary'>{`Added ${created}`}</Text> :
         <Text type='secondary'>System model</Text>;
-    console.log(modelDescription);
 
-    const menuItems: [NonNullable<MenuProps['items']>[0], number][] = [];
     const topBarItems: [JSX.Element, number][] = [];
 
-    const menuPlugins = usePlugins(
-        (state: CombinedState) => state.plugins.components.modelsPage.modelItem.menu.items, props,
-    );
     const topBarPlugins = usePlugins(
         (state: CombinedState) => state.plugins.components.modelsPage.modelItem.topBar.menu.items, props,
-    );
-
-    menuItems.push(...menuPlugins
-        .map(({ component, weight }): typeof menuItems[0] => [component({ targetProps: props }), weight]),
     );
 
     topBarItems.push(
@@ -79,6 +76,8 @@ export default function DeployedModelItem(props: Props): JSX.Element {
                 .map((item) => item[0])}
         </div>
     );
+
+    const cardClassName = `cvat-models-item-card${selected ? ' cvat-item-selected' : ''}`;
 
     return (
         <>

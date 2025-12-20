@@ -4,10 +4,10 @@ import argparse
 import functools
 import re
 import sys
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from re import Match, Pattern
-from typing import Callable
 
 SUCCESS_CHAR = "\u2714"
 FAIL_CHAR = "\u2716"
@@ -141,6 +141,11 @@ REPLACEMENT_RULES = [
         "helm-chart/values.yaml",
         re.compile(r"(^    image: cvat/(?:ui|server)\n    tag: )([\w.]+)", re.M),
         lambda v, m: m[1] + v.compose_repr(),
+    ),
+    ReplacementRule(
+        "helm-chart/Chart.yaml",
+        re.compile(r"^version: [\d.]+$", re.M),
+        lambda v, m: f"version: {v.major}.{v.minor}.{v.patch}",
     ),
     ReplacementRule(
         "cvat-sdk/gen/generate.sh",

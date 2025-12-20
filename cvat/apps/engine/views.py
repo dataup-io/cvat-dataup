@@ -17,7 +17,7 @@ from copy import copy
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, Optional, Union, cast
+from typing import Any, cast
 
 import django_rq
 from attr.converters import to_bool
@@ -41,7 +41,7 @@ from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
 from rest_framework.parsers import MultiPartParser
-from rest_framework.permissions import SAFE_METHODS
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.settings import api_settings
 from rq.job import Job as RQJob
@@ -57,15 +57,16 @@ from cvat.apps.engine.cache import (
     LockError,
     MediaCache,
 )
+from cvat.apps.engine.cloud_provider import Status as CloudStorageStatus
 from cvat.apps.engine.cloud_provider import db_storage_to_storage_instance
+from cvat.apps.engine.exceptions import CloudStorageMissingError
 from cvat.apps.engine.frame_provider import (
     DataWithMeta,
-    FrameQuality,
     IFrameProvider,
     JobFrameProvider,
     TaskFrameProvider,
 )
-from cvat.apps.engine.media_extractors import get_mime
+from cvat.apps.engine.media_extractors import get_mime, get_video_chapters
 from cvat.apps.engine.mixins import BackupMixin, DatasetMixin, PartialUpdateModelMixin, UploadMixin
 from cvat.apps.engine.model_utils import bulk_create
 from cvat.apps.engine.models import (
@@ -76,6 +77,7 @@ from cvat.apps.engine.models import (
     CloudStorage,
     Comment,
     Data,
+    FrameQuality,
     Issue,
     Job,
     JobType,
@@ -92,10 +94,12 @@ from cvat.apps.engine.permissions import (
     AnnotationGuidePermission,
     CloudStoragePermission,
     CommentPermission,
+    GuideAssetPermission,
     IssuePermission,
     JobPermission,
     LabelPermission,
     ProjectPermission,
+    ServerPermission,
     TaskPermission,
     UserPermission,
     get_iam_context,
@@ -149,7 +153,7 @@ from cvat.apps.engine.view_utils import (
     tus_chunk_action,
 )
 from cvat.apps.iam.filters import ORGANIZATION_OPEN_API_PARAMETERS
-from cvat.apps.iam.permissions import IsAuthenticatedOrReadPublicResource, PolicyEnforcer
+from cvat.apps.iam.permissions import IsAuthenticatedOrReadPublicResource
 from cvat.apps.redis_handler.serializers import RqIdSerializer
 from utils.dataset_manifest import ImageManifestManager
 
@@ -169,6 +173,7 @@ _RETRY_AFTER_TIMEOUT = 10
 class ServerViewSet(viewsets.ViewSet):
     serializer_class = None
     iam_organization_field = None
+    iam_permission_class = ServerPermission
 
     # To get nice documentation about ServerViewSet actions it is necessary
     # to implement the method. By default, ViewSet doesn't provide it.
@@ -236,7 +241,7 @@ class ServerViewSet(viewsets.ViewSet):
         if directory_param.startswith("/"):
             directory_param = directory_param[1:]
 
-        directory = (Path(settings.SHARE_ROOT) / directory_param).absolute()
+        directory = (Path(settings.SHARE_ROOT) / directory_param).resolve()
 
         if str(directory).startswith(settings.SHARE_ROOT) and directory.is_dir():
             data = []
@@ -363,6 +368,7 @@ class ProjectViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     ordering = "-id"
     lookup_fields = {'owner': 'owner__username', 'assignee': 'assignee__username'}
     iam_organization_field = 'organization'
+    iam_permission_class = ProjectPermission
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -527,7 +533,7 @@ class ProjectViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     def preview(self, request: ExtendedRequest, pk: int):
         self._object = self.get_object() # call check_object_permissions as well
 
-        first_task: Optional[models.Task] = self._object.tasks.order_by("-id").first()
+        first_task: models.Task | None = self._object.tasks.order_by('-id').first()
         if not first_task:
             return HttpResponseNotFound("Project image preview not found")
 
@@ -561,10 +567,7 @@ class ProjectViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
 
 class _DataGetter(metaclass=ABCMeta):
     def __init__(
-        self,
-        data_type: str,
-        data_num: Optional[Union[str, int]],
-        data_quality: str,
+        self, data_type: str, data_num: str | int | None, data_quality: str
     ) -> None:
         possible_data_type_values = ("chunk", "frame", "preview", "context_image")
         possible_quality_values = ("compressed", "original")
@@ -634,6 +637,11 @@ class _DataGetter(metaclass=ABCMeta):
                 data=str(ex),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+        except CloudStorageMissingError as ex:
+            return Response(
+                data=str(ex),
+                status=status.HTTP_409_CONFLICT,
+            )
 
     @abstractmethod
     def _get_chunk_response_headers(self, chunk_data: DataWithMeta) -> dict[str, str]: ...
@@ -662,7 +670,7 @@ class _TaskDataGetter(_DataGetter):
         *,
         data_type: str,
         data_quality: str,
-        data_num: Optional[Union[str, int]] = None,
+        data_num: str | int | None = None,
     ) -> None:
         super().__init__(
             data_type=data_type,
@@ -686,8 +694,8 @@ class _JobDataGetter(_DataGetter):
         *,
         data_type: str,
         data_quality: str,
-        data_num: Optional[Union[str, int]] = None,
-        data_index: Optional[Union[str, int]] = None,
+        data_num: str | int | None = None,
+        data_index: str | int | None = None,
     ) -> None:
         possible_data_type_values = ('chunk', 'frame', 'preview', 'context_image')
         possible_quality_values = ('compressed', 'original')
@@ -748,6 +756,11 @@ class _JobDataGetter(_DataGetter):
                     data=str(ex),
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 )
+            except CloudStorageMissingError as ex:
+                return Response(
+                    data=str(ex),
+                    status=status.HTTP_409_CONFLICT,
+                )
         else:
             return super().__call__()
 
@@ -789,6 +802,86 @@ class _JobDataGetter(_DataGetter):
         }),
     partial_update=extend_schema(
         summary='Update a task',
+        examples=[
+            OpenApiExample(
+                "Update task properties",
+                value={
+                    "name": "string",
+                    "owner_id": 0,
+                    "assignee_id": 0,
+                    "bug_tracker": "string",
+                    "subset": "string",
+                    "target_storage": {
+                        "location": "cloud_storage",
+                        "cloud_storage_id": 0
+                    },
+                    "source_storage": {
+                        "location": "cloud_storage",
+                        "cloud_storage_id": 0
+                    }
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Update task labels",
+                value={
+                    "labels": [
+                        {
+                            "name": "string",
+                            "color": "string",
+                            "attributes": [],
+                            "deleted": False,
+                            "type": "any",
+                            "svg": "string",
+                            "sublabels": [{
+                                "name": "string",
+                                "color": "string",
+                                "attributes": [],
+                                "type": "any",
+                                "has_parent": True
+                            }],
+                        }
+                    ],
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Move task to a project",
+                value={
+                    "project_id": 0,
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Transfer task to personal sandbox",
+                value={
+                    "organization_id": None,
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Transfer task to organization",
+                value={
+                    "organization_id": 1,
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "Transfer a storage linked task to an organization and detach storages",
+                value={
+                    "organization_id": 1,
+                    "source_storage": {
+                        "location": models.Location.LOCAL,
+                        "cloud_storage_id": None,
+                    },
+                    "target_storage": {
+                        "location": models.Location.LOCAL,
+                        "cloud_storage_id": None,
+                    },
+                },
+                request_only=True,
+            )
+        ],
         request=TaskWriteSerializer(partial=True),
         responses={
             '200': TaskReadSerializer, # check TaskWriteSerializer.to_representation
@@ -844,6 +937,7 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
     ordering_fields = list(filter_fields)
     ordering = "-id"
     iam_organization_field = 'organization'
+    iam_permission_class = TaskPermission
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -1224,29 +1318,14 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
         methods=["GET"],
         summary="Get data of a task",
         parameters=[
-            OpenApiParameter(
-                "type",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.STR,
-                enum=["chunk", "frame", "context_image"],
-                description="Specifies the type of the requested data",
-            ),
-            OpenApiParameter(
-                "quality",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.STR,
-                enum=["compressed", "original"],
-                description="Specifies the quality level of the requested data",
-            ),
-            OpenApiParameter(
-                "number",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.INT,
-                description="A unique number value identifying chunk or frame",
-            ),
+            OpenApiParameter('type', location=OpenApiParameter.QUERY, required=True,
+                type=OpenApiTypes.STR, enum=['chunk', 'frame', 'context_image'],
+                description='Specifies the type of the requested data'),
+            OpenApiParameter('quality', location=OpenApiParameter.QUERY, required=False,
+                type=OpenApiTypes.STR, enum=['compressed', 'original'],
+                description="Specifies the quality level of the requested data"),
+            OpenApiParameter('number', location=OpenApiParameter.QUERY, required=False, type=OpenApiTypes.INT,
+                description="A unique number value identifying chunk or frame"),
             OpenApiParameter(
                 _DATA_CHECKSUM_HEADER_NAME,
                 location=OpenApiParameter.HEADER,
@@ -1544,8 +1623,10 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
 
         if hasattr(db_task.data, "video"):
             media = [db_task.data.video]
+            chapters = get_video_chapters(db_task.data.get_manifest_path())
         else:
             media = list(db_task.data.images.all())
+            chapters = None
 
         frame_meta = [
             {
@@ -1562,6 +1643,7 @@ class TaskViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
         db_data = db_task.data
         db_data.frames = frame_meta
         db_data.chunks_updated_date = db_task.get_chunks_updated_date()
+        db_data.chapters = chapters
 
         serializer = DataMetaReadSerializer(db_data)
         return Response(serializer.data)
@@ -1758,8 +1840,9 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
         'segment__task__project__annotation_guide',
     )
 
-    iam_organization_field = "segment__task__organization"
-    search_fields = ("task_name", "project_name", "assignee", "state", "stage")
+    iam_organization_field = 'segment__task__organization'
+    iam_permission_class = JobPermission
+    search_fields = ('task_name', 'project_name', 'assignee', 'state', 'stage')
     filter_fields = list(search_fields) + [
         'id', 'task_id', 'project_id', 'updated_date', 'dimension', 'type', 'parent_job_id',
     ]
@@ -1808,8 +1891,8 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
         if instance.type != JobType.GROUND_TRUTH:
             raise ValidationError("Only ground truth jobs can be removed")
 
-        validation_layout: Optional[models.ValidationLayout] = getattr(
-            instance.segment.task.data, "validation_layout", None
+        validation_layout: models.ValidationLayout | None = getattr(
+            instance.segment.task.data, 'validation_layout', None
         )
         if validation_layout and validation_layout.mode == models.ValidationMode.GT_POOL:
             raise ValidationError(
@@ -2023,27 +2106,14 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
     @extend_schema(
         summary="Get data of a job",
         parameters=[
-            OpenApiParameter(
-                "type",
-                description="Specifies the type of the requested data",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.STR,
-                enum=["chunk", "frame", "context_image"],
-            ),
-            OpenApiParameter(
-                "quality",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.STR,
-                enum=["compressed", "original"],
-                description="Specifies the quality level of the requested data",
-            ),
-            OpenApiParameter(
-                "number",
-                location=OpenApiParameter.QUERY,
-                required=False,
-                type=OpenApiTypes.INT,
+            OpenApiParameter('type', description='Specifies the type of the requested data',
+                location=OpenApiParameter.QUERY, required=True, type=OpenApiTypes.STR,
+                enum=['chunk', 'frame', 'context_image']),
+            OpenApiParameter('quality', location=OpenApiParameter.QUERY, required=False,
+                type=OpenApiTypes.STR, enum=['compressed', 'original'],
+                description="Specifies the quality level of the requested data"),
+            OpenApiParameter('number',
+                location=OpenApiParameter.QUERY, required=False, type=OpenApiTypes.INT,
                 description="A unique number value identifying chunk or frame. "
                 "The numbers are the same as for the task. "
                 "Deprecated for chunks in favor of 'index'",
@@ -2143,6 +2213,10 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
 
         if hasattr(db_data, "video"):
             media = [db_data.video]
+            chapters = get_video_chapters(
+                db_task.data.get_manifest_path(),
+                segment=(data_start_frame, data_stop_frame)
+            )
         else:
             media = [
                 # Insert placeholders if frames are skipped
@@ -2156,6 +2230,7 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
                 for f in db_data.images.all()
                 if f.frame in range(data_start_frame, data_stop_frame + frame_step, frame_step)
             ]
+            chapters = None
 
         deleted_frames = set(db_data.deleted_frames)
         if db_job.type == models.JobType.GROUND_TRUTH:
@@ -2187,6 +2262,7 @@ class JobViewSet(viewsets.GenericViewSet, mixins.ListModelMixin, mixins.CreateMo
         ]
 
         db_data.frames = frame_meta
+        db_data.chapters = chapters
 
         serializer = DataMetaReadSerializer(db_data)
         return Response(serializer.data)
@@ -2317,10 +2393,11 @@ class IssueViewSet(
         "job__segment__task", "owner", "assignee", "job"
     ).all()
 
-    iam_organization_field = "job__segment__task__organization"
-    search_fields = ("owner", "assignee")
-    filter_fields = list(search_fields) + ["id", "job_id", "task_id", "resolved", "frame_id"]
-    simple_filters = list(search_fields) + ["job_id", "task_id", "resolved", "frame_id"]
+    iam_organization_field = 'job__segment__task__organization'
+    iam_permission_class = IssuePermission
+    search_fields = ('owner', 'assignee')
+    filter_fields = list(search_fields) + ['id', 'job_id', 'task_id', 'resolved', 'frame_id']
+    simple_filters = list(search_fields) + ['job_id', 'task_id', 'resolved', 'frame_id']
     ordering_fields = list(filter_fields)
     lookup_fields = {
         "owner": "owner__username",
@@ -2396,10 +2473,11 @@ class CommentViewSet(
 ):
     queryset = Comment.objects.prefetch_related("issue", "issue__job", "owner").all()
 
-    iam_organization_field = "issue__job__segment__task__organization"
-    search_fields = ("owner",)
-    filter_fields = list(search_fields) + ["id", "issue_id", "frame_id", "job_id"]
-    simple_filters = list(search_fields) + ["issue_id", "frame_id", "job_id"]
+    iam_organization_field = 'issue__job__segment__task__organization'
+    iam_permission_class = CommentPermission
+    search_fields = ('owner',)
+    filter_fields = list(search_fields) + ['id', 'issue_id', 'frame_id', 'job_id']
+    simple_filters = list(search_fields) + ['issue_id', 'frame_id', 'job_id']
     ordering_fields = list(filter_fields)
     ordering = "-id"
     lookup_fields = {
@@ -2493,7 +2571,8 @@ class LabelViewSet(
         "project__organization",
     ).all()
 
-    iam_organization_field = ("task__organization", "project__organization")
+    iam_organization_field = ('task__organization', 'project__organization')
+    iam_permission_class = LabelPermission
 
     search_fields = ("name", "parent")
     filter_fields = list(search_fields) + ["id", "type", "color", "parent_id"]
@@ -2648,15 +2727,11 @@ class LabelViewSet(
         },
     ),
 )
-class UserViewSet(
-    viewsets.GenericViewSet,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
-    PartialUpdateModelMixin,
-    mixins.DestroyModelMixin,
-):
-    queryset = User.objects.prefetch_related("groups").all()
-    iam_organization_field = "memberships__organization"
+class UserViewSet(viewsets.GenericViewSet, mixins.ListModelMixin,
+    mixins.RetrieveModelMixin, PartialUpdateModelMixin, mixins.DestroyModelMixin):
+    queryset = User.objects.prefetch_related('groups').all()
+    iam_organization_field = 'memberships__organization'
+    iam_permission_class = UserPermission
 
     search_fields = ("username", "first_name", "last_name")
     filter_fields = list(search_fields) + ["id", "is_active"]
@@ -2765,8 +2840,9 @@ class CloudStorageViewSet(
     simple_filters = list(set(search_fields) - {"description"})
     ordering_fields = list(filter_fields)
     ordering = "-id"
-    lookup_fields = {"owner": "owner__username", "name": "display_name"}
-    iam_organization_field = "organization"
+    lookup_fields = {'owner': 'owner__username', 'name': 'display_name'}
+    iam_organization_field = 'organization'
+    iam_permission_class = CloudStoragePermission
 
     # Multipart support is necessary here, as CloudStorageWriteSerializer
     # contains a file field (key_file).
@@ -2788,7 +2864,7 @@ class CloudStorageViewSet(
 
         provider_type = self.request.query_params.get("provider_type", None)
         if provider_type:
-            if provider_type in CloudProviderChoice.list():
+            if provider_type in CloudProviderChoice.values:
                 return queryset.filter(provider_type=provider_type)
             raise ValidationError("Unsupported type of cloud provider")
         return queryset
@@ -2970,7 +3046,13 @@ class CloudStorageViewSet(
     @extend_schema(
         summary="Get the status of a cloud storage",
         responses={
-            '200': OpenApiResponse(response=OpenApiTypes.STR, description='Cloud Storage status (AVAILABLE | NOT_FOUND | FORBIDDEN)'),
+            '200': OpenApiResponse(
+                response={
+                    'type': 'string',
+                    'enum': CloudStorageStatus.values(),
+                },
+                description='Cloud Storage Status'
+            ),
         })
     @action(detail=True, methods=['GET'], url_path='status')
     def status(self, request: ExtendedRequest, pk: int):
@@ -2983,9 +3065,6 @@ class CloudStorageViewSet(
             message = f"Storage {pk} does not exist"
             slogger.glob.error(message)
             return HttpResponseNotFound(message)
-        except Exception as ex:
-            msg = str(ex)
-            return HttpResponseBadRequest(msg)
 
     @extend_schema(
         summary="Get allowed actions for a cloud storage",
@@ -3047,14 +3126,20 @@ class AssetsViewSet(
     parser_classes = [MultiPartParser]
     search_fields = ()
     ordering = "uuid"
+    iam_permission_class = GuideAssetPermission
 
     def check_object_permissions(self, request: ExtendedRequest, obj):
         super().check_object_permissions(request, obj.guide)
 
     def get_permissions(self):
-        if self.action == "retrieve":
-            return [IsAuthenticatedOrReadPublicResource(), PolicyEnforcer()]
-        return super().get_permissions()
+        permissions = super().get_permissions()
+
+        if self.action == 'retrieve':
+            permissions = [IsAuthenticatedOrReadPublicResource()] + [
+                p for p in permissions if not isinstance(p, IsAuthenticated)
+            ]
+
+        return permissions
 
     def get_serializer_class(self):
         if self.request.method in SAFE_METHODS:
@@ -3146,6 +3231,7 @@ class AnnotationGuidesViewSet(
     search_fields = ()
     ordering = "-id"
     iam_organization_field = None
+    iam_permission_class = AnnotationGuidePermission
 
     def _update_related_assets(self, request: ExtendedRequest, guide: AnnotationGuide):
         existing_assets = list(guide.assets.all())

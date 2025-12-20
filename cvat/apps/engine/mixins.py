@@ -208,7 +208,7 @@ class UploadMixin:
         if chunk.offset != tus_file.offset:
             return self._tus_response(status=status.HTTP_409_CONFLICT)
 
-        if chunk.offset > tus_file.file_size:
+        if chunk.end_offset > tus_file.file_size:
             return self._tus_response(status=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE)
 
         tus_file.write_chunk(chunk)
@@ -366,6 +366,9 @@ class BackupMixin:
                 enum=Location.list()),
             OpenApiParameter('cloud_storage_id', description='Storage id',
                 location=OpenApiParameter.QUERY, type=OpenApiTypes.INT, required=False),
+            OpenApiParameter('lightweight',
+                description='Makes a lightweight backup (without media files) for tasks whose media is located in cloud storage',
+                location=OpenApiParameter.QUERY, type=OpenApiTypes.BOOL, required=False, default=True),
         ],
         request=OpenApiTypes.NONE,
         responses={

@@ -14,10 +14,10 @@ import shutil
 import tempfile
 import threading
 from collections import OrderedDict
-from collections.abc import Generator, Iterator, Sequence
+from collections.abc import Callable, Generator, Iterator, Sequence
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, TypeAlias
 
 import attrs
 import cvat_sdk.auto_annotation as cvataa
@@ -32,7 +32,6 @@ from cvat_sdk.auto_annotation.driver import (
 )
 from cvat_sdk.datasets.caching import make_cache_manager
 from cvat_sdk.exceptions import ApiException
-from typing_extensions import TypeAlias
 
 from .common import CriticalError, FunctionLoader
 
@@ -176,7 +175,7 @@ def _worker_job_get_function_spec():
 
 def _worker_job_detect(
     context: _DetectionFunctionContextImpl, image: PIL.Image.Image
-) -> list[models.LabeledShapeRequest]:
+) -> list[cvataa.DetectionAnnotation]:
     return _current_function.detect(context, image)
 
 
@@ -207,7 +206,7 @@ def _worker_job_init_tracking(
 
 def _worker_job_track(
     task_id: int, image: PIL.Image.Image, states: list[str]
-) -> list[Optional[cvataa.TrackableShape]]:
+) -> list[cvataa.TrackableShape | None]:
     _tracking_states.prune()
 
     pp_image = _current_function.preprocess_image(_TrackingFunctionContextImpl(), image)
@@ -313,7 +312,7 @@ class _TaskCacheLimiter:
 
 def _parse_event_stream(
     stream: SupportsReadline[bytes],
-) -> Iterator[Union[_Event, _NewReconnectionDelay]]:
+) -> Iterator[_Event | _NewReconnectionDelay]:
     # https://html.spec.whatwg.org/multipage/server-sent-events.html#event-stream-interpretation
 
     event_type = event_data = ""
@@ -462,10 +461,10 @@ class _Agent:
                 self._validate_sublabel_compatibility(remote_sl, sl, sl_desc)
 
     def _validate_sublabel_compatibility(
-        self, remote_sl: dict, sl: Optional[models.Sublabel], sl_desc: str
+        self, remote_sl: dict, sl: models.Sublabel | None, sl_desc: str
     ):
         if not sl:
-            raise CriticalError(f"{sl_desc} is not supported.")
+            raise _IncompatibleFunctionError(f"{sl_desc} is not supported.")
 
         if remote_sl["type"] not in {"any", "unknown"} and remote_sl["type"] != sl.type:
             raise _IncompatibleFunctionError(
@@ -656,6 +655,7 @@ class _Agent:
                             # most users should not be affected. For the ones that are, shutdown
                             # will be broken, but everything else should still work fine.
                             # This should be revisited once we drop Python 3.9 support.
+                            # TODO: check in newer versions
                             self._queue_watch_response.shutdown()
 
                 watcher.join()
@@ -742,7 +742,7 @@ class _Agent:
             else:
                 self._client.logger.info("AR %r failed", ar_id)
 
-    def _poll_for_ar(self, category: str) -> Optional[dict]:
+    def _poll_for_ar(self, category: str) -> dict | None:
         while True:
             self._client.logger.info(
                 "Trying to acquire an annotation request of category %r...", category
@@ -816,15 +816,16 @@ class _Agent:
 
         mapper = self._create_annotation_mapper_for_detection_ar(ar_params, ds.labels)
 
-        all_annotations = models.PatchedLabeledDataRequest(shapes=[])
+        all_annotations = models.PatchedLabeledDataRequest(tags=[], shapes=[])
 
         for sample_index, sample in enumerate(ds.samples):
             context = self._create_detection_function_context(ar_params, sample.frame_name)
-            shapes = self._executor.result(
+            annotations = self._executor.result(
                 self._executor.submit(_worker_job_detect, context, sample.media.load_image())
             )
 
-            mapper.validate_and_remap(shapes, sample.frame_index)
+            tags, shapes = mapper.validate_and_remap(annotations, sample.frame_index)
+            all_annotations.tags.extend(tags)
             all_annotations.shapes.extend(shapes)
 
             current_timestamp = datetime.now(tz=timezone.utc)
@@ -846,12 +847,12 @@ class _Agent:
 
         context = self._create_detection_function_context(ar_params, sample.frame_name)
 
-        shapes = self._executor.result(
+        annotations = self._executor.result(
             self._executor.submit(_worker_job_detect, context, sample.media.load_image())
         )
 
-        mapper.validate_and_remap(shapes, sample.frame_index)
-        return {"annotations": models.PatchedLabeledDataRequest(shapes=shapes)}
+        tags, shapes = mapper.validate_and_remap(annotations, sample.frame_index)
+        return {"annotations": models.PatchedLabeledDataRequest(tags=tags, shapes=shapes)}
 
     def _calculate_result_for_tracking_ar(self, ar_id: str, ar_params) -> dict[str, Any]:
         if ar_params["type"] == "init_tracking":

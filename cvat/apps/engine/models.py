@@ -12,9 +12,9 @@ import shutil
 import uuid
 from abc import ABCMeta, abstractmethod
 from collections.abc import Collection, Iterable, Sequence
-from enum import Enum
+from enum import Enum, IntEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, ClassVar, Optional
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -24,6 +24,7 @@ from django.db import IntegrityError, models, transaction
 from django.db.models import Q, TextChoices
 from django.db.models.base import ModelBase
 from django.db.models.fields import FloatField
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
@@ -208,11 +209,7 @@ class AbstractArrayField(models.TextField):
     converter = staticmethod(lambda x: x)
 
     def __init__(
-        self,
-        *args,
-        store_sorted: Optional[bool] = False,
-        unique_values: Optional[bool] = False,
-        **kwargs,
+        self, *args, store_sorted: bool | None = False, unique_values: bool | None = False, **kwargs
     ):
         self._store_sorted = store_sorted
         self._unique_values = unique_values
@@ -280,7 +277,8 @@ class ValidationParams(models.Model):
 
 class ValidationFrame(models.Model):
     validation_params = models.ForeignKey(
-        ValidationParams, on_delete=models.CASCADE, related_name="frames"
+        ValidationParams, on_delete=models.CASCADE,
+        related_name="frames", related_query_name="frame",
     )
     path = models.CharField(max_length=1024, default="")
 
@@ -306,6 +304,11 @@ class ValidationLayout(models.Model):
     def active_frames(self) -> Sequence[int]:
         "An ordered sequence of active (non-disabled) validation frames"
         return set(self.frames).difference(self.disabled_frames)
+
+
+class FrameQuality(IntEnum):
+    COMPRESSED = 0
+    ORIGINAL = 100
 
 
 class Data(models.Model):
@@ -377,11 +380,17 @@ class Data(models.Model):
             StorageChoice.CLOUD_STORAGE: self.get_upload_dirname(),
         }[self.storage]
 
-    def get_compressed_cache_dirname(self):
-        return os.path.join(self.get_data_dirname(), "compressed")
+    def get_static_cache_dirname(self, quality: FrameQuality) -> str:
+        return os.path.join(self.get_data_dirname(), quality.name.lower())
 
-    def get_original_cache_dirname(self):
-        return os.path.join(self.get_data_dirname(), "original")
+    def get_chunk_type(self, quality: FrameQuality) -> DataChoice:
+        if quality == FrameQuality.ORIGINAL:
+            chunk_type = self.original_chunk_type
+        elif quality == FrameQuality.COMPRESSED:
+            chunk_type = self.compressed_chunk_type
+        else:
+            assert False, f"unexpected chunk quality: {quality}"
+        return DataChoice(chunk_type)
 
     @staticmethod
     def _get_chunk_name(segment_id: int, chunk_number: int, chunk_type: DataChoice | str) -> str:
@@ -394,22 +403,12 @@ class Data(models.Model):
 
         return "segment_{}-{}.{}".format(segment_id, chunk_number, ext)
 
-    def _get_compressed_chunk_name(self, segment_id: int, chunk_number: int) -> str:
-        return self._get_chunk_name(segment_id, chunk_number, self.compressed_chunk_type)
-
-    def _get_original_chunk_name(self, segment_id: int, chunk_number: int) -> str:
-        return self._get_chunk_name(segment_id, chunk_number, self.original_chunk_type)
-
-    def get_original_segment_chunk_path(self, chunk_number: int, segment_id: int) -> str:
+    def get_static_segment_chunk_path(
+        self, chunk_number: int, segment_id: int, quality: FrameQuality
+    ) -> str:
         return os.path.join(
-            self.get_original_cache_dirname(),
-            self._get_original_chunk_name(segment_id, chunk_number),
-        )
-
-    def get_compressed_segment_chunk_path(self, chunk_number: int, segment_id: int) -> str:
-        return os.path.join(
-            self.get_compressed_cache_dirname(),
-            self._get_compressed_chunk_name(segment_id, chunk_number),
+            self.get_static_cache_dirname(quality),
+            self._get_chunk_name(segment_id, chunk_number, self.get_chunk_type(quality)),
         )
 
     def get_manifest_path(self) -> str:
@@ -419,14 +418,15 @@ class Data(models.Model):
         data_path = self.get_data_dirname()
         if os.path.isdir(data_path):
             shutil.rmtree(data_path)
-        os.makedirs(self.get_compressed_cache_dirname())
-        os.makedirs(self.get_original_cache_dirname())
+
+        for quality in FrameQuality:
+            os.makedirs(self.get_static_cache_dirname(quality))
         os.makedirs(self.get_upload_dirname())
 
     @transaction.atomic
     def update_validation_layout(
-        self, validation_layout: Optional[ValidationLayout]
-    ) -> Optional[ValidationLayout]:
+        self, validation_layout: ValidationLayout | None
+    ) -> ValidationLayout | None:
         if validation_layout:
             validation_layout.task_data = self
             validation_layout.save()
@@ -436,8 +436,8 @@ class Data(models.Model):
         return validation_layout
 
     @property
-    def validation_mode(self) -> Optional[ValidationMode]:
-        return getattr(getattr(self, "validation_layout", None), "mode", None)
+    def validation_mode(self) -> ValidationMode | None:
+        return getattr(getattr(self, 'validation_layout', None), 'mode', None)
 
 
 class Video(models.Model):
@@ -451,8 +451,10 @@ class Video(models.Model):
 
 
 class Image(models.Model):
-    data = models.ForeignKey(Data, on_delete=models.CASCADE, related_name="images", null=True)
-    path = models.CharField(max_length=1024, default="")
+    data = models.ForeignKey(
+        Data, on_delete=models.CASCADE, related_name="images", related_query_name="image", null=True
+    )
+    path = models.CharField(max_length=1024, default='')
     frame = models.PositiveIntegerField()
     width = models.PositiveIntegerField()
     height = models.PositiveIntegerField()
@@ -472,6 +474,31 @@ class TimestampedModel(models.Model):
 
     def touch(self) -> None:
         self.save(update_fields=["updated_date"])
+
+class AssignableModel(models.Model):
+    assignee = models.ForeignKey(
+        User, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="assigned_%(class)ss", related_query_name="assigned_%(class)s"
+    )
+    assignee_updated_date = models.DateTimeField(null=True, blank=True, default=None)
+
+    class Meta:
+        abstract = True
+
+    def update_assignee(
+        self,
+        assignee_id: int | None,
+        /,
+        *,
+        updated_date: datetime.datetime | None = None,
+    ) -> None:
+        """
+        Updates the assignee id and the corresponding timestamp.
+        Changes are not persisted to the database.
+        """
+        self.assignee_id = assignee_id
+        self.assignee_updated_date = updated_date or timezone.now()
+
 
 class ABCModelMeta(ABCMeta, ModelBase):
     pass
@@ -529,15 +556,10 @@ def clear_annotations_on_frames_in_honeypot_task(db_task: Task, frames: Sequence
             frame__in=frames_batch,
         ).delete()
 
-class Project(TimestampedModel, FileSystemRelatedModel):
+class Project(TimestampedModel, AssignableModel, FileSystemRelatedModel):
     name = SafeCharField(max_length=256)
-    owner = models.ForeignKey(
-        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
-    )
-    assignee = models.ForeignKey(
-        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
-    )
-    assignee_updated_date = models.DateTimeField(null=True, blank=True, default=None)
+    owner = models.ForeignKey(User, null=True, blank=True,
+                              on_delete=models.SET_NULL, related_name="+")
 
     bug_tracker = models.CharField(max_length=2000, blank=True, default="")
     status = models.CharField(max_length=32, choices=StatusChoice.choices(),
@@ -623,7 +645,7 @@ class TaskQuerySet(models.QuerySet):
             }
         )
 
-class Task(TimestampedModel, FileSystemRelatedModel):
+class Task(TimestampedModel, AssignableModel, FileSystemRelatedModel):
     objects = TaskQuerySet.as_manager()
 
     project = models.ForeignKey(
@@ -636,28 +658,23 @@ class Task(TimestampedModel, FileSystemRelatedModel):
     )
     name = SafeCharField(max_length=256)
     mode = models.CharField(max_length=32)
-    owner = models.ForeignKey(
-        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="owners"
-    )
-    assignee = models.ForeignKey(
-        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="assignees"
-    )
-    assignee_updated_date = models.DateTimeField(null=True, blank=True, default=None)
+    owner = models.ForeignKey(User, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="tasks", related_query_name="task")
+
     bug_tracker = models.CharField(max_length=2000, blank=True, default="")
     overlap = models.PositiveIntegerField(null=True)
     # Zero means that there are no limits (default)
     # Note that the files can be split into jobs in a custom way in this case
     segment_size = models.PositiveIntegerField(default=0)
-    status = models.CharField(
-        max_length=32, choices=StatusChoice.choices(), default=StatusChoice.ANNOTATION
+    status = models.CharField(max_length=32, choices=StatusChoice.choices(),
+                              default=StatusChoice.ANNOTATION)
+    data = models.ForeignKey(
+        Data, on_delete=models.CASCADE, null=True, related_name="tasks", related_query_name="task"
     )
-    data = models.ForeignKey(Data, on_delete=models.CASCADE, null=True, related_name="tasks")
-    dimension = models.CharField(
-        max_length=2, choices=DimensionType.choices(), default=DimensionType.DIM_2D
-    )
+    dimension = models.CharField(max_length=2, choices=DimensionType.choices(), default=DimensionType.DIM_2D)
     subset = models.CharField(max_length=64, blank=True, default="")
     organization = models.ForeignKey('organizations.Organization', null=True, default=None,
-        blank=True, on_delete=models.SET_NULL, related_name="tasks")
+        blank=True, on_delete=models.SET_NULL, related_name="tasks", related_query_name="task")
     source_storage = models.ForeignKey('Storage', null=True, default=None,
         blank=True, on_delete=models.SET_NULL, related_name='+')
     target_storage = models.ForeignKey('Storage', null=True, default=None,
@@ -699,21 +716,21 @@ class Task(TimestampedModel, FileSystemRelatedModel):
         )
 
     @cached_property
-    def completed_jobs_count(self) -> Optional[int]:
+    def completed_jobs_count(self) -> int | None:
         # Requires this field to be defined externally,
         # e.g. by calling Task.objects.with_job_summary,
         # to avoid unexpected DB queries on access.
         return None
 
     @cached_property
-    def validation_jobs_count(self) -> Optional[int]:
+    def validation_jobs_count(self) -> int | None:
         # Requires this field to be defined externally,
         # e.g. by calling Task.objects.with_job_summary,
         # to avoid unexpected DB queries on access.
         return None
 
     @cached_property
-    def gt_job(self) -> Optional[Job]:
+    def gt_job(self) -> Job | None:
         try:
             return Job.objects.get(segment__task=self, type=JobType.GROUND_TRUTH)
         except Job.DoesNotExist:
@@ -765,10 +782,12 @@ def upload_path_handler(instance, filename):
 
 # For client files which the user is uploaded
 class ClientFile(models.Model):
-    data = models.ForeignKey(Data, on_delete=models.CASCADE, null=True, related_name="client_files")
-    file = models.FileField(
-        upload_to=upload_path_handler, max_length=1024, storage=MyFileSystemStorage()
+    data = models.ForeignKey(
+        Data, on_delete=models.CASCADE, null=True,
+        related_name='client_files', related_query_name='client_file',
     )
+    file = models.FileField(upload_to=upload_path_handler,
+        max_length=1024, storage=MyFileSystemStorage())
 
     class Meta:
         default_permissions = ()
@@ -781,7 +800,10 @@ class ClientFile(models.Model):
 
 # For server files on the mounted share
 class ServerFile(models.Model):
-    data = models.ForeignKey(Data, on_delete=models.CASCADE, null=True, related_name="server_files")
+    data = models.ForeignKey(
+        Data, on_delete=models.CASCADE, null=True,
+        related_name='server_files', related_query_name='server_file',
+    )
     file = models.CharField(max_length=1024)
 
     class Meta:
@@ -795,7 +817,10 @@ class ServerFile(models.Model):
 
 # For URLs
 class RemoteFile(models.Model):
-    data = models.ForeignKey(Data, on_delete=models.CASCADE, null=True, related_name="remote_files")
+    data = models.ForeignKey(
+        Data, on_delete=models.CASCADE, null=True,
+        related_name='remote_files', related_query_name='remote_file',
+    )
     file = models.CharField(max_length=1024)
 
     class Meta:
@@ -809,12 +834,15 @@ class RemoteFile(models.Model):
 
 class RelatedFile(models.Model):
     data = models.ForeignKey(
-        Data, on_delete=models.CASCADE, related_name="related_files", default=1, null=True
+        Data, on_delete=models.CASCADE,
+        related_name="related_files", related_query_name="related_file",
+        default=1, null=True,
     )
-    path = models.FileField(
-        upload_to=upload_path_handler, max_length=1024, storage=MyFileSystemStorage()
+    path = models.FileField(upload_to=upload_path_handler,
+                            max_length=1024, storage=MyFileSystemStorage())
+    images = models.ManyToManyField(
+        Image, related_name="related_files", related_query_name="related_file"
     )
-    images = models.ManyToManyField(Image, related_name="related_files")
 
     class Meta:
         default_permissions = ()
@@ -945,17 +973,14 @@ class JobQuerySet(models.QuerySet):
             raise TaskGroundTruthJobsLimitError()
 
     def with_issue_counts(self):
-        return self.annotate(issues__count=models.Count('issues'))
+        return self.annotate(issue__count=models.Count('issue'))
 
 
 
-class Job(TimestampedModel, FileSystemRelatedModel):
+class Job(TimestampedModel, AssignableModel, FileSystemRelatedModel):
     objects = JobQuerySet.as_manager()
 
     segment = models.ForeignKey(Segment, on_delete=models.CASCADE)
-
-    assignee = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
-    assignee_updated_date = models.DateTimeField(null=True, blank=True, default=None)
 
     # TODO: it has to be deleted in Job, Task, Project and replaced by (stage, state)
     # The stage field cannot be changed by an assignee, but state field can be. For
@@ -986,13 +1011,13 @@ class Job(TimestampedModel, FileSystemRelatedModel):
     user_can_view_task: MaybeUndefined[bool]
     "Can be defined by the fetching queryset to avoid extra IAM checks, e.g. in a list serializer"
 
-    issues__count: MaybeUndefined[int]
+    issue__count: MaybeUndefined[int]
     "Can be defined by the fetching queryset"
 
-    def get_target_storage(self) -> Optional[Storage]:
+    def get_target_storage(self) -> Storage | None:
         return self.segment.task.target_storage
 
-    def get_source_storage(self) -> Optional[Storage]:
+    def get_source_storage(self) -> Storage | None:
         return self.segment.task.source_storage
 
     def get_dirname(self) -> str:
@@ -1064,7 +1089,10 @@ class Label(models.Model):
     name = SafeCharField(max_length=64)
     color = models.CharField(default='', max_length=8)
     type = models.CharField(max_length=32, choices=LabelType.choices(), default=LabelType.ANY)
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='sublabels')
+    parent = models.ForeignKey(
+        'self', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='sublabels', related_query_name='sublabel',
+    )
 
     def __str__(self):
         return self.name
@@ -1298,16 +1326,14 @@ class Profile(models.Model):
     )
 
 
-class Issue(TimestampedModel):
+class Issue(TimestampedModel, AssignableModel):
     frame = models.PositiveIntegerField()
     position = FloatArrayField()
-    job = models.ForeignKey(Job, related_name="issues", on_delete=models.CASCADE)
-    owner = models.ForeignKey(
-        User, null=True, blank=True, related_name="+", on_delete=models.SET_NULL
+    job = models.ForeignKey(
+        Job, related_name="issues", related_query_name="issue", on_delete=models.CASCADE
     )
-    assignee = models.ForeignKey(
-        User, null=True, blank=True, related_name="+", on_delete=models.SET_NULL
-    )
+    owner = models.ForeignKey(User, null=True, blank=True, related_name='+',
+        on_delete=models.SET_NULL)
     resolved = models.BooleanField(default=False)
 
     def get_project_id(self):
@@ -1328,7 +1354,9 @@ class Issue(TimestampedModel):
 
 
 class Comment(TimestampedModel):
-    issue = models.ForeignKey(Issue, related_name="comments", on_delete=models.CASCADE)
+    issue = models.ForeignKey(
+        Issue, related_name="comments", related_query_name="comment", on_delete=models.CASCADE
+    )
     owner = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
     message = models.TextField(default="")
 
@@ -1348,23 +1376,10 @@ class Comment(TimestampedModel):
     def get_job_id(self):
         return self.issue.get_job_id()
 
-
-class CloudProviderChoice(str, Enum):
-    AWS_S3 = "AWS_S3_BUCKET"
-    AZURE_CONTAINER = "AZURE_CONTAINER"
-    GOOGLE_DRIVE = "GOOGLE_DRIVE"
-    GOOGLE_CLOUD_STORAGE = "GOOGLE_CLOUD_STORAGE"
-
-    @classmethod
-    def choices(cls):
-        return tuple((x.value, x.name) for x in cls)
-
-    @classmethod
-    def list(cls):
-        return [x.value for x in cls]
-
-    def __str__(self):
-        return self.value
+class CloudProviderChoice(TextChoices):
+    AMAZON_S3 = "AWS_S3_BUCKET", "Amazon S3"
+    AZURE_BLOB_STORAGE = "AZURE_CONTAINER", "Azure Blob Storage"
+    GOOGLE_CLOUD_STORAGE = "GOOGLE_CLOUD_STORAGE", "Google Cloud Storage"
 
 
 class CredentialsTypeChoice(str, Enum):
@@ -1388,9 +1403,10 @@ class CredentialsTypeChoice(str, Enum):
 
 
 class Manifest(models.Model):
-    filename = models.CharField(max_length=1024, default="manifest.jsonl")
+    filename = models.CharField(max_length=1024, default='manifest.jsonl')
     cloud_storage = models.ForeignKey(
-        "CloudStorage", on_delete=models.CASCADE, null=True, related_name="manifests"
+        'CloudStorage', on_delete=models.CASCADE, null=True,
+        related_name='manifests', related_query_name='manifest',
     )
 
     def __str__(self):
@@ -1429,11 +1445,11 @@ class CloudStorage(TimestampedModel):
     # specific attributes:
     # location - max 23
     # project ID: 6 - 30 (https://cloud.google.com/resource-manager/docs/creating-managing-projects#before_you_begin)
-    provider_type = models.CharField(max_length=20, choices=CloudProviderChoice.choices())
+    provider_type = models.CharField(max_length=20, choices=CloudProviderChoice.choices)
     resource = models.CharField(max_length=222)
     display_name = models.CharField(max_length=63)
-    owner = models.ForeignKey(
-        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="cloud_storages"
+    owner = models.ForeignKey(User, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name="cloud_storages", related_query_name="cloud_storage"
     )
     credentials = models.CharField(max_length=1024, null=True, blank=True)
     credentials_type = models.CharField(
@@ -1441,13 +1457,9 @@ class CloudStorage(TimestampedModel):
     )  # auth_type
     specific_attributes = models.CharField(max_length=1024, blank=True)
     description = models.TextField(blank=True)
-    organization = models.ForeignKey(
-        "organizations.Organization",
-        null=True,
-        default=None,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="cloudstorages",
+    organization = models.ForeignKey('organizations.Organization', null=True, default=None,
+        blank=True, on_delete=models.SET_NULL,
+        related_name="cloud_storages", related_query_name="cloud_storage",
     )
 
     class Meta:
@@ -1507,9 +1519,12 @@ class Asset(models.Model):
     filename = models.CharField(max_length=1024)
     created_date = models.DateTimeField(auto_now_add=True)
     owner = models.ForeignKey(
-        User, null=True, blank=True, on_delete=models.SET_NULL, related_name="assets"
+        User, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="assets", related_query_name="asset",
     )
-    guide = models.ForeignKey(AnnotationGuide, on_delete=models.CASCADE, related_name="assets")
+    guide = models.ForeignKey(
+        AnnotationGuide, on_delete=models.CASCADE, related_name="assets", related_query_name="asset"
+    )
     content_size = models.PositiveBigIntegerField(null=True)
 
     @property

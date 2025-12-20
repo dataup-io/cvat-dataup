@@ -3,30 +3,36 @@
 #
 # SPDX-License-Identifier: MIT
 
+import io
 import json
 import os
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
+from bisect import bisect_left, insort
+from collections.abc import Callable, Iterable, Iterator
 from contextlib import closing
 from enum import Enum
 from inspect import isgenerator
 from io import StringIO
 from itertools import islice
 from json.decoder import JSONDecodeError
-from typing import Any, Callable, Optional, Union
+from typing import Any
 
 import av
 from PIL import Image
 
-from .errors import InvalidManifestError, InvalidVideoError
+from .errors import InvalidImageError, InvalidManifestError, InvalidPcdError, InvalidVideoError
 from .types import NamedBytesIO
-from .utils import SortingMethod, md5_hash, rotate_image, sort
+from .utils import PcdReader, SortingMethod, md5_hash, rotate_image, sort
+
+# how many frames to check after seeking to validate key frame
+SEEK_MISMATCH_UPPER_BOUND = 200
 
 
 class VideoStreamReader:
     def __init__(self, source_path, chunk_size, force):
         self._source_path = source_path
         self._frames_number = None
+        self._chapters = None
         self._force = force
         self._upper_bound = 3 * chunk_size + 1
 
@@ -35,16 +41,13 @@ class VideoStreamReader:
             for packet in container.demux(video_stream):
                 for frame in packet.decode():
                     # check type of first frame
-                    if not frame.pict_type.name == "I":
+                    if frame.pict_type != av.video.frame.PictureType.I:
                         raise InvalidVideoError("The first frame is not a key frame")
 
                     # get video resolution
-                    if video_stream.metadata.get("rotate"):
+                    if frame.rotation:
                         frame = av.VideoFrame().from_ndarray(
-                            rotate_image(
-                                frame.to_ndarray(format="bgr24"),
-                                360 - int(container.streams.video[0].metadata.get("rotate")),
-                            ),
+                            rotate_image(frame.to_ndarray(format="bgr24"), frame.rotation),
                             format="bgr24",
                         )
                     self.height, self.width = (frame.height, frame.width)
@@ -61,6 +64,23 @@ class VideoStreamReader:
         video_stream.thread_type = "AUTO"
         return video_stream
 
+    @staticmethod
+    def _get_chapters(container):
+        chapters = container.chapters()
+        stream = VideoStreamReader._get_video_stream(container)
+        stream_tb = stream.time_base
+        rescale_q = lambda q, src, dest: int(q * src / dest + 0.5)
+        output_chapters = []
+        for chapter in chapters:
+            output_chapter = {
+                "start": rescale_q(chapter["start"], chapter["time_base"], stream_tb),
+                "end": rescale_q(chapter["end"], chapter["time_base"], stream_tb),
+                "metadata": chapter["metadata"],
+                "id": chapter["id"],
+            }
+            output_chapters.append(output_chapter)
+        return output_chapters
+
     def __len__(self):
         assert (
             self._frames_number is not None
@@ -72,14 +92,58 @@ class VideoStreamReader:
     def resolution(self):
         return (self.width, self.height)
 
-    def validate_key_frame(self, container, video_stream, key_frame):
-        for packet in container.demux(video_stream):
-            for frame in packet.decode():
-                if md5_hash(frame) != key_frame["md5"] or frame.pts != key_frame["pts"]:
-                    return False
-                return True
+    @property
+    def chapters(self):
+        return self._chapters
 
-    def __iter__(self) -> Iterator[Union[int, tuple[int, int, str]]]:
+    def validate_key_frame(
+        self,
+        container: av.container.InputContainer,
+        video_stream: av.video.stream.VideoStream,
+        key_frame: dict,
+        prev_seek_pts: int | None,
+    ) -> int | None:
+        """
+        Returns a pts of the first decoded frame after seeking to the key_frame pts
+        Returns None if the key frame is not suitable for seeking
+        """
+        container.seek(offset=key_frame["pts"], stream=video_stream)
+
+        frames = (frame for packet in container.demux(video_stream) for frame in packet.decode())
+        frames = islice(frames, SEEK_MISMATCH_UPPER_BOUND)
+
+        seek_pts = None
+        for frame in frames:
+            if seek_pts is None:
+                seek_pts = frame.pts
+                # if seek landed on the same frame as previous seek, it is redundant
+                if prev_seek_pts == seek_pts:
+                    return None
+            if frame.pts < key_frame["pts"]:
+                continue
+            if md5_hash(frame) != key_frame["md5"] or frame.pts != key_frame["pts"]:
+                return None
+            return seek_pts
+        return None
+
+    @staticmethod
+    def _find_closest_pts(pts_list, target_pts):
+        if not pts_list:
+            return None
+
+        pos = bisect_left(pts_list, target_pts)
+
+        if pos == 0:
+            return 0
+        if pos == len(pts_list):
+            return len(pts_list) - 1
+
+        before = pts_list[pos - 1]
+        after = pts_list[pos]
+
+        return pos if abs(after - target_pts) < abs(before - target_pts) else pos - 1
+
+    def __iter__(self) -> Iterator[int | tuple[int, int, str]]:
         """
         Iterate over video frames and yield key frames or indexes.
 
@@ -93,9 +157,12 @@ class VideoStreamReader:
         ):
             reading_v_stream = self._get_video_stream(reading_container)
             checking_v_stream = self._get_video_stream(checking_container)
-            prev_pts: Optional[int] = None
-            prev_dts: Optional[int] = None
+            chapters = self._get_chapters(reading_container)
+            index_pts: list[tuple[int, int]] = []
+            prev_pts: int | None = None
+            prev_dts: int | None = None
             index, key_frame_count = 0, 0
+            prev_seek_pts: int | None = None
 
             for packet in reading_container.demux(reading_v_stream):
                 for frame in packet.decode():
@@ -106,6 +173,8 @@ class VideoStreamReader:
                         raise InvalidVideoError("Detected non-increasing DTS sequence in the video")
                     prev_pts, prev_dts = frame.pts, frame.dts
 
+                    insort(index_pts, (index, frame.pts), key=lambda item: item[1])
+
                     if frame.key_frame:
                         key_frame_data = {
                             "pts": frame.pts,
@@ -113,17 +182,15 @@ class VideoStreamReader:
                         }
 
                         # Check that it is possible to seek to this key frame using frame.pts
-                        checking_container.seek(
-                            offset=key_frame_data["pts"],
-                            stream=checking_v_stream,
-                        )
-                        is_valid_key_frame = self.validate_key_frame(
+                        seek_pts = self.validate_key_frame(
                             checking_container,
                             checking_v_stream,
                             key_frame_data,
+                            prev_seek_pts,
                         )
 
-                        if is_valid_key_frame:
+                        if seek_pts is not None:
+                            prev_seek_pts = seek_pts
                             key_frame_count += 1
                             yield (index, key_frame_data["pts"], key_frame_data["md5"])
                         else:
@@ -144,16 +211,35 @@ class VideoStreamReader:
             if not self._frames_number:
                 self._frames_number = index
 
+            if not self._chapters:
+                self._chapters = []
+                pts_list = [item[1] for item in index_pts]
+                for chapter in chapters:
+                    i = self._find_closest_pts(pts_list, chapter["start"])
+                    j = self._find_closest_pts(pts_list, chapter["end"])
+                    start = index_pts[i][0]
+                    stop = index_pts[j][0] - 1
+                    if chapter["end"] > index_pts[-1][1]:
+                        stop = index_pts[j][0]
+                    self._chapters.append(
+                        {
+                            "start": start,
+                            "stop": stop,
+                            "metadata": chapter["metadata"],
+                            "id": chapter["id"],
+                        }
+                    )
+
 
 class DatasetImagesReader:
     def __init__(
         self,
-        sources: Union[list[str], Iterator[NamedBytesIO]],
+        sources: list[str | NamedBytesIO] | Iterable[str | NamedBytesIO],
         *,
         start: int = 0,
         step: int = 1,
-        stop: Optional[int] = None,
-        meta: Optional[dict[str, list[str]]] = None,
+        stop: int | None = None,
+        meta: dict[str, list[str]] | None = None,
         sorting_method: SortingMethod = SortingMethod.PREDEFINED,
         use_image_hash: bool = False,
         **kwargs,
@@ -162,7 +248,7 @@ class DatasetImagesReader:
 
         if not self._is_generator_used:
             raw_data_used = not isinstance(sources[0], str)
-            func: Optional[Callable[[NamedBytesIO], str]] = (
+            func: Callable[[NamedBytesIO], str] | None = (
                 (lambda x: x.filename) if raw_data_used else None
             )
             self._sources = sort(sources, sorting_method, func=func)
@@ -203,8 +289,7 @@ class DatasetImagesReader:
     def step(self, value):
         self._step = int(value)
 
-    def _get_img_properties(self, image: Union[str, NamedBytesIO]) -> dict[str, Any]:
-        img = Image.open(image, mode="r")
+    def _get_img_properties(self, image: str | NamedBytesIO) -> dict[str, Any]:
         if self._data_dir:
             img_name = os.path.relpath(image, self._data_dir)
         else:
@@ -216,30 +301,34 @@ class DatasetImagesReader:
             "extension": extension,
         }
 
-        width, height = img.width, img.height
-        orientation = img.getexif().get(274, 1)
-        if orientation > 4:
-            width, height = height, width
-        image_properties["width"] = width
-        image_properties["height"] = height
+        try:
+            with Image.open(image, mode="r") as img:
+                width, height = img.width, img.height
+                orientation = img.getexif().get(274, 1)
+                if orientation > 4:
+                    width, height = height, width
+                image_properties["width"] = width
+                image_properties["height"] = height
+
+                if self._use_image_hash:
+                    image_properties["checksum"] = md5_hash(img)
+        except (OSError, Image.UnidentifiedImageError) as e:
+            raise InvalidImageError(f"failed to parse image file '{img_name}'") from e
 
         if self._meta and img_name in self._meta:
             image_properties["meta"] = self._meta[img_name]
 
-        if self._use_image_hash:
-            image_properties["checksum"] = md5_hash(img)
-
         return image_properties
 
     def __iter__(self):
-        sources = (
-            self._sources
-            if self._is_generator_used
-            else islice(self._sources, self.start, self.stop + 1, self.step)
-        )
+        sources = iter(self._sources)
+        if self._is_generator_used:
+            sources = islice(sources, self.start, self.stop + 1, self.step)
+
+        included_range = self.range_
 
         for idx in range(self.stop + 1):
-            if idx in range(self.start, self.stop + 1, self.step):
+            if idx in included_range:
                 image = next(sources)
                 yield self._get_img_properties(image)
             else:
@@ -254,29 +343,44 @@ class DatasetImagesReader:
 
 
 class Dataset3DImagesReader(DatasetImagesReader):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def _get_img_properties(self, image):
+        if self._data_dir:
+            img_name = os.path.relpath(image, self._data_dir)
+        else:
+            img_name = os.path.basename(image) if isinstance(image, str) else image.filename
 
-    def __iter__(self):
-        sources = (i for i in self._sources)
-        for idx in range(self._stop + 1):
-            if idx in self.range_:
-                image = next(sources)
-                img_name = (
-                    os.path.relpath(image, self._data_dir)
-                    if self._data_dir
-                    else os.path.basename(image)
-                )
-                name, extension = os.path.splitext(img_name)
-                image_properties = {
-                    "name": name,
-                    "extension": extension,
-                }
-                if self._meta and img_name in self._meta:
-                    image_properties["meta"] = self._meta[img_name]
-                yield image_properties
+        name, extension = os.path.splitext(img_name)
+        image_properties = {
+            "name": name.replace("\\", "/"),
+            "extension": extension,
+        }
+
+        meta = (self._meta or {}).get(img_name, {})
+
+        try:
+            if extension.lower() == ".bin":
+                pcd_image = io.BytesIO()
+                PcdReader.convert_bin_to_pcd_file(image, output_file=pcd_image)
+                pcd_image.seek(0)
+
+                meta["original_name"] = img_name
+                image_properties["extension"] = ".pcd"
             else:
-                yield dict()
+                pcd_image = image
+
+            properties = PcdReader.parse_pcd_header(pcd_image, verify_version=True)
+            image_properties["width"] = int(properties["WIDTH"])
+            image_properties["height"] = int(properties["HEIGHT"])
+        except InvalidPcdError as e:
+            raise InvalidPcdError(f"failed to parse pcd file '{img_name}': {e}") from e
+
+        if meta:
+            image_properties["meta"] = meta
+
+        if self._use_image_hash:
+            image_properties["checksum"] = md5_hash(image)
+
+        return image_properties
 
 
 class _Manifest:
@@ -530,6 +634,7 @@ class VideoManifestManager(_ManifestManager):
                 "name": os.path.basename(self._reader.source_path),
                 "resolution": self._reader.resolution,
                 "length": len(self._reader),
+                "chapters": self._reader.chapters,
             },
         }
         for key, value in base_info.items():
@@ -582,6 +687,10 @@ class VideoManifestManager(_ManifestManager):
     def data(self):
         return self.video_name
 
+    @property
+    def chapters(self):
+        return self["properties"].get("chapters", [])
+
     def get_subset(self, subset_names):
         raise NotImplementedError()
 
@@ -598,12 +707,12 @@ class VideoManifestValidator(VideoManifestManager):
         return video_stream
 
     def validate_key_frame(self, container, video_stream, key_frame):
-        for packet in container.demux(video_stream):
-            for frame in packet.decode():
-                assert (
-                    frame.pts == key_frame["pts"]
-                ), "The uploaded manifest does not match the video"
-                return
+        frames = (frame for packet in container.demux(video_stream) for frame in packet.decode())
+        frames = islice(frames, SEEK_MISMATCH_UPPER_BOUND)
+
+        assert any(
+            frame.pts == key_frame["pts"] for frame in frames
+        ), "The uploaded manifest does not match the video"
 
     def validate_seek_key_frames(self):
         with closing(av.open(self._source_path, mode="r")) as container:
@@ -647,17 +756,17 @@ class ImageManifestManager(_ManifestManager):
             json_line = json.dumps({key: value}, separators=(",", ":"))
             file.write(f"{json_line}\n")
 
-    def _write_core_part(self, file, obj, _tqdm):
-        iterable_obj = (
-            obj
-            if _tqdm is None
-            else _tqdm(
-                obj,
+    def _write_core_part(self, file: io.TextIOBase, obj: Iterable[dict[str, Any]], _tqdm):
+        it = obj
+
+        if _tqdm:
+            it = _tqdm(
+                it,
                 desc="Manifest creating",
                 total=None if not hasattr(obj, "__len__") else len(obj),
             )
-        )
-        for image_properties in iterable_obj:
+
+        for image_properties in it:
             json_line = json.dumps(
                 {key: value for key, value in image_properties.items()}, separators=(",", ":")
             )
@@ -702,10 +811,10 @@ class ImageManifestManager(_ManifestManager):
     def emulate_hierarchical_structure(
         self,
         page_size: int,
-        manifest_prefix: Optional[str] = None,
+        manifest_prefix: str | None = None,
         prefix: str = "",
-        default_prefix: Optional[str] = None,
-        start_index: Optional[int] = None,
+        default_prefix: str | None = None,
+        start_index: int | None = None,
     ) -> dict:
 
         if (
@@ -872,15 +981,10 @@ class _DatasetManifestStructureValidator(_BaseManifestValidator):
             raise InvalidManifestError("Incorrect name field")
         if not isinstance(_dict["extension"], str):
             raise InvalidManifestError("Incorrect extension field")
-        # FIXME
-        # Width and height are required for 2D data, but
-        # for 3D these parameters are not saved now.
-        # It is necessary to uncomment these restrictions when manual preparation for 3D data is implemented.
-
-        # if not isinstance(_dict['width'], int):
-        #     raise InvalidManifestError('Incorrect width field')
-        # if not isinstance(_dict['height'], int):
-        #     raise InvalidManifestError('Incorrect height field')
+        if not isinstance(_dict["width"], int):
+            raise InvalidManifestError("Incorrect width field")
+        if not isinstance(_dict["height"], int):
+            raise InvalidManifestError("Incorrect height field")
 
 
 def is_manifest(full_manifest_path):

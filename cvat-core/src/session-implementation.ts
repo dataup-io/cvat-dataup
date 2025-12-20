@@ -19,6 +19,7 @@ import {
     restoreFrame,
     getCachedChunks,
     getJobFrameNumbers,
+    getFramesMeta,
     clear as clearFrames,
     findFrame,
     getContextImage,
@@ -78,7 +79,7 @@ export function implementJob(Job: typeof JobClass): typeof JobClass {
                 };
 
                 if (jobData.assignee) {
-                    checkObjectType('job assignee', jobData.assignee, null, User);
+                    checkObjectType('job assignee', jobData.assignee, null, { cls: User, name: 'User' });
                     jobData.assignee = jobData.assignee.id;
                 }
 
@@ -135,7 +136,7 @@ export function implementJob(Job: typeof JobClass): typeof JobClass {
             issue: Parameters<typeof JobClass.prototype.openIssue>[0],
             message: Parameters<typeof JobClass.prototype.openIssue>[1],
         ): ReturnType<typeof JobClass.prototype.openIssue> {
-            checkObjectType('issue', issue, null, Issue);
+            checkObjectType('issue', issue, null, { cls: Issue, name: 'Issue' });
             checkObjectType('message', message, 'string');
             const result = await serverProxy.issues.create({
                 ...issue.serialize(),
@@ -285,12 +286,21 @@ export function implementJob(Job: typeof JobClass): typeof JobClass {
         },
     });
 
+    Object.defineProperty(Job.prototype.frames.contextImageData, 'implementation', {
+        value: function contextImageDataImplementation(
+            this: JobClass,
+            frameId: Parameters<typeof JobClass.prototype.frames.contextImageData>[0],
+        ): ReturnType<typeof JobClass.prototype.frames.contextImageData> {
+            return serverProxy.frames.getImageContext(this.id, frameId);
+        },
+    });
+
     Object.defineProperty(Job.prototype.frames.contextImage, 'implementation', {
         value: function contextImageImplementation(
             this: JobClass,
             frameId: Parameters<typeof JobClass.prototype.frames.contextImage>[0],
         ): ReturnType<typeof JobClass.prototype.frames.contextImage> {
-            return getContextImage(this.id, frameId);
+            return getContextImage(this.id, frameId, (frame) => this.frames.contextImageData(frame));
         },
     });
 
@@ -680,6 +690,9 @@ export function implementTask(Task: typeof TaskClass): typeof TaskClass {
                         bugTracker: 'bug_tracker',
                         projectId: 'project_id',
                         assignee: 'assignee_id',
+                        organizationId: 'organization_id',
+                        sourceStorage: 'source_storage',
+                        targetStorage: 'target_storage',
                     }),
                 };
 
@@ -740,6 +753,9 @@ export function implementTask(Task: typeof TaskClass): typeof TaskClass {
             }
             if (typeof this.subset !== 'undefined') {
                 taskSpec.subset = this.subset;
+            }
+            if (typeof this.organizationId !== 'undefined') {
+                taskSpec.organization_id = this.organizationId;
             }
 
             if (this.targetStorage) {
@@ -848,8 +864,15 @@ export function implementTask(Task: typeof TaskClass): typeof TaskClass {
             targetStorage: Parameters<typeof TaskClass.prototype.backup>[0],
             useDefaultSettings: Parameters<typeof TaskClass.prototype.backup>[1],
             fileName: Parameters<typeof TaskClass.prototype.backup>[2],
+            lightweight: Parameters<typeof TaskClass.prototype.backup>[3],
         ): ReturnType<typeof TaskClass.prototype.backup> {
-            const rqID = await serverProxy.tasks.backup(this.id, targetStorage, useDefaultSettings, fileName);
+            const rqID = await serverProxy.tasks.backup(
+                this.id,
+                targetStorage,
+                useDefaultSettings,
+                fileName,
+                lightweight,
+            );
             return rqID;
         },
     });
@@ -978,6 +1001,23 @@ export function implementTask(Task: typeof TaskClass): typeof TaskClass {
         },
     });
 
+    Object.defineProperty(Task.prototype.meta.get, 'implementation', {
+        value: async function saveFramesImplementation(
+            this: TaskClass,
+        ): ReturnType<typeof TaskClass.prototype.meta.get> {
+            return getFramesMeta('task', this.id).then((_meta) => _meta);
+        },
+    });
+
+    Object.defineProperty(Task.prototype.meta.save, 'implementation', {
+        value: async function saveFramesImplementation(
+            this: TaskClass,
+            meta: Parameters<typeof TaskClass.prototype.meta.save>[0],
+        ): ReturnType<typeof TaskClass.prototype.meta.save> {
+            return patchMeta(this.id, meta, 'task').then((_meta) => _meta);
+        },
+    });
+
     Object.defineProperty(Task.prototype.frames.search, 'implementation', {
         value: async function searchFrameImplementation(
             this: TaskClass,
@@ -1016,6 +1056,14 @@ export function implementTask(Task: typeof TaskClass): typeof TaskClass {
             }
 
             return null;
+        },
+    });
+
+    Object.defineProperty(Task.prototype.frames.contextImageData, 'implementation', {
+        value: function contextImageDataImplementation(
+            this: TaskClass,
+        ): ReturnType<typeof TaskClass.prototype.frames.contextImageData> {
+            throw new Error('Not implemented for Task');
         },
     });
 
