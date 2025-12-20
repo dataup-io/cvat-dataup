@@ -262,6 +262,24 @@ services:
     networks:
       - cvat
 
+  cvat_worker_lens:
+    container_name: cvat_worker_lens
+    image: dataupltd/cvat-dataup-server:${CVAT_DATAUP_VERSION:-v1.0}
+    restart: always
+    depends_on: *backend-deps
+    environment:
+      <<: [*backend-env, *clickhouse-env]
+      CVAT_REDIS_INMEM_PASSWORD: ''
+      NUMPROCS: 1
+      DATAUP_BASE_URL: '${DATAUP_BASE_URL:-https://api.data-up.io}'
+    command: run worker lens
+    volumes:
+      - cvat_data:/home/django/data
+      - cvat_keys:/home/django/keys
+      - cvat_logs:/home/django/logs
+    networks:
+      - cvat
+
   cvat_ui:
     container_name: cvat_ui
     image: dataupltd/cvat-dataup-ui:${CVAT_DATAUP_VERSION:-v1.0}
