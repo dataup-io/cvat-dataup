@@ -141,7 +141,15 @@ function TaskPageComponent({ tab }: { tab: 'overview' | 'jobs' | 'analytics' | '
             >
                 <Col span={23}>
                     {!isLens && <TopBarComponent taskInstance={taskInstance} />}
-                    {!isLens && <DetailsComponent task={taskInstance} onUpdateTask={onUpdateTask} />}
+                    {!isLens && (
+                        <DetailsComponent
+                            task={taskInstance}
+                            onUpdateTask={onUpdateTask}
+                            taskMeta={taskMeta}
+                            cloudStorageInstance={cloudStorageInstance}
+                            onUpdateTaskMeta={onUpdateTaskMeta}
+                        />
+                    )}
                     <div style={{ marginTop: isLens ? 0 : 24 }}>
                         {tab === 'overview' ? (
                             <JobAnalytics jobs={taskInstance.jobs} taskId={taskInstance.id} />

@@ -12,8 +12,8 @@ import {
 } from 'cvat-core-wrapper';
 
 interface Props {
-    taskMeta: FramesMetaData,
-    cloudStorageInstance: CloudStorage,
+    taskMeta: FramesMetaData | null | undefined;
+    cloudStorageInstance: CloudStorage | null;
     onUpdateTaskMeta: (meta: FramesMetaData) => Promise<void>;
 }
 
@@ -37,7 +37,7 @@ export default function CloudStorageEditorComponent(props: Props): JSX.Element |
 
     const label = <Text type='secondary'>Cloud storage</Text>;
 
-    if (taskMeta.storage !== StorageLocation.CLOUD_STORAGE) {
+    if (!taskMeta || taskMeta.storage !== StorageLocation.CLOUD_STORAGE) {
         return null;
     }
 

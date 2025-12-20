@@ -107,8 +107,9 @@ RUN adduser --uid=1000 --shell /bin/bash --disabled-password --gecos "" ${USER}
     RUN python -m pip install -U pip==${PIP_VERSION}
 
     # Install prebuilt wheels (includes av wheel from PyPI)
+    # Use --find-links to prefer wheels from wheelhouse, but allow PyPI fallback for missing dependencies
     RUN --mount=type=bind,from=build-image,source=/tmp/wheelhouse,target=/mnt/wheelhouse \
-        python -m pip install --no-index /mnt/wheelhouse/*.whl
+        python -m pip install --find-links /mnt/wheelhouse /mnt/wheelhouse/*.whl
 
     # Optional debugpy for VS Code
     ARG CVAT_DEBUG_ENABLED

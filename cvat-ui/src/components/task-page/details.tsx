@@ -29,7 +29,7 @@ import ProjectSubsetField from '../create-task-page/project-subset-field';
 interface OwnProps {
     task: Task;
     onUpdateTask: (task: Task) => Promise<Task>;
-    taskMeta: FramesMetaData;
+    taskMeta: FramesMetaData | null;
     cloudStorageInstance: CloudStorage | null;
     onUpdateTaskMeta: (meta: FramesMetaData) => Promise<void>;
 }

@@ -6,31 +6,19 @@
 import React from 'react';
 import { Row, Col } from 'antd/lib/grid';
 import Pagination from 'antd/lib/pagination';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import moment from 'moment';
 import { MLModel } from 'cvat-core-wrapper';
 import { AgentProvider } from 'cvat-core/src/enums';
 import { getModelsAsync } from 'actions/models-actions';
 import dimensions from 'utils/dimensions';
 import BulkWrapper from 'components/bulk-wrapper';
-import { ModelsQuery, SelectedResourceType } from 'reducers';
+import { ModelsQuery, SelectedResourceType, CombinedState } from 'reducers';
 
 import DeployedModelItem from './deployed-model-item';
 
 interface Props {
     query: ModelsQuery;
-}
-
-function setUpModelsList(models: MLModel[], newPage: number, pageSize: number): MLModel[] {
-    // Filter to only include lambda models (CVAT provider) and exclude agent models (DATAUP provider)
-    const lambdaModels = models.filter((model: MLModel) => model.provider !== AgentProvider.DATAUP);
-
-    // Separate built-in and external models
-    const builtInModels = lambdaModels.filter((model: MLModel) => model.provider === AgentProvider.CVAT);
-    const externalModels = lambdaModels.filter((model: MLModel) => model.provider !== AgentProvider.CVAT);
-    externalModels.sort((a, b) => moment(a.createdDate).valueOf() - moment(b.createdDate).valueOf());
-
-    const renderModels = [...builtInModels, ...externalModels];
-    return renderModels.slice((newPage - 1) * pageSize, newPage * pageSize);
 }
 
 export default function DeployedModelsListComponent(props: Props): JSX.Element {
@@ -42,8 +30,18 @@ export default function DeployedModelsListComponent(props: Props): JSX.Element {
     const organizationInitialized = useSelector((state: CombinedState) => state.organizations.initialized);
 
     const dispatch = useDispatch();
-    const { query, models, totalCount } = props;
+    const { query } = props;
     const { page, pageSize } = query;
+
+    // Combine all model arrays from Redux state
+    const allModels = [...interactors, ...detectors, ...trackers, ...reid];
+
+    // Filter and sort models (same logic as parent component)
+    const lambdaModels = allModels.filter((model: MLModel) => model.provider !== AgentProvider.DATAUP);
+    const builtInModels = lambdaModels.filter((model: MLModel) => model.provider === AgentProvider.CVAT);
+    const externalModels = lambdaModels.filter((model: MLModel) => model.provider !== AgentProvider.CVAT);
+    externalModels.sort((a, b) => moment(a.createdDate).valueOf() - moment(b.createdDate).valueOf());
+    const models = [...builtInModels, ...externalModels];
 
     const groupedModels = models.reduce(
         (acc: MLModel[][], storage: MLModel, index: number): MLModel[][] => {
