@@ -6,7 +6,6 @@
 import './styles.scss';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useHistory } from 'react-router';
 import Modal from 'antd/lib/modal';
 import Button from 'antd/lib/button';
 import notification from 'antd/lib/notification';
@@ -29,8 +28,8 @@ function ApisTablePage(): JSX.Element {
     const {
         current: agents,
         count,
-        next_cursor,
-        previous_cursor,
+        next_cursor: nextCursor,
+        previous_cursor: previousCursor,
         gettingQuery,
         fetching,
         missingApiKey,
@@ -40,14 +39,13 @@ function ApisTablePage(): JSX.Element {
         agents,
         agentsLength: agents?.length,
         count,
-        next_cursor,
-        previous_cursor,
+        nextCursor,
+        previousCursor,
         fetching,
         gettingQuery,
     });
 
     const searchValue = gettingQuery.search || '';
-    const pageSize = 10; // Fixed page size for cursor pagination
 
     const handleSearch = useCallback((search: string) => {
         const query = {
@@ -61,7 +59,7 @@ function ApisTablePage(): JSX.Element {
     }, [dispatch, gettingQuery]);
 
     const handlePageChange = useCallback((direction: 'next' | 'previous') => {
-        const cursor = direction === 'next' ? next_cursor : previous_cursor;
+        const cursor = direction === 'next' ? nextCursor : previousCursor;
         if (cursor) {
             const query = {
                 ...gettingQuery,
@@ -72,7 +70,7 @@ function ApisTablePage(): JSX.Element {
             };
             dispatch(agentActions.updateAgentsGettingQuery(query));
         }
-    }, [dispatch, gettingQuery, next_cursor, previous_cursor]);
+    }, [dispatch, gettingQuery, nextCursor, previousCursor]);
 
     const handleCreateApi = useCallback(() => {
         setCreateModalVisible(true);
@@ -183,8 +181,8 @@ function ApisTablePage(): JSX.Element {
             <ApisTableComponent
                 apis={agents as any}
                 total={count}
-                nextCursor={next_cursor || null}
-                previousCursor={previous_cursor || null}
+                nextCursor={nextCursor || null}
+                previousCursor={previousCursor || null}
                 onPageChange={handlePageChange}
                 onEditApi={handleEditApi}
                 onDeleteApi={handleDeleteApi}

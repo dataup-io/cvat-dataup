@@ -140,11 +140,11 @@ function DataUpApiKeysPage(): JSX.Element {
         }
     }, [loadApiKeys, message]);
 
-    const showModal = () => {
+    const showModal = (): void => {
         setIsModalVisible(true);
     };
 
-    const handleCancel = () => {
+    const handleCancel = (): void => {
         setIsModalVisible(false);
         form.resetFields();
     };
@@ -158,20 +158,7 @@ function DataUpApiKeysPage(): JSX.Element {
                 label: values.description
             };
 
-            const newKey = await core.dataupApiKeys.create(keyData);
-
-            const formattedKey: ApiKey = {
-                id: newKey?.id || '',
-                name: newKey?.name || '',
-                key: newKey?.key || '',
-                createdAt: newKey?.created_date || newKey?.created_at || '',
-                lastUsed: newKey?.last_used || newKey?.last_used_at,
-                organization: newKey?.organization,
-                allowed_roles: newKey?.allowed_roles || [],
-                label: newKey?.label,
-                default: newKey?.default || false,
-                owner_name: newKey?.owner_name
-            };
+            await core.dataupApiKeys.create(keyData);
 
             // Force refresh the data to ensure we have the latest state
             await loadApiKeys(true);
@@ -259,7 +246,7 @@ function DataUpApiKeysPage(): JSX.Element {
         {
             title: 'Status',
             key: 'status',
-            render: (text: string, record: ApiKey) => (
+            render: () => (
                 <Badge
                     color="green"
                     text="Active"
@@ -435,7 +422,7 @@ function DataUpApiKeysPage(): JSX.Element {
                         key="create"
                         type="primary"
                         loading={loading}
-                        onClick={() => form.submit()}
+                        onClick={(): void => form.submit()}
                     >
                         Add Key
                     </Button>,

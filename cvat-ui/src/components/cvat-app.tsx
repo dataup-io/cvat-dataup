@@ -10,8 +10,6 @@ import Layout from 'antd/lib/layout';
 import Modal from 'antd/lib/modal';
 import { App } from 'antd';
 import Spin from 'antd/lib/spin';
-import { DisconnectOutlined } from '@ant-design/icons';
-import Space from 'antd/lib/space';
 import Text from 'antd/lib/typography/Text';
 
 import LogoutComponent from 'components/logout-component';
@@ -189,6 +187,88 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
         isPasswordResetEnabled,
         isRegistrationEnabled,
     } = props;
+
+    const resetNotifications = (): void => {
+        notification.destroy();
+        resetErrors();
+        resetMessages();
+    };
+
+    const showMessages = (): void => {
+        function showMessage(notificationState: NotificationState): void {
+            notification.info({
+                message: (
+                    <CVATMarkdown history={history}>{notificationState.message}</CVATMarkdown>
+                ),
+                description: notificationState?.description && (
+                    <CVATMarkdown history={history}>{notificationState?.description}</CVATMarkdown>
+                ),
+                duration: notificationState.duration ?? null,
+                className: notificationState.className,
+            });
+        }
+
+        let shown = false;
+        for (const where of Object.keys(notifications.messages)) {
+            for (const what of Object.keys((notifications as any).messages[where])) {
+                const notificationState = (notifications as any).messages[where][what] as NotificationState;
+                shown = shown || !!notificationState;
+                if (notificationState) {
+                    showMessage(notificationState);
+                }
+            }
+        }
+
+        if (shown) {
+            resetMessages();
+        }
+    };
+
+    const showErrors = (): void => {
+        function showError(title: string, _error: Error, shouldLog?: boolean, className?: string): void {
+            const error = _error?.message || _error.toString();
+            const dynamicProps = typeof className === 'undefined' ? {} : { className };
+
+            let errorLength = error.length;
+            // Do not count the length of the link in the Markdown error message
+            if (/]\(.+\)/.test(error)) {
+                errorLength = error.replace(/]\(.+\)/, ']').length;
+            }
+
+            notification.error({
+                ...dynamicProps,
+                message: (
+                    <CVATMarkdown history={history}>{title}</CVATMarkdown>
+                ),
+                duration: null,
+                description: errorLength > appConfig.MAXIMUM_NOTIFICATION_MESSAGE_LENGTH ?
+                    'Open the Browser Console to get details' : <CVATMarkdown history={history}>{error}</CVATMarkdown>,
+            });
+
+            if (shouldLog) {
+                setTimeout(() => {
+                    // throw the error to be caught by global listener
+                    throw _error;
+                });
+            } else {
+                console.error(error);
+            }
+        }
+
+        let shown = false;
+        for (const where of Object.keys(notifications.errors)) {
+            for (const what of Object.keys((notifications as any).errors[where])) {
+                const error = (notifications as any).errors[where][what] as ErrorState;
+                shown = shown || !!error;
+                if (error && !error.ignore) {
+                    showError(error.message, error.reason, error.shouldLog, error.className);
+                }
+            }
+        }
+        if (shown) {
+            resetErrors();
+        }
+    };
 
     React.useEffect(() => {
         // Add a timeout to prevent the entire useEffect from hanging
@@ -471,91 +551,6 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
         history, serverAPISchemaFetching, serverAPISchemaInitialized, state.backendIsHealthy
     ]);
 
-    const showMessages = (): void => {
-
-        function showMessage(notificationState: NotificationState): void {
-            notification.info({
-                message: (
-                    <CVATMarkdown history={history}>{notificationState.message}</CVATMarkdown>
-                ),
-                description: notificationState?.description && (
-                    <CVATMarkdown history={history}>{notificationState?.description}</CVATMarkdown>
-                ),
-                duration: notificationState.duration ?? null,
-                className: notificationState.className,
-            });
-        }
-
-        let shown = false;
-        for (const where of Object.keys(notifications.messages)) {
-            for (const what of Object.keys((notifications as any).messages[where])) {
-                const notificationState = (notifications as any).messages[where][what] as NotificationState;
-                shown = shown || !!notificationState;
-                if (notificationState) {
-                    showMessage(notificationState);
-                }
-            }
-        }
-
-        if (shown) {
-            resetMessages();
-        }
-    }
-
-    const showErrors = (): void => {
-
-        function showError(title: string, _error: Error, shouldLog?: boolean, className?: string): void {
-            const error = _error?.message || _error.toString();
-            const dynamicProps = typeof className === 'undefined' ? {} : { className };
-
-            let errorLength = error.length;
-            // Do not count the length of the link in the Markdown error message
-            if (/]\(.+\)/.test(error)) {
-                errorLength = error.replace(/]\(.+\)/, ']').length;
-            }
-
-            notification.error({
-                ...dynamicProps,
-                message: (
-                    <CVATMarkdown history={history}>{title}</CVATMarkdown>
-                ),
-                duration: null,
-                description: errorLength > appConfig.MAXIMUM_NOTIFICATION_MESSAGE_LENGTH ?
-                    'Open the Browser Console to get details' : <CVATMarkdown history={history}>{error}</CVATMarkdown>,
-            });
-
-            if (shouldLog) {
-                setTimeout(() => {
-                    // throw the error to be caught by global listener
-                    throw _error;
-                });
-            } else {
-                console.error(error);
-            }
-        }
-
-        let shown = false;
-        for (const where of Object.keys(notifications.errors)) {
-            for (const what of Object.keys((notifications as any).errors[where])) {
-                const error = (notifications as any).errors[where][what] as ErrorState;
-                shown = shown || !!error;
-                if (error && !error.ignore) {
-                    showError(error.message, error.reason, error.shouldLog, error.className);
-                }
-            }
-        }
-        if (shown) {
-            resetErrors();
-        }
-    }
-
-    const resetNotifications = (): void => {
-
-        notification.destroy();
-        resetErrors();
-        resetMessages();
-    };
-
     // Where you go depends on your URL
     const render = (): JSX.Element => {
         try {
@@ -584,9 +579,13 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
         if (readyForRender) {
             if (user && user.isVerified) {
                 // Check if the current path is the annotation page
-                const isAnnotationPage = location.pathname.match(/\/tasks\/[0-9]+\/jobs\/[0-9]+$/i);
+                const isAnnotationPage = location.pathname.match(
+                    /\/tasks\/[0-9]+\/jobs\/[0-9]+$/i
+                );
                 // Check if the current path is the visual comparison page
-                const isVisualComparisonPage = location.pathname.match(/\/agents\/benchmarks\/[^/]+\/visual\/[^/]+/i);
+                const isVisualComparisonPage = location.pathname.match(
+                    /\/agents\/benchmarks\/[^/]+\/visual\/[^/]+/i
+                );
 
                 return (
                     <GlobalErrorBoundary>
@@ -762,6 +761,7 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                     <h2>Application Error</h2>
                     <p>Something went wrong while loading the application.</p>
                     <button
+                        type="button"
                         onClick={() => window.location.reload()}
                         style={{
                             padding: '8px 16px',

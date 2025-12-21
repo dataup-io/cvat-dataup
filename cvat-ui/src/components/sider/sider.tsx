@@ -31,7 +31,6 @@ interface StateToProps {
     user: {
         isSuperuser: boolean;
         groups: string[];
-        plan?: string;
     };
     isModelsPluginActive: boolean;
     currentOrganization: any;
@@ -62,7 +61,6 @@ function mapStateToProps(state: CombinedState): StateToProps {
         user: {
             isSuperuser: user?.isSuperuser ?? false,
             groups: user?.groups ?? [],
-            plan: user?.plan,
         },
         isModelsPluginActive: list.MODELS,
         currentOrganization: current,
@@ -72,7 +70,7 @@ function mapStateToProps(state: CombinedState): StateToProps {
 type Props = StateToProps;
 
 function SiderComponent(props: Props): JSX.Element {
-    const { user, isModelsPluginActive, currentOrganization } = props;
+    const { user, isModelsPluginActive } = props;
     const history = useHistory();
     const items = useMemo(() => {
         const baseItems = [
