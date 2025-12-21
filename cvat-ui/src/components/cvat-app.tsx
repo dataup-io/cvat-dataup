@@ -85,7 +85,7 @@ import InvitationWatcher from './invitation-watcher/invitation-watcher';
 import Sider from './sider/sider';
 import WelcomePage from './welcome-page/welcome-page';
 import ProfilePageComponent from './profile-page/profile-page';
-import ApiKeysPage from './api-keys-page/api-keys-page';
+import SecurityPageRouter from './security-page/security-page-router';
 import ModelsPageComponent from './models-page/models-page';
 import agentsPage from './agents-page/agents-page';
 import pipelinesPage from './pipelines-page/pipelines-page';
@@ -648,7 +648,12 @@ const CVATApplication: React.FC<CVATAppProps & RouteComponentProps> = (props) =>
                                             <Route exact path='/organization' component={OrganizationPage} />
                                             <Route exact path='/requests' component={RequestsPage} />
                                             <Route exact path='/profile' component={ProfilePageComponent} />
-                                            <Route exact path='/api-keys' component={ApiKeysPage} />
+                                            <Route path='/security'>
+                                                <Switch>
+                                                    <Redirect exact from='/security' to='/security/dataup-keys' />
+                                                    <Route path='/security/:tab' component={SecurityPageRouter} />
+                                                </Switch>
+                                            </Route>
                                             {routesToRender}
                                             {isModelPluginActive &&
                                                 (

@@ -8,7 +8,7 @@ import BenchmarkImageOverlayViewer from './benchmark-image-overlay-viewer';
 const { Text } = Typography;
 
 // Transform backend prediction response to frontend format
-// Backend format: { id, predictions: [{ frame_id, job_id, labels: [{ label, score, bbox: {x, y, width, height}, ... }] }] }
+// Backend format: { id, predictions: [{ frame_id, job_id, labels: [...], false_positives, false_negatives, true_positives, precision, recall, f1 }] }
 // Frontend format: { frame_id, label, xyxy: [x1, y1, x2, y2], confidence }
 interface BackendPrediction {
     frame_id: number;
@@ -26,6 +26,12 @@ interface BackendPrediction {
         rle_mask?: string;
         attributes?: any[];
     }>;
+    false_positives?: number;
+    false_negatives?: number;
+    true_positives?: number;
+    precision?: number;
+    recall?: number;
+    f1?: number;
 }
 
 interface BackendPredictionsResponse {
@@ -179,6 +185,7 @@ function BenchmarkVisualComparison(): JSX.Element {
 
     // Fetch predictions from backend
     const [predictions, setPredictions] = React.useState<FrontendPrediction[]>([]);
+    const [backendPredictions, setBackendPredictions] = React.useState<BackendPrediction[]>([]);
     const [predictionsLoading, setPredictionsLoading] = React.useState(false);
 
     React.useEffect(() => {
@@ -195,10 +202,13 @@ function BenchmarkVisualComparison(): JSX.Element {
 
                 const transformed = transformBackendPredictions(backendResponse);
                 setPredictions(transformed);
+                // Also store the full backend predictions for frame metrics
+                setBackendPredictions(backendResponse.predictions || []);
             } catch (err) {
                 if (!cancelled) {
                     // On error, set empty predictions array
                     setPredictions([]);
+                    setBackendPredictions([]);
                 }
             } finally {
                 if (!cancelled) {
@@ -292,6 +302,7 @@ function BenchmarkVisualComparison(): JSX.Element {
                     taskId={taskId}
                     jobId={parsedJobId}
                     predictions={predictions}
+                    backendPredictions={backendPredictions}
                 />
             </div>
         </div>

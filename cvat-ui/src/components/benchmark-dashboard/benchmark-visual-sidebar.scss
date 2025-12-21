@@ -5,16 +5,49 @@
     height: 100%;
 }
 
+.cvat-benchmark-visual-sidebar-sider {
+    top: 0;
+    left: 0;
+    border-right: 1px solid $border-color-1;
+    border-bottom: 1px solid $border-color-1;
+    border-radius: 0 $border-radius-base $border-radius-base 0;
+    z-index: 2;
+    position: absolute;
+    padding: 8px;
+    background: white;
+    transition: box-shadow 0.5s;
+
+    &:hover {
+        box-shadow: $box-shadow-base;
+    }
+}
+
 .cvat-benchmark-visual-sidebar {
     height: 100%;
     overflow: hidden auto;
-    background: $background-color-2;
-    border-right: 1px solid $border-color-1;
-    transition: width 0.2s;
+    border-left: 1px solid $border-color-1;
 
     > .ant-layout-sider-children {
         display: flex;
         flex-direction: column;
+
+        > .cvat-benchmark-visual-sidebar-tabs {
+            flex-grow: 1;
+            padding-top: 40px;
+            height: 0;
+
+            > div {
+                display: flex;
+
+                div[role="tab"] {
+                    color: $text-color;
+                }
+
+                div[role="tabpanel"] {
+                    height: 100%;
+                }
+            }
+        }
     }
 
     &.ant-layout-sider-collapsed {
@@ -25,7 +58,7 @@
 .cvat-benchmark-visual-sidebar-resize-handle {
     position: absolute;
     top: 0;
-    right: 0;
+    left: 0;
     width: 4px;
     height: 100%;
     cursor: col-resize;
@@ -42,50 +75,7 @@
     }
 }
 
-.cvat-benchmark-visual-sidebar-collapse-button-bottom {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: $grid-unit-size;
-    border-top: 1px solid $border-color-1;
-    background: $background-color-2;
-    flex-shrink: 0;
-
-    span {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 4px;
-        border-radius: $border-radius-base;
-        transition: background-color 0.2s;
-
-        &:hover {
-            background-color: rgba(0, 0, 0, 0.06);
-        }
-    }
-}
-
-.cvat-benchmark-visual-sidebar-content-wrapper {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-}
-
-.cvat-benchmark-visual-sidebar-content {
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    flex: 1;
-    min-height: 0;
-    overflow: hidden;
-}
-
-.cvat-benchmark-visual-sidebar-section {
-    width: 100%;
-}
-
 .cvat-benchmark-shapes-collapse.ant-collapse,
-.cvat-benchmark-frame-metrics-collapse.ant-collapse,
 .cvat-benchmark-appearance-collapse.ant-collapse {
     width: 100%;
     border-radius: 0;
@@ -119,54 +109,29 @@
     }
 }
 
-.cvat-benchmark-shapes-collapse.ant-collapse {
-    flex: 1;
-    min-height: 0;
-    display: flex;
-    flex-direction: column;
-
-    > .ant-collapse-item {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-
-        > .ant-collapse-content {
-            flex: 1;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-
-            > .ant-collapse-content-box {
-                flex: 1;
-                overflow-y: auto;
-            }
-        }
-    }
-}
-
-.cvat-benchmark-frame-metrics-collapse.ant-collapse {
-    flex-shrink: 0;
-    margin-top: 0;
-}
-
 .cvat-benchmark-appearance-collapse.ant-collapse {
     flex-shrink: 0;
     margin-top: 0;
 }
 
-.cvat-benchmark-shapes-collapse-header,
-.cvat-benchmark-frame-metrics-collapse-header,
 .cvat-benchmark-appearance-collapse-header {
     font-size: 14px;
 }
 
 .cvat-benchmark-shapes-content {
     padding: $grid-unit-size * 2;
+    height: 100%;
+    overflow-y: auto;
 
     > div {
         width: 100%;
     }
+}
+
+.cvat-benchmark-frame-metrics-content {
+    padding: $grid-unit-size * 2;
+    height: 100%;
+    overflow-y: auto;
 }
 
 .cvat-benchmark-appearance-content {
@@ -193,10 +158,6 @@
 
 .cvat-benchmark-opacity-slider {
     margin-top: $grid-unit-size * 0.5;
-}
-
-.cvat-benchmark-frame-metrics-content {
-    padding: $grid-unit-size * 2;
 }
 
 .cvat-benchmark-metric-item {

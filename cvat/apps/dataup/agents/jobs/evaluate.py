@@ -296,7 +296,7 @@ class AgentEvaluateJob(BaseAgentJob):
         # with open("frame_to_job_ids.json", "w") as f:
         #     json.dump(self.frame_to_job_ids, f, indent=4)
 
-        metric_stats: dict = calculate_object_detection_metrics(
+        job_metrics, global_metrics, per_class_metrics, all_frame_metrics = calculate_object_detection_metrics(
             matches=matches,
             unmatched_preds=unmatched_predictions,
             unmatched_gts=unmatched_ground_truth,
@@ -305,6 +305,12 @@ class AgentEvaluateJob(BaseAgentJob):
             all_gts=self.all_gts,
             frame_to_job_ids=self.frame_to_job_ids,
         )
+
+        metric_stats = {
+            "job_metrics": job_metrics,
+            "global_metrics": global_metrics,
+            "per_class_metrics": per_class_metrics,
+        }
 
         metric_stats["attribute_metrics"] = calculate_attribute_metrics(
             all_preds=self.all_preds,
@@ -331,9 +337,19 @@ class AgentEvaluateJob(BaseAgentJob):
                     "bbox": pred["bbox"],
                     "attributes": pred["attributes"],
                 }
+            def _get_frame_metric(frame_metrics: dict) -> dict:
+                return {
+                    "true_positives": frame_metrics.get("true_positives", 0),
+                    "false_positives": frame_metrics.get("false_positives", 0),
+                    "false_negatives": frame_metrics.get("false_negatives", 0),
+                    "precision": frame_metrics.get("precision", 0),
+                    "recall": frame_metrics.get("recall", 0),
+                    "f1": frame_metrics.get("f1", 0)
+                    }
             job_id = self.frame_to_job_ids[frame_id]
-            labels = [_get_label_dict(pred) for pred in group]
+            labels = [_get_label_dict(pred) for pred in group if pred["label"] != "ignore"]
             predictions.append({
+                **_get_frame_metric(all_frame_metrics.get(frame_id, {})),
                 "job_id": job_id,
                 "frame_id": frame_id,
                 "labels": labels,

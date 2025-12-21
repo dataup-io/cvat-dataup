@@ -120,9 +120,9 @@ def generate_presigned_url_from_task_frame(task, frame_id: int, ttl: int = DEFAU
 
     provider = db_storage.provider_type
     url = None
-    if provider == CloudProviderChoice.AWS_S3:
+    if provider == CloudProviderChoice.AMAZON_S3:
         url = _presign_s3(db_storage, key, ttl)
-    elif provider == CloudProviderChoice.AZURE_CONTAINER:
+    elif provider == CloudProviderChoice.AZURE_BLOB_STORAGE:
         url = _presign_azure(db_storage, key, ttl)
     elif provider == CloudProviderChoice.GOOGLE_CLOUD_STORAGE:
         url = _presign_gcs(db_storage, key, ttl)
@@ -167,9 +167,9 @@ class TaskFrameProviderV2(TaskFrameProvider):
             return cached
 
         url = None
-        if self.provider == CloudProviderChoice.AWS_S3:
+        if self.provider == CloudProviderChoice.AMAZON_S3:
             url = _presign_s3(self.cloud_storage, key, ttl)
-        elif self.provider == CloudProviderChoice.AZURE_CONTAINER:
+        elif self.provider == CloudProviderChoice.AZURE_BLOB_STORAGE:
             url = _presign_azure(self.cloud_storage, key, ttl)
         elif self.provider == CloudProviderChoice.GOOGLE_CLOUD_STORAGE:
             url = _presign_gcs(self.cloud_storage, key, ttl)

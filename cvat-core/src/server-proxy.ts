@@ -2845,13 +2845,9 @@ async function lensRetrieve(id: string | number): Promise<any> {
 
 async function getApiKeys(filter: { [key: string]: any } = {}): Promise<any> {
             const { backendAPI } = config;
-            const authToken = getStoredAuthToken();
             const url = `${backendAPI}/dataup/api-keys`;
 
             const response = await Axios.get(url, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                },
                 params: {
                     ...filter,
                     ...enableOrganization(),
@@ -2862,12 +2858,8 @@ async function getApiKeys(filter: { [key: string]: any } = {}): Promise<any> {
 
 async function createApiKey(keyData: any): Promise<any> {
             const { backendAPI } = config;
-            const authToken = getStoredAuthToken();
             const url = `${backendAPI}/dataup/api-keys`;
             const response = await Axios.post(url, keyData, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                },
                 params: {
                     ...enableOrganization(),
                 },
@@ -2877,12 +2869,8 @@ async function createApiKey(keyData: any): Promise<any> {
 
 async function updateApiKey(id: string, keyData: any): Promise<any> {
             const { backendAPI } = config;
-            const authToken = getStoredAuthToken();
             const url = `${backendAPI}/dataup/api-keys/${id}`;
             const response = await Axios.patch(url, keyData, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                },
                 params: {
                     ...enableOrganization(),
                 },
@@ -2892,12 +2880,8 @@ async function updateApiKey(id: string, keyData: any): Promise<any> {
 
 async function deleteApiKey(id: string): Promise<void> {
             const { backendAPI } = config;
-            const authToken = getStoredAuthToken();
             const url = `${backendAPI}/dataup/api-keys/${id}`;
             const response = await Axios.delete(url, {
-                headers: {
-                    Authorization: `Bearer ${authToken}`,
-                },
                 params: {
                     ...enableOrganization(),
                 },

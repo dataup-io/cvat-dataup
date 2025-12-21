@@ -4,6 +4,7 @@ from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
 from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
 from rest_framework.permissions import IsAuthenticated
 from cvat.apps.dataup.iam.context import get_dataup_iam_context
+from cvat.apps.dataup.agents.permissions import DataUpBenchmarkPermission
 from cvat.apps.dataup.agents.benchmarks.serializers import AgentBenchmarkReadSerializer, AgentBenchmarkWriteSerializer, build_benchmark_payload
 from asgiref.sync import async_to_sync
 from cvat.apps.dataup.dataup_api import DataUpAPIError
@@ -18,6 +19,7 @@ slogger = ServerLogManager(__name__)
 
 class AgentBenchmarkViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+    iam_permission_class = DataUpBenchmarkPermission
     iam_context_factory = staticmethod(get_dataup_iam_context)
     iam_organization_field = "organization"
 

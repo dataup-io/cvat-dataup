@@ -623,7 +623,19 @@ function BenchmarkDashboard(): JSX.Element {
             const created = await core.agents.benchmarks.create(payload);
             if (created && created.id) {
                 message.success('Benchmark submitted successfully');
-                setResults((prev) => prev.map((r) => (String(r.id) === String(record.id) ? { ...r, submitted: true } : r)));
+                // Update the result with the new benchmark UUID and mark as submitted
+                setResults((prev) => prev.map((r) => {
+                    if (String(r.id) === String(record.id)) {
+                        return {
+                            ...r,
+                            id: created.id, // Update with new benchmark UUID
+                            submitted: true,
+                            // Update created_date if available from backend
+                            created_date: created.created_at || r.created_date,
+                        };
+                    }
+                    return r;
+                }));
             } else {
                 message.warning('Submission completed but returned unexpected response');
             }

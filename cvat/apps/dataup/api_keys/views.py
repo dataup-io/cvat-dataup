@@ -4,11 +4,30 @@ from django.utils.translation import gettext_lazy as _
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import viewsets
 from rest_framework.exceptions import ValidationError
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission
 from rest_framework.response import Response
 
 from cvat.apps.dataup.models import DataUpAPIKey
-from cvat.apps.dataup.api_keys.permissions import DataUpAPIKeyPerm, DataUpPolicyEnforcer
+from cvat.apps.dataup.iam.context import get_dataup_iam_context
+from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
+from cvat.apps.dataup.api_keys.permissions import DataUpAPIKeyPerm
+
+
+class LoggingIsAuthenticated(IsAuthenticated):
+    """Wrapper around IsAuthenticated to add logging"""
+
+    def has_permission(self, request, view):
+        import sys
+        basename = getattr(view, "basename", "N/A")
+        action = getattr(view, "action", "N/A")
+        user = getattr(request, "user", None)
+        is_authenticated = bool(user and user.is_authenticated)
+
+        print(f"[LoggingIsAuthenticated.has_permission] Called for basename={basename}, action={action}, user={getattr(user, 'username', 'Anonymous')}, is_authenticated={is_authenticated}", file=sys.stderr, flush=True)
+
+        result = super().has_permission(request, view)
+        print(f"[LoggingIsAuthenticated.has_permission] Result: {result}", file=sys.stderr, flush=True)
+        return result
 from cvat.apps.dataup.api_keys.serializers import (
     DataUpAPIKeyReadSerializer,
     DataUpAPIKeyWriteSerializer,
@@ -53,21 +72,18 @@ from cvat.apps.dataup.models import DataUpOrganization, DataUpUser
     ),
 )
 class DataUpAPIKeyViewSet(viewsets.ModelViewSet):
-    """
-    CRUD for DataUp API keys.
-
-    - Write ops accept DataUp PKs directly (organization, owner).
-    - You may also specify organization by slug via ?org=<slug> or body {"org": "<slug>"}.
-    - If neither 'owner' nor 'organization' provided, defaults to a personal key for the current user.
-    """
 
     serializer_class = DataUpAPIKeyWriteSerializer
-    permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+    # permission_classes = [AllowAny]
+    # authentication_classes = []
+    # permission_classes = [IsAuthenticated]
+    permission_classes = [LoggingIsAuthenticated, DataUpPolicyEnforcer]
+    iam_permission_class = DataUpAPIKeyPerm
+    iam_context_factory = staticmethod(get_dataup_iam_context)
     search_fields = ["name", "label"]
     ordering_fields = ["name", "label", "created_at", "last_used_at"]
     ordering = ["-created_at"]
     iam_organization_field = None
-
     def get_serializer_class(self):
         return DataUpAPIKeyReadSerializer if self.action in ("list", "retrieve") else DataUpAPIKeyWriteSerializer
 

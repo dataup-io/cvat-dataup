@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, TransitionEvent } from 'react';
 import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import {
     Layout, Switch, Slider, Typography, Space, Collapse, Button,
-    Checkbox
+    Checkbox, Tabs
 } from 'antd';
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import './benchmark-visual-sidebar.scss';
@@ -28,6 +28,15 @@ interface ClassMetrics {
 
 type SortKey = 'name' | 'gtCount' | 'predCount' | 'fpCount' | 'fnCount';
 
+interface FrameMetrics {
+    precision: number;
+    recall: number;
+    f1Score: number;
+    truePositives: number;
+    falsePositives: number;
+    falseNegatives: number;
+}
+
 interface BenchmarkVisualSidebarProps {
     showGroundTruth: boolean;
     showPredictions: boolean;
@@ -49,6 +58,7 @@ interface BenchmarkVisualSidebarProps {
     confidenceThreshold?: number;
     onConfidenceThresholdChange?: (value: number) => void;
     classMetrics?: ClassMetrics[]; // Optional FP/FN per class
+    frameMetrics?: FrameMetrics | null; // Per-frame metrics from backend
 }
 
 // Helper component for tri-state checkbox
@@ -156,27 +166,25 @@ function BenchmarkVisualSidebar(props: BenchmarkVisualSidebarProps): JSX.Element
         confidenceThreshold = 0.5,
         onConfidenceThresholdChange,
         classMetrics,
+        frameMetrics: propFrameMetrics,
     } = props;
 
     const [collapsed, setCollapsed] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_SIDEBAR_WIDTH);
     const [isResizing, setIsResizing] = useState(false);
     const [appearanceCollapsed, setAppearanceCollapsed] = useState(false);
-    const [shapesCollapsed, setShapesCollapsed] = useState(false);
-    const [frameMetricsCollapsed, setFrameMetricsCollapsed] = useState(false);
     const [sortKey] = useState<SortKey>('name');
     const sidebarRef = useRef<HTMLDivElement>(null);
     const resizeHandleRef = useRef<HTMLDivElement>(null);
 
-    // Mock frame metrics data
-    const frameMetrics = {
-        precision: 0.87,
-        recall: 0.82,
-        f1Score: 0.84,
-        mAP: 0.79,
-        truePositives: 45,
-        falsePositives: 7,
-        falseNegatives: 10,
+    // Use real frame metrics from backend, or fallback to default values if not available
+    const frameMetrics = propFrameMetrics || {
+        precision: 0,
+        recall: 0,
+        f1Score: 0,
+        truePositives: 0,
+        falsePositives: 0,
+        falseNegatives: 0,
     };
 
     // Calculate tri-state for global toggles
@@ -287,6 +295,327 @@ function BenchmarkVisualSidebar(props: BenchmarkVisualSidebarProps): JSX.Element
         setCollapsed(!collapsed);
     };
 
+    // Render Objects tab content (Shapes section)
+    const renderObjectsTab = (): JSX.Element => (
+        <div className='cvat-benchmark-shapes-content'>
+            {/* Header + Global Controls */}
+            <div style={{ marginBottom: '16px' }}>
+                {/* Global Visibility Toggles */}
+                <Space direction='vertical' size='middle' style={{ width: '100%' }}>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        width: '100%'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                            <span style={{ color: '#52c41a', fontSize: '12px', fontWeight: 'bold', marginRight: '8px' }}>●</span>
+                            <Text strong style={{ fontSize: '13px' }}>Ground Truth</Text>
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            flexShrink: 0,
+                            gap: '10px'
+                        }}>
+                            <Text type='secondary' style={{ fontSize: '11px' }}>
+                                Total {groundTruthCount}
+                            </Text>
+                            <TriStateCheckbox
+                                checked={gtTriState}
+                                onChange={handleGTTriStateToggle}
+                            />
+                            <Switch
+                                checked={showGroundTruth}
+                                onChange={onToggleGroundTruth}
+                                checkedChildren={<EyeOutlined />}
+                                unCheckedChildren={<EyeInvisibleOutlined />}
+                            />
+                        </div>
+                    </div>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        width: '100%'
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+                            <span style={{ color: '#1890ff', fontSize: '12px', fontWeight: 'bold', marginRight: '8px' }}>●</span>
+                            <Text strong style={{ fontSize: '13px' }}>Predictions</Text>
+                        </div>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            flexShrink: 0,
+                            gap: '10px'
+                        }}>
+                            <Text type='secondary' style={{ fontSize: '11px' }}>
+                                Total {predictionsCount}
+                            </Text>
+                            <TriStateCheckbox
+                                checked={predTriState}
+                                onChange={handlePredTriStateToggle}
+                            />
+                            <Switch
+                                checked={showPredictions}
+                                onChange={onTogglePredictions}
+                                checkedChildren={<EyeOutlined />}
+                                unCheckedChildren={<EyeInvisibleOutlined />}
+                            />
+                        </div>
+                    </div>
+                </Space>
+
+                {/* Benchmark Filters */}
+                {onConfidenceThresholdChange && (
+                    <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
+                        <Text type='secondary' style={{ fontSize: '11px', display: 'block', marginBottom: '8px' }}>
+                            Filters
+                        </Text>
+                        <div>
+                            <div style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                width: '100%',
+                                marginBottom: '4px'
+                            }}>
+                                <Text style={{ fontSize: '11px', flex: 1 }}>Confidence</Text>
+                                <Text style={{
+                                    fontSize: '11px',
+                                    fontWeight: 500,
+                                    flexShrink: 0
+                                }}>
+                                    ≥ {(confidenceThreshold * 100).toFixed(0)}%
+                                </Text>
+                            </div>
+                            <Slider
+                                min={0}
+                                max={100}
+                                value={confidenceThreshold * 100}
+                                onChange={(value) => onConfidenceThresholdChange(value / 100)}
+                                tooltip={{ formatter: (value) => `≥ ${value}%` }}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* Class List Utilities */}
+            {classMetrics && (
+                <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #f0f0f0' }}>
+                    {/* Batch Actions */}
+                    <Space size='small' wrap style={{ width: '100%' }}>
+                        <Button
+                            size='small'
+                            type='link'
+                            onClick={handleShowOnlyErrors}
+                            style={{ fontSize: '10px', padding: '0 4px' }}
+                        >
+                            Errors Only
+                        </Button>
+                        <Button
+                            size='small'
+                            type='link'
+                            onClick={handleShowOnlyPresent}
+                            style={{ fontSize: '10px', padding: '0 4px' }}
+                        >
+                            Present Only
+                        </Button>
+                    </Space>
+                </div>
+            )}
+
+            {/* By-Class Table */}
+            <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                    <thead>
+                        <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
+                            <th style={{ textAlign: 'left', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
+                                Class
+                            </th>
+                            <th style={{ textAlign: 'right', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
+                                GT ●
+                            </th>
+                            <th style={{ textAlign: 'right', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
+                                Pred ●
+                            </th>
+                            {classMetrics && (
+                                <>
+                                    <th style={{ textAlign: 'right', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
+                                        FP
+                                    </th>
+                                    <th style={{ textAlign: 'right', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
+                                        FN
+                                    </th>
+                                </>
+                            )}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sortedClasses.map((classData) => {
+                            const gtVisible = !hiddenGTClasses.has(classData.label) && showGroundTruth;
+                            const predVisible = !hiddenPredClasses.has(classData.label) && showPredictions;
+
+                            return (
+                                <tr
+                                    key={classData.label}
+                                    style={{
+                                        borderBottom: '1px solid #fafafa',
+                                        opacity: (gtVisible && classData.gtCount > 0) || (predVisible && classData.predCount > 0) ? 1 : 0.5,
+                                    }}
+                                >
+                                    <td style={{ padding: '6px 4px', fontWeight: 500 }}>
+                                        {classData.label}
+                                    </td>
+                                    <td style={{ padding: '2px', textAlign: 'right' }}>
+                                        {classData.gtCount > 0 ? (
+                                            <ClickableToggleCell
+                                                visible={gtVisible}
+                                                count={classData.gtCount}
+                                                color='#52c41a'
+                                                onToggle={() => onToggleGTClass(classData.label, !gtVisible)}
+                                                disabled={!showGroundTruth}
+                                            />
+                                        ) : (
+                                            <Text type='secondary' style={{ fontSize: '11px', padding: '4px 8px' }}>
+                                                -
+                                            </Text>
+                                        )}
+                                    </td>
+                                    <td style={{ padding: '2px', textAlign: 'right' }}>
+                                        {classData.predCount > 0 ? (
+                                            <ClickableToggleCell
+                                                visible={predVisible}
+                                                count={classData.predCount}
+                                                color='#1890ff'
+                                                onToggle={() => onTogglePredClass(classData.label, !predVisible)}
+                                                disabled={!showPredictions}
+                                            />
+                                        ) : (
+                                            <Text type='secondary' style={{ fontSize: '11px', padding: '4px 8px' }}>
+                                                -
+                                            </Text>
+                                        )}
+                                    </td>
+                                    {classMetrics && (
+                                        <>
+                                            <td style={{ padding: '6px 4px', textAlign: 'right' }}>
+                                                <Text
+                                                    type='secondary'
+                                                    style={{
+                                                        fontSize: '11px',
+                                                        color: classData.fpCount && classData.fpCount > 0 ? '#ff4d4f' : undefined,
+                                                    }}
+                                                >
+                                                    {classData.fpCount !== undefined ? classData.fpCount : '-'}
+                                                </Text>
+                                            </td>
+                                            <td style={{ padding: '6px 4px', textAlign: 'right' }}>
+                                                <Text
+                                                    type='secondary'
+                                                    style={{
+                                                        fontSize: '11px',
+                                                        color: classData.fnCount && classData.fnCount > 0 ? '#faad14' : undefined,
+                                                    }}
+                                                >
+                                                    {classData.fnCount !== undefined ? classData.fnCount : '-'}
+                                                </Text>
+                                            </td>
+                                        </>
+                                    )}
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+
+    // Render Frame Metrics tab content
+    const renderFrameMetricsTab = (): JSX.Element => (
+        <div className='cvat-benchmark-frame-metrics-content'>
+            <div className='cvat-benchmark-metric-item'>
+                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <Text type='secondary' style={{ fontSize: '12px' }}>Precision</Text>
+                    <Text strong style={{ fontSize: '12px' }}>
+                        {(frameMetrics.precision * 100).toFixed(1)}%
+                    </Text>
+                </Space>
+            </div>
+            <div className='cvat-benchmark-metric-item'>
+                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <Text type='secondary' style={{ fontSize: '12px' }}>Recall</Text>
+                    <Text strong style={{ fontSize: '12px' }}>
+                        {(frameMetrics.recall * 100).toFixed(1)}%
+                    </Text>
+                </Space>
+            </div>
+            <div className='cvat-benchmark-metric-item'>
+                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <Text type='secondary' style={{ fontSize: '12px' }}>F1 Score</Text>
+                    <Text strong style={{ fontSize: '12px' }}>
+                        {(frameMetrics.f1Score * 100).toFixed(1)}%
+                    </Text>
+                </Space>
+            </div>
+            <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
+                <Text type='secondary' style={{ fontSize: '11px', display: 'block', marginBottom: '8px' }}>
+                    Detection Counts
+                </Text>
+                <div className='cvat-benchmark-metric-item'>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                        <Space>
+                            <span style={{ color: '#52c41a', fontSize: '12px', fontWeight: 'bold' }}>●</span>
+                            <Text type='secondary' style={{ fontSize: '12px' }}>Ground Truth</Text>
+                        </Space>
+                        <Text strong style={{ fontSize: '12px', color: '#52c41a' }}>
+                            {groundTruthCount}
+                        </Text>
+                    </Space>
+                </div>
+                <div className='cvat-benchmark-metric-item'>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                        <Space>
+                            <span style={{ color: '#1890ff', fontSize: '12px', fontWeight: 'bold' }}>●</span>
+                            <Text type='secondary' style={{ fontSize: '12px' }}>Predictions</Text>
+                        </Space>
+                        <Text strong style={{ fontSize: '12px', color: '#1890ff' }}>
+                            {predictionsCount}
+                        </Text>
+                    </Space>
+                </div>
+                <div className='cvat-benchmark-metric-item'>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                        <Text type='secondary' style={{ fontSize: '12px' }}>True Positives</Text>
+                        <Text strong style={{ fontSize: '12px', color: '#52c41a' }}>
+                            {frameMetrics.truePositives}
+                        </Text>
+                    </Space>
+                </div>
+                <div className='cvat-benchmark-metric-item'>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                        <Text type='secondary' style={{ fontSize: '12px' }}>False Positives</Text>
+                        <Text strong style={{ fontSize: '12px', color: '#ff4d4f' }}>
+                            {frameMetrics.falsePositives}
+                        </Text>
+                    </Space>
+                </div>
+                <div className='cvat-benchmark-metric-item'>
+                    <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                        <Text type='secondary' style={{ fontSize: '12px' }}>False Negatives</Text>
+                        <Text strong style={{ fontSize: '12px', color: '#faad14' }}>
+                            {frameMetrics.falseNegatives}
+                        </Text>
+                    </Space>
+                </div>
+            </div>
+        </div>
+    );
+
     const handleMouseDown = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
@@ -297,7 +626,8 @@ function BenchmarkVisualSidebar(props: BenchmarkVisualSidebarProps): JSX.Element
         const handleMouseMove = (e: MouseEvent) => {
             if (!isResizing || collapsed) return;
 
-            const newWidth = e.clientX;
+            // For right-side sidebar, calculate width from right edge
+            const newWidth = window.innerWidth - e.clientX;
             const clampedWidth = Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, newWidth));
             setSidebarWidth(clampedWidth);
         };
@@ -367,370 +697,37 @@ function BenchmarkVisualSidebar(props: BenchmarkVisualSidebarProps): JSX.Element
             <Layout.Sider
                 className='cvat-benchmark-visual-sidebar'
                 theme='light'
-                width={collapsed ? 44 : sidebarWidth}
-                collapsedWidth={44}
+                width={collapsed ? 0 : sidebarWidth}
+                collapsedWidth={0}
+                reverseArrow
                 collapsible
                 trigger={null}
                 collapsed={collapsed}
             >
-            {!collapsed && (
-                <div className='cvat-benchmark-visual-sidebar-content-wrapper'>
-                    <div className='cvat-benchmark-visual-sidebar-content'>
-                        {/* Shapes Section */}
-                        <Collapse
-                            onChange={() => setShapesCollapsed(!shapesCollapsed)}
-                            activeKey={shapesCollapsed ? [] : ['shapes']}
-                            className='cvat-benchmark-shapes-collapse'
+                {/* Collapse button at top-left (left side of sidebar since it's on the right) */}
+                <span
+                    className='cvat-benchmark-visual-sidebar-sider'
+                    onClick={collapse}
+                >
+                    {collapsed ? <MenuFoldOutlined title='Show' /> : <MenuUnfoldOutlined title='Hide' />}
+                </span>
+
+                {!collapsed && (
+                    <>
+                        <Tabs
+                            type='card'
+                            defaultActiveKey='objects'
+                            className='cvat-benchmark-visual-sidebar-tabs'
                             items={[{
-                                label: (
-                                    <Text strong className='cvat-benchmark-shapes-collapse-header'>
-                                        Shapes
-                                    </Text>
-                                ),
-                                key: 'shapes',
-                                children: (
-                                    <div className='cvat-benchmark-shapes-content'>
-                                        {/* Header + Global Controls */}
-                                        <div style={{ marginBottom: '16px' }}>
-                                            {/* Global Visibility Toggles */}
-                                            <Space direction='vertical' size='middle' style={{ width: '100%' }}>
-                                                <div style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    width: '100%'
-                                                }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                                        <span style={{ color: '#52c41a', fontSize: '12px', fontWeight: 'bold', marginRight: '8px' }}>●</span>
-                                                        <Text strong style={{ fontSize: '13px' }}>Ground Truth</Text>
-                                                    </div>
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'flex-end',
-                                                        flexShrink: 0,
-                                                        gap: '10px'
-                                                    }}>
-                                                        <Text type='secondary' style={{ fontSize: '11px' }}>
-                                                            Total {groundTruthCount}
-                                                        </Text>
-                                                        <TriStateCheckbox
-                                                            checked={gtTriState}
-                                                            onChange={handleGTTriStateToggle}
-                                                        />
-                                                        <Switch
-                                                            checked={showGroundTruth}
-                                                            onChange={onToggleGroundTruth}
-                                                            checkedChildren={<EyeOutlined />}
-                                                            unCheckedChildren={<EyeInvisibleOutlined />}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <div style={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    width: '100%'
-                                                }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', flex: 1 }}>
-                                                        <span style={{ color: '#1890ff', fontSize: '12px', fontWeight: 'bold', marginRight: '8px' }}>●</span>
-                                                        <Text strong style={{ fontSize: '13px' }}>Predictions</Text>
-                                                    </div>
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        justifyContent: 'flex-end',
-                                                        flexShrink: 0,
-                                                        gap: '10px'
-                                                    }}>
-                                                        <Text type='secondary' style={{ fontSize: '11px' }}>
-                                                            Total {predictionsCount}
-                                                        </Text>
-                                                        <TriStateCheckbox
-                                                            checked={predTriState}
-                                                            onChange={handlePredTriStateToggle}
-                                                        />
-                                                        <Switch
-                                                            checked={showPredictions}
-                                                            onChange={onTogglePredictions}
-                                                            checkedChildren={<EyeOutlined />}
-                                                            unCheckedChildren={<EyeInvisibleOutlined />}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </Space>
-
-                                            {/* Benchmark Filters */}
-                                            {onConfidenceThresholdChange && (
-                                                <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f0f0f0' }}>
-                                                    <Text type='secondary' style={{ fontSize: '11px', display: 'block', marginBottom: '8px' }}>
-                                                        Filters
-                                                    </Text>
-                                                    <div>
-                                                        <div style={{
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            alignItems: 'center',
-                                                            width: '100%',
-                                                            marginBottom: '4px'
-                                                        }}>
-                                                            <Text style={{ fontSize: '11px', flex: 1 }}>Confidence</Text>
-                                                            <Text style={{
-                                                                fontSize: '11px',
-                                                                fontWeight: 500,
-                                                                flexShrink: 0
-                                                            }}>
-                                                                ≥ {(confidenceThreshold * 100).toFixed(0)}%
-                                                            </Text>
-                                                        </div>
-                                                        <Slider
-                                                            min={0}
-                                                            max={100}
-                                                            value={confidenceThreshold * 100}
-                                                            onChange={(value) => onConfidenceThresholdChange(value / 100)}
-                                                            tooltip={{ formatter: (value) => `≥ ${value}%` }}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* Class List Utilities */}
-                                        {classMetrics && (
-                                            <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #f0f0f0' }}>
-                                                {/* Batch Actions */}
-                                                <Space size='small' wrap style={{ width: '100%' }}>
-                                                    <Button
-                                                        size='small'
-                                                        type='link'
-                                                        onClick={handleShowOnlyErrors}
-                                                        style={{ fontSize: '10px', padding: '0 4px' }}
-                                                    >
-                                                        Errors Only
-                                                    </Button>
-                                                    <Button
-                                                        size='small'
-                                                        type='link'
-                                                        onClick={handleShowOnlyPresent}
-                                                        style={{ fontSize: '10px', padding: '0 4px' }}
-                                                    >
-                                                        Present Only
-                                                    </Button>
-                                                </Space>
-                                            </div>
-                                        )}
-
-                                        {/* By-Class Table */}
-                                        <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
-                                                <thead>
-                                                    <tr style={{ borderBottom: '1px solid #f0f0f0' }}>
-                                                        <th style={{ textAlign: 'left', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
-                                                            Class
-                                                        </th>
-                                                        <th style={{ textAlign: 'right', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
-                                                            GT ●
-                                                        </th>
-                                                        <th style={{ textAlign: 'right', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
-                                                            Pred ●
-                                                        </th>
-                                                        {classMetrics && (
-                                                            <>
-                                                                <th style={{ textAlign: 'right', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
-                                                                    FP
-                                                                </th>
-                                                                <th style={{ textAlign: 'right', padding: '6px 4px', fontWeight: 600, fontSize: '10px', color: '#8c8c8c' }}>
-                                                                    FN
-                                                                </th>
-                                                            </>
-                                                        )}
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {sortedClasses.map((classData) => {
-                                                        const gtVisible = !hiddenGTClasses.has(classData.label) && showGroundTruth;
-                                                        const predVisible = !hiddenPredClasses.has(classData.label) && showPredictions;
-
-                                                        return (
-                                                            <tr
-                                                                key={classData.label}
-                                                                style={{
-                                                                    borderBottom: '1px solid #fafafa',
-                                                                    opacity: (gtVisible && classData.gtCount > 0) || (predVisible && classData.predCount > 0) ? 1 : 0.5,
-                                                                }}
-                                                            >
-                                                                <td style={{ padding: '6px 4px', fontWeight: 500 }}>
-                                                                    {classData.label}
-                                                                </td>
-                                                                <td style={{ padding: '2px', textAlign: 'right' }}>
-                                                                    {classData.gtCount > 0 ? (
-                                                                        <ClickableToggleCell
-                                                                            visible={gtVisible}
-                                                                            count={classData.gtCount}
-                                                                            color='#52c41a'
-                                                                            onToggle={() => onToggleGTClass(classData.label, !gtVisible)}
-                                                                            disabled={!showGroundTruth}
-                                                                        />
-                                                                    ) : (
-                                                                        <Text type='secondary' style={{ fontSize: '11px', padding: '4px 8px' }}>
-                                                                            -
-                                                                        </Text>
-                                                                    )}
-                                                                </td>
-                                                                <td style={{ padding: '2px', textAlign: 'right' }}>
-                                                                    {classData.predCount > 0 ? (
-                                                                        <ClickableToggleCell
-                                                                            visible={predVisible}
-                                                                            count={classData.predCount}
-                                                                            color='#1890ff'
-                                                                            onToggle={() => onTogglePredClass(classData.label, !predVisible)}
-                                                                            disabled={!showPredictions}
-                                                                        />
-                                                                    ) : (
-                                                                        <Text type='secondary' style={{ fontSize: '11px', padding: '4px 8px' }}>
-                                                                            -
-                                                                        </Text>
-                                                                    )}
-                                                                </td>
-                                                                {classMetrics && (
-                                                                    <>
-                                                                        <td style={{ padding: '6px 4px', textAlign: 'right' }}>
-                                                                            <Text
-                                                                                type='secondary'
-                                                                                style={{
-                                                                                    fontSize: '11px',
-                                                                                    color: classData.fpCount && classData.fpCount > 0 ? '#ff4d4f' : undefined,
-                                                                                }}
-                                                                            >
-                                                                                {classData.fpCount !== undefined ? classData.fpCount : '-'}
-                                                                            </Text>
-                                                                        </td>
-                                                                        <td style={{ padding: '6px 4px', textAlign: 'right' }}>
-                                                                            <Text
-                                                                                type='secondary'
-                                                                                style={{
-                                                                                    fontSize: '11px',
-                                                                                    color: classData.fnCount && classData.fnCount > 0 ? '#faad14' : undefined,
-                                                                                }}
-                                                                            >
-                                                                                {classData.fnCount !== undefined ? classData.fnCount : '-'}
-                                                                            </Text>
-                                                                        </td>
-                                                                    </>
-                                                )}
-                                                            </tr>
-                                                        );
-                                                    })}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                ),
-                            }]}
-                        />
-
-                        {/* Frame Metrics Section */}
-                        <Collapse
-                            onChange={() => setFrameMetricsCollapsed(!frameMetricsCollapsed)}
-                            activeKey={frameMetricsCollapsed ? [] : ['frameMetrics']}
-                            className='cvat-benchmark-frame-metrics-collapse'
-                            items={[{
-                                label: (
-                                    <Text strong className='cvat-benchmark-frame-metrics-collapse-header'>
-                                        Frame Metrics
-                                    </Text>
-                                ),
+                                key: 'objects',
+                                label: 'Objects',
+                                children: renderObjectsTab(),
+                            }, {
                                 key: 'frameMetrics',
-                                children: (
-                                    <div className='cvat-benchmark-frame-metrics-content'>
-                                        <div className='cvat-benchmark-metric-item'>
-                                            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                <Text type='secondary' style={{ fontSize: '12px' }}>Precision</Text>
-                                                <Text strong style={{ fontSize: '12px' }}>
-                                                    {(frameMetrics.precision * 100).toFixed(1)}%
-                                                </Text>
-                                            </Space>
-                                        </div>
-                                        <div className='cvat-benchmark-metric-item'>
-                                            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                <Text type='secondary' style={{ fontSize: '12px' }}>Recall</Text>
-                                                <Text strong style={{ fontSize: '12px' }}>
-                                                    {(frameMetrics.recall * 100).toFixed(1)}%
-                                                </Text>
-                                            </Space>
-                                        </div>
-                                        <div className='cvat-benchmark-metric-item'>
-                                            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                <Text type='secondary' style={{ fontSize: '12px' }}>F1 Score</Text>
-                                                <Text strong style={{ fontSize: '12px' }}>
-                                                    {(frameMetrics.f1Score * 100).toFixed(1)}%
-                                                </Text>
-                                            </Space>
-                                        </div>
-                                        <div className='cvat-benchmark-metric-item'>
-                                            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                <Text type='secondary' style={{ fontSize: '12px' }}>mAP</Text>
-                                                <Text strong style={{ fontSize: '12px' }}>
-                                                    {(frameMetrics.mAP * 100).toFixed(1)}%
-                                                </Text>
-                                            </Space>
-                                        </div>
-                                        <div style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
-                                            <Text type='secondary' style={{ fontSize: '11px', display: 'block', marginBottom: '8px' }}>
-                                                Detection Counts
-                                            </Text>
-                                            <div className='cvat-benchmark-metric-item'>
-                                                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                    <Space>
-                                                        <span style={{ color: '#52c41a', fontSize: '12px', fontWeight: 'bold' }}>●</span>
-                                                        <Text type='secondary' style={{ fontSize: '12px' }}>Ground Truth</Text>
-                                                    </Space>
-                                                    <Text strong style={{ fontSize: '12px', color: '#52c41a' }}>
-                                                        {groundTruthCount}
-                                                    </Text>
-                                                </Space>
-                                            </div>
-                                            <div className='cvat-benchmark-metric-item'>
-                                                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                    <Space>
-                                                        <span style={{ color: '#1890ff', fontSize: '12px', fontWeight: 'bold' }}>●</span>
-                                                        <Text type='secondary' style={{ fontSize: '12px' }}>Predictions</Text>
-                                                    </Space>
-                                                    <Text strong style={{ fontSize: '12px', color: '#1890ff' }}>
-                                                        {predictionsCount}
-                                                    </Text>
-                                                </Space>
-                                            </div>
-                                            <div className='cvat-benchmark-metric-item'>
-                                                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                    <Text type='secondary' style={{ fontSize: '12px' }}>True Positives</Text>
-                                                    <Text strong style={{ fontSize: '12px', color: '#52c41a' }}>
-                                                        {frameMetrics.truePositives}
-                                                    </Text>
-                                                </Space>
-                                            </div>
-                                            <div className='cvat-benchmark-metric-item'>
-                                                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                    <Text type='secondary' style={{ fontSize: '12px' }}>False Positives</Text>
-                                                    <Text strong style={{ fontSize: '12px', color: '#ff4d4f' }}>
-                                                        {frameMetrics.falsePositives}
-                                                    </Text>
-                                                </Space>
-                                            </div>
-                                            <div className='cvat-benchmark-metric-item'>
-                                                <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                                                    <Text type='secondary' style={{ fontSize: '12px' }}>False Negatives</Text>
-                                                    <Text strong style={{ fontSize: '12px', color: '#faad14' }}>
-                                                        {frameMetrics.falseNegatives}
-                                                    </Text>
-                                                </Space>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ),
+                                label: 'Frame Metrics',
+                                children: renderFrameMetricsTab(),
                             }]}
                         />
-
                         {/* Appearance Section */}
                         <Collapse
                             onChange={() => setAppearanceCollapsed(!appearanceCollapsed)}
@@ -774,27 +771,8 @@ function BenchmarkVisualSidebar(props: BenchmarkVisualSidebarProps): JSX.Element
                                 ),
                             }]}
                         />
-                    </div>
-
-                    {/* Collapse button at bottom center */}
-                    <div className='cvat-benchmark-visual-sidebar-collapse-button-bottom'>
-                        <span onClick={collapse} style={{ cursor: 'pointer', padding: '8px' }}>
-                            <MenuFoldOutlined title='Hide' />
-                        </span>
-                    </div>
-                </div>
-            )}
-            {collapsed && (
-                <div style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    padding: '8px',
-                    cursor: 'pointer'
-                }} onClick={collapse}>
-                    <MenuUnfoldOutlined title='Show' style={{ fontSize: '16px' }} />
-                </div>
-            )}
+                    </>
+                )}
             </Layout.Sider>
             {!collapsed && (
                 <div
@@ -804,7 +782,7 @@ function BenchmarkVisualSidebar(props: BenchmarkVisualSidebarProps): JSX.Element
                     style={{
                         position: 'absolute',
                         top: 0,
-                        right: 0,
+                        left: 0,
                         width: '4px',
                         height: '100%',
                         cursor: 'col-resize',

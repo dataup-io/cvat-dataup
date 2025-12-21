@@ -24,13 +24,18 @@ class DataUpPolicyEnforcer(PolicyEnforcer):
             if self.is_metadata_request(request, view) or obj and is_public_obj(obj):
                 return True
 
+            assert hasattr(
+                view, "iam_permission_class"
+            ), f"View {view} has no 'iam_permission_class' attribute"
+
+            perm_class = view.iam_permission_class
             iam_context = self._resolve_iam_context(request, view, obj)
-            for perm_class in self._collect_permission_types():
-                for perm in perm_class.create(request, view, obj, iam_context=iam_context):
-                    checked_permissions.append(perm)
-                    result = perm.check_access()
-                    if not result.allow:
-                        return False
+
+            for perm in perm_class.create(request, view, obj, iam_context=iam_context):
+                checked_permissions.append(perm)
+                result = perm.check_access()
+                if not result.allow:
+                    return False
 
             return True
 

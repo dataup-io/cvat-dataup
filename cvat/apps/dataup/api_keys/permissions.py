@@ -6,12 +6,7 @@ from enum import Enum
 from django.conf import settings
 
 from cvat.apps.dataup.iam.context import get_dataup_iam_context
-from cvat.apps.iam.permissions import (
-    OpenPolicyAgentPermission,
-    PolicyEnforcer,
-    get_iam_context,
-    is_public_obj,
-)
+from cvat.apps.iam.permissions import OpenPolicyAgentPermission
 
 
 class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
@@ -90,34 +85,38 @@ class DataUpAPIKeyPerm(OpenPolicyAgentPermission):
         return resource
 
 
-class DataUpPolicyEnforcer(PolicyEnforcer):
-    """Custom policy enforcer for DataUp API keys that uses DataUp-specific IAM context"""
+# class DataUpPolicyEnforcer(PolicyEnforcer):
+#     """Custom policy enforcer for DataUp API keys that uses DataUp-specific IAM context"""
 
-    def _check_permission(self, request, view, obj):
-        def _check_permissions():
-            # DRF can send OPTIONS request. Internally it will try to get
-            # information about serializers for PUT and POST requests (clone
-            # request and replace the http method). To avoid handling
-            # ('POST', 'metadata') and ('PUT', 'metadata') in every request,
-            # the condition below is enough.
-            if self.is_metadata_request(request, view) or obj and is_public_obj(obj):
-                return True
+#     def _check_permission(self, request, view, obj):
+#         def _check_permissions():
+#             # DRF can send OPTIONS request. Internally it will try to get
+#             # information about serializers for PUT and POST requests (clone
+#             # request and replace the http method). To avoid handling
+#             # ('POST', 'metadata') and ('PUT', 'metadata') in every request,
+#             # the condition below is enough.
+#             if self.is_metadata_request(request, view) or obj and is_public_obj(obj):
+#                 return True
 
-            # Use DataUp-specific IAM context for DataUp API key views
-            if hasattr(view, "basename") and view.basename == "api-key":
-                iam_context = get_dataup_iam_context(request, obj)
-            else:
-                iam_context = get_iam_context(request, obj)
+#             assert hasattr(
+#                 view, "iam_permission_class"
+#             ), f"View {view} has no 'iam_permission_class' attribute"
 
-            for perm_class in self._collect_permission_types():
-                for perm in perm_class.create(request, view, obj, iam_context=iam_context):
-                    checked_permissions.append(perm)
-                    result = perm.check_access()
-                    if not result.allow:
-                        return False
+#             perm_class = view.iam_permission_class
+#             # Use DataUp-specific IAM context for DataUp API key views
+#             if hasattr(view, "basename") and view.basename == "api-key":
+#                 iam_context = get_dataup_iam_context(request, obj)
+#             else:
+#                 iam_context = get_iam_context(request, obj)
 
-            return True
+#             for perm in perm_class.create(request, view, obj, iam_context=iam_context):
+#                 checked_permissions.append(perm)
+#                 result = perm.check_access()
+#                 if not result.allow:
+#                     return False
 
-        checked_permissions = []
-        allow = _check_permissions()
-        return allow, checked_permissions
+#             return True
+
+#         checked_permissions = []
+#         allow = _check_permissions()
+#         return allow, checked_permissions

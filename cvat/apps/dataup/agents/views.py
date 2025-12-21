@@ -10,6 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
 from cvat.apps.dataup.iam.context import get_dataup_iam_context, get_dataup_organization
+from cvat.apps.dataup.agents.permissions import DataUpAgentPermission
 from cvat.apps.dataup.agents.serializers import (
     AgentInferenceRequest,
     AgentReadSerializer,
@@ -24,6 +25,7 @@ from asgiref.sync import async_to_sync
 
 class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+    iam_permission_class = DataUpAgentPermission
     iam_context_factory = staticmethod(get_dataup_iam_context)
     iam_organization_field = "organization"
 

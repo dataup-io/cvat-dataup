@@ -25,11 +25,23 @@ interface GroundTruthAnnotation {
     frame: number;
 }
 
+interface BackendPrediction {
+    frame_id: number;
+    job_id?: number;
+    false_positives?: number;
+    false_negatives?: number;
+    true_positives?: number;
+    precision?: number;
+    recall?: number;
+    f1?: number;
+}
+
 interface BenchmarkImageOverlayViewerProps {
     benchmarkId: string;
     taskId: number;
     jobId?: number; // Optional: if provided, only show frames from this job
     predictions?: Prediction[];
+    backendPredictions?: BackendPrediction[];
 }
 
 // Convert CVAT annotation to bounding box format
@@ -154,7 +166,7 @@ function createBoundingBoxRect(
 }
 
 function BenchmarkImageOverlayViewer(props: BenchmarkImageOverlayViewerProps): JSX.Element {
-    const { benchmarkId, taskId, jobId, predictions: propPredictions } = props;
+    const { benchmarkId, taskId, jobId, predictions: propPredictions, backendPredictions = [] } = props;
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
     const fabricCanvasRef = useRef<fabric.Canvas | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -804,6 +816,25 @@ function BenchmarkImageOverlayViewer(props: BenchmarkImageOverlayViewerProps): J
         });
     }, []);
 
+    // Get current frame's metrics from backend predictions
+    const currentFrameMetrics = useMemo(() => {
+        if (!backendPredictions.length || frameNumbersList.length === 0 || currentFrame < 0 || currentFrame >= frameNumbersList.length) {
+            return null;
+        }
+        const frameNumber = frameNumbersList[currentFrame];
+        const framePrediction = backendPredictions.find(p => p.frame_id === frameNumber);
+        if (!framePrediction) return null;
+
+        return {
+            precision: framePrediction.precision ?? 0,
+            recall: framePrediction.recall ?? 0,
+            f1Score: framePrediction.f1 ?? 0,
+            truePositives: framePrediction.true_positives ?? 0,
+            falsePositives: framePrediction.false_positives ?? 0,
+            falseNegatives: framePrediction.false_negatives ?? 0,
+        };
+    }, [backendPredictions, frameNumbersList, currentFrame]);
+
     if (error) {
         return (
             <div style={{ textAlign: 'center', padding: '40px' }}>
@@ -830,28 +861,6 @@ function BenchmarkImageOverlayViewer(props: BenchmarkImageOverlayViewerProps): J
 
     return (
         <Layout hasSider className="cvat-benchmark-visual-workspace" style={{ height: '100%' }}>
-            {/* Left Sidebar */}
-            <BenchmarkVisualSidebar
-                showGroundTruth={showGroundTruth}
-                showPredictions={showPredictions}
-                opacity={shapeFillOpacity}
-                onToggleGroundTruth={setShowGroundTruth}
-                onTogglePredictions={setShowPredictions}
-                onOpacityChange={setShapeFillOpacity}
-                groundTruthCount={groundTruthAnnotations.length}
-                predictionsCount={predictions.filter((p) => p.confidence === undefined || p.confidence >= confidenceThreshold).length}
-                groundTruthClassCounts={groundTruthClassCounts}
-                predictionsClassCounts={predictionsClassCounts}
-                hiddenGTClasses={hiddenGTClasses}
-                hiddenPredClasses={hiddenPredClasses}
-                onToggleGTClass={handleToggleGTClass}
-                onTogglePredClass={handleTogglePredClass}
-                zoomLevel={zoomLevel}
-                onZoomSliderChange={handleZoomSliderChange}
-                confidenceThreshold={confidenceThreshold}
-                onConfidenceThresholdChange={setConfidenceThreshold}
-            />
-
             <Layout.Content style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
                 {/* Top Controls Bar - Frame Navigation and Fit Image */}
                 <div style={{
@@ -954,6 +963,28 @@ function BenchmarkImageOverlayViewer(props: BenchmarkImageOverlayViewerProps): J
                     </div>
                 </div>
             </Layout.Content>
+            {/* Right Sidebar */}
+            <BenchmarkVisualSidebar
+                showGroundTruth={showGroundTruth}
+                showPredictions={showPredictions}
+                opacity={shapeFillOpacity}
+                onToggleGroundTruth={setShowGroundTruth}
+                onTogglePredictions={setShowPredictions}
+                onOpacityChange={setShapeFillOpacity}
+                groundTruthCount={groundTruthAnnotations.length}
+                predictionsCount={predictions.filter((p) => p.confidence === undefined || p.confidence >= confidenceThreshold).length}
+                groundTruthClassCounts={groundTruthClassCounts}
+                predictionsClassCounts={predictionsClassCounts}
+                hiddenGTClasses={hiddenGTClasses}
+                hiddenPredClasses={hiddenPredClasses}
+                onToggleGTClass={handleToggleGTClass}
+                onTogglePredClass={handleTogglePredClass}
+                zoomLevel={zoomLevel}
+                onZoomSliderChange={handleZoomSliderChange}
+                confidenceThreshold={confidenceThreshold}
+                onConfidenceThresholdChange={setConfidenceThreshold}
+                frameMetrics={currentFrameMetrics}
+            />
         </Layout>
     );
 }

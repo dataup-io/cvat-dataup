@@ -106,7 +106,7 @@ function ApisTablePage(): JSX.Element {
                     dispatch(getAgentsAsync(query));
                 } catch (error: any) {
                     console.error('Failed to delete agent:', error);
-                    
+
                     // Show user-friendly error notification
                     if (error?.response?.status === 403) {
                         notification.error({
@@ -164,8 +164,8 @@ function ApisTablePage(): JSX.Element {
             <div className='cvat-apis-page'>
                 <NothingToSee message={'No API key found. Create an API key to manage APIs.'} />
                 <div style={{ marginTop: 16 }}>
-                    <Link to='/api-keys'>
-                        <Button type='primary'>Go to API Keys</Button>
+                    <Link to='/security/dataup-keys'>
+                        <Button type='primary'>Go to Security</Button>
                     </Link>
                 </div>
             </div>

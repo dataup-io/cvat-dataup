@@ -286,7 +286,27 @@ def calculate_object_detection_metrics(
     )
     # Collect all job ids from keys (not values)
     all_job_ids = set(tp_per_job.keys()) | set(fp_per_job.keys()) | set(fn_per_job.keys())
+    all_frame_ids = set(tp_per_frame.keys()) | set(fp_per_frame.keys()) | set(fn_per_frame.keys())
     job_metrics: list[dict] = []
+    frame_metrics: dict = {}
+
+    for frame_id in all_frame_ids:
+        tp = tp_per_frame[frame_id]
+        fp = fp_per_frame[frame_id]
+        fn = fn_per_frame[frame_id]
+        precision = tp / (tp + fp) if tp + fp > 0 else 0
+        recall = tp / (tp + fn) if tp + fn > 0 else 0
+        f1 = 2 * precision * recall / (precision + recall) if precision + recall > 0 else 0
+        frame_metrics[frame_id] = {
+            "frame_id": frame_id,
+            "true_positives": tp,
+            "false_positives": fp,
+            "false_negatives": fn,
+            "precision": precision,
+            "recall": recall,
+            "f1": f1,
+        }
+
     for job_id in all_job_ids:
         tp = tp_per_job[job_id]
         fp = fp_per_job[job_id]
@@ -321,5 +341,5 @@ def calculate_object_detection_metrics(
 
     global_metrics = {"average_precision": precision, "average_recall": recall, "average_f1": f1, "mean_iou": mean_iou}
     per_class_metrics = calculate_per_class_metrics(class_names=class_names, all_preds=all_preds, all_gts=all_gts)
-
-    return {"job_metrics": job_metrics, "global_metrics": global_metrics, "per_class_metrics": per_class_metrics}
+    return job_metrics, global_metrics, per_class_metrics, frame_metrics
+    # return {"job_metrics": job_metrics, "global_metrics": global_metrics, "per_class_metrics": per_class_metrics}

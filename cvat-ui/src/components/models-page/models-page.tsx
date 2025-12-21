@@ -75,13 +75,13 @@ function ModelsPageComponent(): JSX.Element {
     useEffect(() => {
         // Only fetch models after organization context is ready (either org or personal workspace)
         if (organizationInitialized) {
-            dispatch(getModelsAsync(updatedQuery));
-            if (pageOutOfBounds) {
-                notification.error({
-                    message: 'Could not fetch models',
-                    description: 'Invalid page',
-                });
-            }
+        dispatch(getModelsAsync(updatedQuery));
+        if (pageOutOfBounds) {
+            notification.error({
+                message: 'Could not fetch models',
+                description: 'Invalid page',
+            });
+        }
         }
     }, [organizationInitialized]); // Depend on organization initialization
 

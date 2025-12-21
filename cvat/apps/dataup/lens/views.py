@@ -5,6 +5,7 @@ from cvat.apps.dataup.iam.context import get_dataup_iam_context
 from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
 from asgiref.sync import async_to_sync
 from rest_framework.permissions import IsAuthenticated
+from cvat.apps.dataup.agents.permissions import DataUpLensPermission
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from cvat.apps.dataup.lens.jobs import LensQueue, LensSyncJob
@@ -12,6 +13,7 @@ from cvat.apps.dataup.lens.jobs import LensQueue, LensSyncJob
 
 class LensViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+    iam_permission_class = DataUpLensPermission
     iam_context_factory = staticmethod(get_dataup_iam_context)
     iam_organization_field = "organization"
 

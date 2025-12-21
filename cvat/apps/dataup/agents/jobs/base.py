@@ -17,6 +17,7 @@ from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_sche
 from rest_framework.permissions import IsAuthenticated
 from cvat.apps.dataup.iam.context import get_dataup_iam_context
 from cvat.apps.dataup.iam.policy import DataUpPolicyEnforcer
+from cvat.apps.dataup.agents.permissions import DataUpAgentJobPermission
 from cvat.apps.dataup.dataup_api.client import DataUpAPIClientMixin
 from asgiref.sync import async_to_sync
 from .serializers import AgentJobSerializer
@@ -209,6 +210,7 @@ class BaseAgentJobsViewSet(DataUpAPIClientMixin, viewsets.ViewSet):
     """Base class for agent job viewsets with common functionality"""
 
     permission_classes = [IsAuthenticated, DataUpPolicyEnforcer]
+    iam_permission_class = DataUpAgentJobPermission
     iam_context_factory = staticmethod(get_dataup_iam_context)
     iam_organization_field = "organization"
 

@@ -1,0 +1,67 @@
+.security-page {
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+
+        .header-content {
+            flex: 1;
+
+            h2 {
+                margin-bottom: 4px;
+                color: #262626;
+                font-weight: 600;
+            }
+
+            .subtitle {
+                color: #8c8c8c;
+                font-size: 14px;
+            }
+        }
+    }
+
+    .security-page-tabs {
+        .ant-tabs-tab {
+            padding: 12px 16px;
+        }
+    }
+
+    .dataup-api-keys-tab {
+        .api-keys-table-container {
+            .visible-key {
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                border: 1px solid #ffd591;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                letter-spacing: 0.5px;
+                color: #fa8c16;
+                background-color: transparent;
+            }
+
+            .masked-key {
+                font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+                background-color: #fafafa;
+                border: 1px solid #f0f0f0;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                letter-spacing: 0.5px;
+            }
+        }
+
+        .empty-state {
+            transition: none;
+
+            &:hover {
+                transform: none;
+                box-shadow: none;
+            }
+        }
+    }
+
+    .personal-access-tokens-tab {
+        // Styles for PAT tab if needed
+    }
+}
+

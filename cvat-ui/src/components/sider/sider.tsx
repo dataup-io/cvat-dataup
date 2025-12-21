@@ -12,13 +12,14 @@ import Icon, {
     FolderOpenOutlined,
     GatewayOutlined,
     HourglassOutlined,
-    PieChartOutlined,
     RobotOutlined,
     TagsOutlined,
     UnorderedListOutlined,
     SubnodeOutlined,
     ReadOutlined,
     KeyOutlined,
+    LockOutlined,
+    SafetyOutlined,
 } from '@ant-design/icons';
 import Layout from 'antd/lib/layout';
 import { CombinedState } from 'reducers';
@@ -28,12 +29,10 @@ import { useSelectedMenuKey } from 'utils/hooks';
 
 interface StateToProps {
     user: {
-        hasAnalyticsAccess: boolean;
         isSuperuser: boolean;
         groups: string[];
         plan?: string;
     };
-    isAnalyticsPluginActive: boolean;
     isModelsPluginActive: boolean;
     currentOrganization: any;
 }
@@ -61,12 +60,10 @@ function mapStateToProps(state: CombinedState): StateToProps {
 
     return {
         user: {
-            hasAnalyticsAccess: user?.hasAnalyticsAccess ?? false,
             isSuperuser: user?.isSuperuser ?? false,
             groups: user?.groups ?? [],
             plan: user?.plan,
         },
-        isAnalyticsPluginActive: list.ANALYTICS,
         isModelsPluginActive: list.MODELS,
         currentOrganization: current,
     };
@@ -75,7 +72,7 @@ function mapStateToProps(state: CombinedState): StateToProps {
 type Props = StateToProps;
 
 function SiderComponent(props: Props): JSX.Element {
-    const { user, isAnalyticsPluginActive, isModelsPluginActive, currentOrganization } = props;
+    const { user, isModelsPluginActive, currentOrganization } = props;
     const history = useHistory();
     const items = useMemo(() => {
         const baseItems = [
@@ -96,18 +93,15 @@ function SiderComponent(props: Props): JSX.Element {
                 getItem('Catalogue', 'catalogue', () => history.push('/pipelines/catalogue'), <ReadOutlined />),
                 getItem('Steps', 'steps', () => history.push('/pipelines/steps'), <ApiOutlined />),
             ]),
-            isAnalyticsPluginActive && user.hasAnalyticsAccess && getItem(
-                'Analytics',
-                'analytics',
-                () => window.open('/analytics', '_blank', 'noopener,noreferrer'),
-                <PieChartOutlined />,
-            ),
-
-            getItem('API Keys', 'api-keys', () => history.push('/api-keys'), <KeyOutlined />),
+            getItem('Security', 'security', undefined, <LockOutlined />, [
+                getItem('DataUP API Keys', 'dataup-keys', () => history.push('/security/dataup-keys'), <KeyOutlined />),
+                getItem('CVAT API Tokens', 'pat', () => history.push('/security/pat'), <LockOutlined />),
+                getItem('Password', 'password', () => history.push('/security/password'), <SafetyOutlined />),
+            ]),
         ];
 
         return baseItems.filter(Boolean) as MenuItem[];
-    }, [user, isAnalyticsPluginActive, isModelsPluginActive, history]);
+    }, [user, isModelsPluginActive, history]);
 
     const [collapsed, setCollapsed] = React.useState(false);
     const handleCollapse = useCallback((value: boolean) => setCollapsed(value), []);
@@ -122,11 +116,12 @@ function SiderComponent(props: Props): JSX.Element {
         '/agents/models': 'models',
         '/agents/endpoints': 'endpoints',
         '/agents/benchmarks': 'benchmarks',
-        '/analytics': 'analytics',
 
         '/pipelines/catalogue': 'catalogue',
         '/pipelines/steps': 'steps',
-        '/api-keys': 'api-keys',
+        '/security/dataup-keys': 'dataup-keys',
+        '/security/pat': 'pat',
+        '/security/password': 'password',
     };
 
     const selectedKey = useSelectedMenuKey(keyMapping);
