@@ -24,6 +24,7 @@ import FitControl, { Props as FitControlProps } from './fit-control';
 import ResizeControl, { Props as ResizeControlProps } from './resize-control';
 import ToolsControl from './tools-control';
 import OpenCVControl from './opencv-control';
+import DataUpToolsControl from './dataup-tools-control';
 import BatchInferenceControl from './batch-inference-control';
 import DrawRectangleControl, { Props as DrawRectangleControlProps } from './draw-rectangle-control';
 import DrawPolygonControl, { Props as DrawPolygonControlProps } from './draw-polygon-control';
@@ -127,6 +128,7 @@ const ObservedFitControl = ControlVisibilityObserver<FitControlProps>(FitControl
 const ObservedResizeControl = ControlVisibilityObserver<ResizeControlProps>(ResizeControl);
 const ObservedToolsControl = ControlVisibilityObserver(ToolsControl);
 const ObservedOpenCVControl = ControlVisibilityObserver(OpenCVControl);
+const ObservedDataUpToolsControl = ControlVisibilityObserver(DataUpToolsControl);
 const ObservedBatchInferenceControl = ControlVisibilityObserver(BatchInferenceControl);
 const ObservedDrawRectangleControl = ControlVisibilityObserver<DrawRectangleControlProps>(DrawRectangleControl);
 const ObservedDrawPolygonControl = ControlVisibilityObserver<DrawPolygonControlProps>(DrawPolygonControl);
@@ -285,6 +287,7 @@ export default function ControlsSideBarComponent(props: Props): JSX.Element {
             ActiveControl.DRAW_MASK,
             ActiveControl.AI_TOOLS,
             ActiveControl.OPENCV_TOOLS,
+            ActiveControl.DATAUP_TOOLS,
         ].includes(activeControl);
         const editing = canvasInstance.mode() === CanvasMode.EDIT;
 
@@ -306,7 +309,7 @@ export default function ControlsSideBarComponent(props: Props): JSX.Element {
                 redrawShape();
             }
         } else {
-            if ([ActiveControl.AI_TOOLS, ActiveControl.OPENCV_TOOLS].includes(activeControl)) {
+            if ([ActiveControl.AI_TOOLS, ActiveControl.OPENCV_TOOLS, ActiveControl.DATAUP_TOOLS].includes(activeControl)) {
                 // separated API method
                 canvasInstance.interact({ enabled: false });
                 return;
@@ -355,6 +358,9 @@ export default function ControlsSideBarComponent(props: Props): JSX.Element {
 
             <hr />
             <ObservedToolsControl />
+            <hr />
+            <ObservedDataUpToolsControl />
+            <hr />
             <ObservedOpenCVControl />
             {
                 rectangleControlVisible && (

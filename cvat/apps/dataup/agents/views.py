@@ -204,6 +204,7 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
         response = async_to_sync(self._ainfer)(client, payload, pk, *args, **kwargs)
         frame_ids = inference_data["frame_ids"]
         data = response.get("data", None)
+        session_id = response.get("session_id", None)
         if data is None:
             return Response(
                 {"message": "No data found in agent response body"},
@@ -215,7 +216,8 @@ class AgentViewSet(DataUpAPIClientMixin, viewsets.ModelViewSet):
             label_mapping=label_mapping,
             task_type=task_type,
         )
-        converted_outputs = converter.convert(frame_ids, data)
+        converted_outputs = converter.convert(frame_ids, data, session_id)
+        print("Converted outputs", converted_outputs)
         return Response(data=converted_outputs, status=status.HTTP_200_OK)
 
     async def _ainfer(self, client, payload, pk=None, *args, **kwargs):

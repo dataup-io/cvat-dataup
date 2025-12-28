@@ -211,6 +211,7 @@
 .cvat-tools-control-popover-content,
 .cvat-opencv-control-popover-content {
     width: fit-content;
+    min-width: $grid-unit-size * 45;
     padding: $grid-unit-size;
     border-radius: $grid-unit-size;
     background: $background-color-2;

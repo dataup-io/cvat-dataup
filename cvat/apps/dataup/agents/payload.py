@@ -25,16 +25,14 @@ def get_frames_from_task(task_id: int, frame_ids: list[int]) -> tuple[list[str],
 
 
 def _prepare_interactor_params(params: dict) -> dict:
-    pos_points = [(int(p[0]), int(p[1])) for p in params.get("pos_points", [])]
-    neg_points = [(int(p[0]), int(p[1])) for p in params.get("neg_points", [])]
-    pos_boxes = [(int(p[0]), int(p[1]), int(p[2]), int(p[3])) for p in params.get("pos_boxes", [])]
-
     return {
-        "param_type": "sam2",
-        "pos_points": pos_points,
-        "neg_points": neg_points,
-        "pos_boxes": pos_boxes,
-    }
+        "param_type": "sam3",
+        "text_prompt": params.get("text_prompt", ""),
+        "geom_prompt": {
+            "positive_boxes": params.get("positive_boxes", []),
+            "negative_boxes": params.get("negative_boxes", []),
+        },
+    },  params.get("session_id")
 
 
 def _prepare_detector_params(params: dict) -> dict:
@@ -55,7 +53,7 @@ def prepare_payload_params(params: dict, task_type: str = "annotate_frame") -> d
     if task_type == "interact":
         return _prepare_interactor_params(params)
     elif task_type == "annotate_frame":
-        return _prepare_detector_params(params)
+        return _prepare_detector_params(params), None # no session id for annotate_frame
     else:
         raise ValueError(f"Unknown task type {task_type}")
 
@@ -73,9 +71,10 @@ def build_infer_payload(
 ) -> dict:
     request_id = get_request_id(organization_uuid, task_id, frame_ids, task_type)
     image_urls, images = get_frames_from_task(task_id, frame_ids)
-    params = prepare_payload_params(params, task_type)
+    params, session_id = prepare_payload_params(params, task_type)
     return {
         "request_id": request_id,
+        "session_id": session_id,
         "image_urls": image_urls,
         "images_b64": images,
         "params": params,

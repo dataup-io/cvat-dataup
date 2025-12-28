@@ -76,6 +76,7 @@ import SVGSliceIcon from './assets/slice-icon.svg';
 import SVGDataUpLogo from './assets/dataup.svg';
 import SVGDataUpLogo2 from './assets/dataup-old2.svg';
 import SVGDataUpFavIcon from './assets/favicon.svg';
+import SVGSAM3 from './assets/sam3-icon.svg';
 
 export const CVATIcon = React.memo((): JSX.Element => <SVGCVATIcon />);
 export const CursorIcon = React.memo((): JSX.Element => <SVGCursorIcon />);
@@ -148,3 +149,4 @@ export const SliceIcon = React.memo((): JSX.Element => <SVGSliceIcon />);
 export const DataUpLogo = React.memo((): JSX.Element => <SVGDataUpLogo />);
 export const DataUpFavIcon = React.memo((): JSX.Element => <SVGDataUpFavIcon />);
 export const DataUpLogo2 = React.memo((): JSX.Element => <SVGDataUpLogo2 />);
+export const SAM3Icon = React.memo((): JSX.Element => <SVGSAM3 />);

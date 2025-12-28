@@ -29,8 +29,8 @@ class DataUpAgentResultConverter:
 
         self.db_labels = self._convert_labels(task_db.get_labels(prefetch=True))
         self.task_type = task_type
-        print("DB labels", self.db_labels)
-        self.label_mapping = label_mapping
+        self.label_mapping = label_mapping if label_mapping else {label_name: label_name for label_name in self.db_labels.keys()}
+        print("Label mapping", self.label_mapping)
 
     @classmethod
     def _convert_labels(cls, db_labels) -> dict:
@@ -43,16 +43,24 @@ class DataUpAgentResultConverter:
                 labels[label.name]["attributes"][attr["name"]] = attr["id"]
         return labels
 
-    def convert(self, frames: list[int], results: list[list[dict]]) -> dict:
+    def convert(self, frames: list[int], results: list[list[dict]], session_id: str | None) -> dict:
         if self.task_type == "annotate_frame":
             return self.convert_detection_results(frames, results)
         elif self.task_type == "interact":
-            return self.convert_interact_results(frames, results)
+            return self.convert_interaction_results(frames, results, session_id)
         raise ValueError(f"Unknown task type {self.task_type}")
 
-    def convert_interact_results(self, frames: list[int], interaction_results: list[dict]) -> dict:
-        # TODO: refactor this, just for testing purposes right now
-        return {"blob": interaction_results[0]["blob"]}
+    def convert_interaction_results(self, frames: list[int], predictions: list[list[dict]], session_id: str | None) -> dict:
+        print("Convert interaction results", frames, predictions, session_id)
+        all_shapes = []
+        all_tags = []
+        for frame, anns_per_frame in zip(frames, predictions):
+            shapes, tags = self._convert_annotations_one_frame(frame, anns_per_frame["labels"])
+            all_shapes.extend(shapes)
+            all_tags.extend(tags)
+
+        print("All shapes", all_shapes)
+        return {"session_id": session_id, "shapes": all_shapes,  "tags": all_tags, "version": 1}
 
     def convert_detection_results(self, frames: list[int], detection_results: list[list[dict]]) -> dict:
         data = {"shapes": [], "tags": [], "version": 1}

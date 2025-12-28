@@ -1,0 +1,19 @@
+<svg width="40px" height="40px" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<g>
+	<!-- Main four-pointed star outline (rounded tips) - created by overlapping two squares -->
+	<path d="M256,140 L280,200 L340,224 L280,248 L256,308 L232,248 L172,224 L232,200 Z"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="28"
+		stroke-linecap="round"
+		stroke-linejoin="round"/>
+
+	<!-- Smaller solid star below and to the left -->
+	<path d="M150,340 L170,370 L200,380 L170,390 L150,420 L130,390 L100,380 L130,370 Z"
+		fill="currentColor"/>
+
+	<!-- Small plus sign above and to the right -->
+	<path d="M340,110 L340,130 L350,130 L350,140 L370,140 L370,130 L390,130 L390,110 L370,110 L370,100 L350,100 L350,110 Z"
+		fill="currentColor"/>
+</g>
+</svg>

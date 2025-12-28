@@ -117,8 +117,13 @@ function mapStateToProps(state: CombinedState): StateToProps {
         },
     } = state;
 
+    // Filter only CVAT interactors (exclude DataUp)
+    const cvatInteractors = interactors.filter(
+        (interactor: MLModel) => interactor.provider?.toLowerCase() === 'cvat'
+    );
+
     return {
-        interactors,
+        interactors: cvatInteractors,
         detectors,
         trackers,
         isActivated: activeControl === ActiveControl.AI_TOOLS,

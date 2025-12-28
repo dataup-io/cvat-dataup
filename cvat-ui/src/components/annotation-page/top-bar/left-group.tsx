@@ -84,7 +84,7 @@ function LeftGroup(props: Props): JSX.Element {
     const includesDoneButton = finishDrawAvailable(activeControl);
 
     const includesToolsBlockerButton =
-        [ActiveControl.OPENCV_TOOLS, ActiveControl.AI_TOOLS].includes(activeControl) && toolsBlockerState.buttonVisible;
+        [ActiveControl.OPENCV_TOOLS, ActiveControl.AI_TOOLS, ActiveControl.DATAUP_TOOLS].includes(activeControl) && toolsBlockerState.buttonVisible;
 
     const handlers: Record<keyof typeof componentShortcuts, (event?: KeyboardEvent) => void> = {
         UNDO: (event: KeyboardEvent | undefined) => {

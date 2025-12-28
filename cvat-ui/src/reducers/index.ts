@@ -798,6 +798,7 @@ export enum ActiveControl {
     AI_TOOLS = 'ai_tools',
     PHOTO_CONTEXT = 'PHOTO_CONTEXT',
     OPENCV_TOOLS = 'opencv_tools',
+    DATAUP_TOOLS = 'dataup_tools',
 }
 
 export enum StatesOrdering {
